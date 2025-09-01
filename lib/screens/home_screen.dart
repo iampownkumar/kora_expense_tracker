@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/constants/app_constants.dart';
+import 'package:kora_expense_tracker/providers/app_provider.dart';
 import 'package:kora_expense_tracker/screens/dashboard_screen.dart';
 import 'package:kora_expense_tracker/screens/transactions_screen.dart';
 import 'package:kora_expense_tracker/screens/accounts_screen.dart';
@@ -14,8 +16,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
-
   final List<Widget> _screens = [
     const DashboardScreen(),
     const TransactionsScreen(),
@@ -26,18 +26,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+    return Consumer<AppProvider>(
+      builder: (context, appProvider, child) {
+        return Scaffold(
+          body: IndexedStack(
+            index: appProvider.selectedTabIndex,
+            children: _screens,
+          ),
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: appProvider.selectedTabIndex,
+            onDestinationSelected: (index) {
+              appProvider.setSelectedTab(index);
+            },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.dashboard),
@@ -61,6 +61,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    );
+      },
     );
   }
 }

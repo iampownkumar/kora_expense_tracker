@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/constants/app_constants.dart';
 import 'package:kora_expense_tracker/utils/storage_service.dart';
+import 'package:kora_expense_tracker/providers/app_provider.dart';
 import 'package:kora_expense_tracker/screens/home_screen.dart';
 
 void main() async {
@@ -93,8 +94,11 @@ class KoraExpenseTrackerApp extends StatelessWidget {
       // Theme mode
       themeMode: ThemeMode.system,
       
-      // Home screen
-      home: const HomeScreen(),
+            // Home screen
+      home: ChangeNotifierProvider(
+        create: (context) => AppProvider()..initialize(),
+        child: const HomeScreen(),
+      ),
     );
   }
 }

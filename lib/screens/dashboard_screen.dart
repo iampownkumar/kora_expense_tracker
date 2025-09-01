@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/constants/app_constants.dart';
 import 'package:kora_expense_tracker/utils/formatters.dart';
+import 'package:kora_expense_tracker/providers/app_provider.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Consumer<AppProvider>(
+      builder: (context, appProvider, child) {
+        return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
         actions: [
@@ -21,9 +25,9 @@ class DashboardScreen extends StatelessWidget {
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () async {
-            // TODO: Refresh data
-          },
+                  onRefresh: () async {
+          await appProvider.refresh();
+        },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(AppConstants.defaultPadding),
@@ -45,7 +49,7 @@ class DashboardScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: AppConstants.smallPadding),
                         Text(
-                          Formatters.formatCurrency(0.0),
+                          Formatters.formatCurrency(appProvider.totalBalance),
                           style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppConstants.primaryColor,
@@ -58,7 +62,7 @@ class DashboardScreen extends StatelessWidget {
                               child: _buildBalanceItem(
                                 context,
                                 'Income',
-                                Formatters.formatCurrency(0.0),
+                                Formatters.formatCurrency(appProvider.totalIncome),
                                 AppConstants.successColor,
                                 Icons.arrow_upward,
                               ),
@@ -68,7 +72,7 @@ class DashboardScreen extends StatelessWidget {
                               child: _buildBalanceItem(
                                 context,
                                 'Expenses',
-                                Formatters.formatCurrency(0.0),
+                                Formatters.formatCurrency(appProvider.totalExpenses),
                                 AppConstants.errorColor,
                                 Icons.arrow_downward,
                               ),
@@ -91,44 +95,69 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppConstants.smallPadding),
                 
-                // Empty State
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppConstants.largePadding),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.receipt_long,
-                          size: 64,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(height: AppConstants.defaultPadding),
-                        Text(
-                          'No transactions yet',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                // Recent Transactions or Empty State
+                if (appProvider.recentTransactions.isNotEmpty) ...[
+                  // TODO: Show recent transactions list
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppConstants.largePadding),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.receipt_long,
+                            size: 64,
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
-                        ),
-                        const SizedBox(height: AppConstants.smallPadding),
-                        Text(
-                          'Add your first transaction to get started',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          const SizedBox(height: AppConstants.defaultPadding),
+                          Text(
+                            '${appProvider.recentTransactions.length} Recent Transactions',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: AppConstants.defaultPadding),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            // TODO: Navigate to add transaction
-                          },
-                          icon: const Icon(Icons.add),
-                          label: const Text('Add Transaction'),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ] else ...[
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppConstants.largePadding),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.receipt_long,
+                            size: 64,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(height: AppConstants.defaultPadding),
+                          Text(
+                            'No transactions yet',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: AppConstants.smallPadding),
+                          Text(
+                            'Add your first transaction to get started',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppConstants.defaultPadding),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              // TODO: Navigate to add transaction
+                            },
+                            icon: const Icon(Icons.add),
+                            label: const Text('Add Transaction'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 
                 const SizedBox(height: AppConstants.largePadding),
                 
@@ -157,7 +186,7 @@ class DashboardScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: AppConstants.smallPadding),
                               Text(
-                                '0',
+                                '${appProvider.accounts.length}',
                                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -187,7 +216,7 @@ class DashboardScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: AppConstants.smallPadding),
                               Text(
-                                '0',
+                                '${appProvider.categories.length}',
                                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -216,6 +245,8 @@ class DashboardScreen extends StatelessWidget {
         },
         child: const Icon(Icons.add),
       ),
+        );
+      },
     );
   }
 
