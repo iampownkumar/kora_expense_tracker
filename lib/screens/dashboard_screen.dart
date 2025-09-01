@@ -3,6 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/constants/app_constants.dart';
 import 'package:kora_expense_tracker/utils/formatters.dart';
 import 'package:kora_expense_tracker/providers/app_provider.dart';
+import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
+import 'package:kora_expense_tracker/widgets/transaction_list_item.dart';
+import 'package:kora_expense_tracker/models/category.dart';
+import 'package:kora_expense_tracker/models/account.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -34,25 +38,61 @@ class DashboardScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Balance Summary Card
+                // Balance Summary Card with Greeting
                 Card(
-                  child: Padding(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Container(
                     padding: const EdgeInsets.all(AppConstants.defaultPadding),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Theme.of(context).colorScheme.primaryContainer,
+                          Theme.of(context).colorScheme.secondaryContainer,
+                        ],
+                      ),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Total Balance',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _getGreeting(),
+                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Total Balance',
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Icon(
+                              Icons.account_balance_wallet,
+                              size: 32,
+                              color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: AppConstants.smallPadding),
+                        const SizedBox(height: AppConstants.defaultPadding),
                         Text(
                           Formatters.formatCurrency(appProvider.totalBalance),
                           style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: AppConstants.primaryColor,
+                            color: Theme.of(context).colorScheme.onPrimaryContainer,
                           ),
                         ),
                         const SizedBox(height: AppConstants.defaultPadding),
@@ -97,22 +137,95 @@ class DashboardScreen extends StatelessWidget {
                 
                 // Recent Transactions or Empty State
                 if (appProvider.recentTransactions.isNotEmpty) ...[
-                  // TODO: Show recent transactions list
                   Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(AppConstants.largePadding),
+                      padding: const EdgeInsets.all(AppConstants.defaultPadding),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.receipt_long,
-                            size: 64,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.receipt_long,
+                                color: AppConstants.primaryColor,
+                                size: 24,
+                              ),
+                              const SizedBox(width: AppConstants.smallPadding),
+                              Text(
+                                'Recent Transactions',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: AppConstants.defaultPadding),
-                          Text(
-                            '${appProvider.recentTransactions.length} Recent Transactions',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          SizedBox(
+                            height: 300,
+                            child: ListView.builder(
+                              itemCount: appProvider.recentTransactions.length,
+                              itemBuilder: (context, index) {
+                                final transaction = appProvider.recentTransactions[index];
+                                final category = appProvider.categories.firstWhere(
+                                  (c) => c.id == transaction.categoryId,
+                                  orElse: () => Category.create(
+                                    name: 'Unknown',
+                                    icon: Icons.category,
+                                    color: AppConstants.primaryColor,
+                                    type: AppConstants.categoryTypeExpense,
+                                  ),
+                                );
+                                final account = appProvider.accounts.firstWhere(
+                                  (a) => a.id == transaction.accountId,
+                                  orElse: () => Account.create(
+                                    name: 'Unknown Account',
+                                    icon: Icons.account_balance,
+                                    color: AppConstants.primaryColor,
+                                    type: AppConstants.accountTypeBank,
+                                  ),
+                                );
+                                final toAccount = transaction.toAccountId != null
+                                    ? appProvider.accounts.firstWhere(
+                                        (a) => a.id == transaction.toAccountId,
+                                        orElse: () => Account.create(
+                                          name: 'Unknown Account',
+                                          icon: Icons.account_balance,
+                                          color: AppConstants.primaryColor,
+                                          type: AppConstants.accountTypeBank,
+                                        ),
+                                      )
+                                    : null;
+
+                                return TransactionListItem(
+                                  transaction: transaction,
+                                  category: category,
+                                  account: account,
+                                  toAccount: toAccount,
+                                  onTap: () {
+                                    // Show transaction details or edit dialog
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AddTransactionDialog(
+                                        appProvider: appProvider,
+                                        transaction: transaction,
+                                      ),
+                                    );
+                                  },
+                                  onEdit: () {
+                                    // Show edit transaction dialog
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AddTransactionDialog(
+                                        appProvider: appProvider,
+                                        transaction: transaction,
+                                      ),
+                                    );
+                                  },
+                                  onDelete: () async {
+                                    await appProvider.deleteTransaction(transaction.id);
+                                  },
+                                );
+                              },
                             ),
                           ),
                         ],
@@ -148,7 +261,10 @@ class DashboardScreen extends StatelessWidget {
                           const SizedBox(height: AppConstants.defaultPadding),
                           ElevatedButton.icon(
                             onPressed: () {
-                              // TODO: Navigate to add transaction
+                              showDialog(
+                                context: context,
+                                builder: (context) => AddTransactionDialog(appProvider: appProvider),
+                              );
                             },
                             icon: const Icon(Icons.add),
                             label: const Text('Add Transaction'),
@@ -239,12 +355,53 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: Show add transaction dialog
-        },
-        child: const Icon(Icons.add),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (context) => AddTransactionDialog(appProvider: appProvider),
+            );
+          },
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          foregroundColor: Theme.of(context).colorScheme.onPrimary,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Theme.of(context).colorScheme.primary,
+                  Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                ],
+              ),
+            ),
+            child: const Icon(
+              Icons.add_rounded,
+              size: 32,
+              weight: 100,
+            ),
+          ),
+        ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         );
       },
     );
@@ -282,5 +439,16 @@ class DashboardScreen extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good Morning, Pown';
+    } else if (hour < 17) {
+      return 'Good Afternoon, Pown';
+    } else {
+      return 'Good Evening, Pown';
+    }
   }
 }

@@ -28,6 +28,9 @@ class Transaction {
   /// For transfers: destination account ID
   final String? toAccountId;
   
+  /// Transaction notes (optional)
+  final String? notes;
+  
   /// Transaction date
   final DateTime date;
   
@@ -46,6 +49,7 @@ class Transaction {
     required this.categoryId,
     required this.accountId,
     this.toAccountId,
+    this.notes,
     required this.date,
     required this.createdAt,
     required this.updatedAt,
@@ -59,6 +63,7 @@ class Transaction {
     required String categoryId,
     required String accountId,
     String? toAccountId,
+    String? notes,
     DateTime? date,
   }) {
     final now = DateTime.now();
@@ -70,6 +75,7 @@ class Transaction {
       categoryId: categoryId,
       accountId: accountId,
       toAccountId: toAccountId,
+      notes: notes,
       date: date ?? now,
       createdAt: now,
       updatedAt: now,
@@ -85,6 +91,7 @@ class Transaction {
     String? categoryId,
     String? accountId,
     String? toAccountId,
+    String? notes,
     DateTime? date,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -97,6 +104,7 @@ class Transaction {
       categoryId: categoryId ?? this.categoryId,
       accountId: accountId ?? this.accountId,
       toAccountId: toAccountId ?? this.toAccountId,
+      notes: notes ?? this.notes,
       date: date ?? this.date,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
@@ -144,6 +152,20 @@ class Transaction {
         return Icons.swap_horiz;
       default:
         return Icons.attach_money;
+    }
+  }
+
+  /// Get the display name for this transaction type
+  String get typeDisplayName {
+    switch (type) {
+      case AppConstants.transactionTypeIncome:
+        return 'Income';
+      case AppConstants.transactionTypeExpense:
+        return 'Expense';
+      case AppConstants.transactionTypeTransfer:
+        return 'Transfer';
+      default:
+        return 'Transaction';
     }
   }
 

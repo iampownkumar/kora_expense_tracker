@@ -161,15 +161,21 @@ class AppProvider extends ChangeNotifier {
     }
   }
   
-  Future<bool> updateTransaction(Transaction transaction) async {
+  Future<bool> updateTransaction(String transactionId, Transaction updatedTransaction) async {
     try {
-      final index = _transactions.indexWhere((t) => t.id == transaction.id);
+      final index = _transactions.indexWhere((t) => t.id == transactionId);
       if (index != -1) {
-        _transactions[index] = transaction;
-        await StorageService.saveTransactions(_transactions);
+        final oldTransaction = _transactions[index];
         
-        // Update account balances
-        await _updateAccountBalances(transaction);
+        // First, reverse the old transaction's effect on account balances
+        await _updateAccountBalances(oldTransaction, isDelete: true);
+        
+        // Then, apply the new transaction's effect
+        await _updateAccountBalances(updatedTransaction);
+        
+        // Update the transaction
+        _transactions[index] = updatedTransaction;
+        await StorageService.saveTransactions(_transactions);
         
         notifyListeners();
         return true;

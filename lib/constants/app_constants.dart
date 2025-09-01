@@ -24,6 +24,17 @@ class AppConstants {
   static const String transactionTypeExpense = 'expense';
   static const String transactionTypeTransfer = 'transfer';
   
+  // Category Types
+  static const String categoryTypeIncome = 'income';
+  static const String categoryTypeExpense = 'expense';
+  static const String categoryTypeBoth = 'both';
+  
+  // Account Types
+  static const String accountTypeCash = 'cash';
+  static const String accountTypeBank = 'bank';
+  static const String accountTypeCredit = 'credit';
+  static const String accountTypeInvestment = 'investment';
+  
   // Default Categories
   static const List<Map<String, dynamic>> defaultCategories = [
     // Income Categories

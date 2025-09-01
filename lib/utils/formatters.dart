@@ -110,6 +110,11 @@ class Formatters {
     }
   }
 
+  /// Get current currency symbol (public method)
+  static String getCurrencySymbol() {
+    return _getCurrencySymbol(AppConstants.defaultCurrency);
+  }
+
   /// Validate currency code
   static bool isValidCurrencyCode(String currencyCode) {
     final validCurrencies = [
