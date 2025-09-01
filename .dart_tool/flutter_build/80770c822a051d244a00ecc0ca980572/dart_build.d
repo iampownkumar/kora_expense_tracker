@@ -1,0 +1,1 @@
+ /home/pown/Desktop/kora_expense_tracker/.dart_tool/flutter_build/80770c822a051d244a00ecc0ca980572/dart_build_result.json: 
