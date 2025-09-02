@@ -7,6 +7,7 @@ import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
 import 'package:kora_expense_tracker/widgets/transaction_list_item.dart';
 import 'package:kora_expense_tracker/models/category.dart';
 import 'package:kora_expense_tracker/models/account.dart';
+import 'package:kora_expense_tracker/models/account_type.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -181,7 +182,7 @@ class DashboardScreen extends StatelessWidget {
                                     name: 'Unknown Account',
                                     icon: Icons.account_balance,
                                     color: AppConstants.primaryColor,
-                                    type: AppConstants.accountTypeBank,
+                                    type: AccountType.savings,
                                   ),
                                 );
                                 final toAccount = transaction.toAccountId != null
@@ -191,7 +192,7 @@ class DashboardScreen extends StatelessWidget {
                                           name: 'Unknown Account',
                                           icon: Icons.account_balance,
                                           color: AppConstants.primaryColor,
-                                          type: AppConstants.accountTypeBank,
+                                          type: AccountType.savings,
                                         ),
                                       )
                                     : null;

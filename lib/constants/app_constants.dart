@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/account_type.dart';
 
 /// App-wide constants for the Kora Expense Tracker
 class AppConstants {
@@ -29,7 +30,7 @@ class AppConstants {
   static const String categoryTypeExpense = 'expense';
   static const String categoryTypeBoth = 'both';
   
-  // Account Types
+  // Account Types (deprecated - use AccountType enum instead)
   static const String accountTypeCash = 'cash';
   static const String accountTypeBank = 'bank';
   static const String accountTypeCredit = 'credit';
@@ -121,14 +122,22 @@ class AppConstants {
       'icon': Icons.money,
       'color': Colors.green,
       'balance': 0.0,
+      'type': AccountType.cash,
     },
     {
       'name': 'Bank Account',
       'icon': Icons.account_balance,
       'color': Colors.blue,
       'balance': 0.0,
+      'type': AccountType.savings,
     },
   ];
+
+  // Popular Wallet Types for Quick Selection
+  static List<Map<String, dynamic>> get popularWallets => AccountType.getPopularWallets();
+
+  // Popular Bank Types for Quick Selection
+  static List<Map<String, dynamic>> get popularBanks => AccountType.getPopularBanks();
   
   // Theme Colors
   static const Color primaryColor = Colors.blue;

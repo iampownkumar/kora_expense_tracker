@@ -14,7 +14,7 @@ Account _$AccountFromJson(Map<String, dynamic> json) => Account(
   ),
   color: const ColorConverter().fromJson((json['color'] as num).toInt()),
   balance: (json['balance'] as num).toDouble(),
-  type: json['type'] as String,
+  type: $enumDecode(_$AccountTypeEnumMap, json['type']),
   description: json['description'] as String?,
   isActive: json['isActive'] as bool,
   createdAt: DateTime.parse(json['createdAt'] as String),
@@ -27,9 +27,18 @@ Map<String, dynamic> _$AccountToJson(Account instance) => <String, dynamic>{
   'icon': const IconDataConverter().toJson(instance.icon),
   'color': const ColorConverter().toJson(instance.color),
   'balance': instance.balance,
-  'type': instance.type,
+  'type': _$AccountTypeEnumMap[instance.type]!,
   'description': instance.description,
   'isActive': instance.isActive,
   'createdAt': instance.createdAt.toIso8601String(),
   'updatedAt': instance.updatedAt.toIso8601String(),
+};
+
+const _$AccountTypeEnumMap = {
+  AccountType.savings: 'savings',
+  AccountType.wallet: 'wallet',
+  AccountType.creditCard: 'creditCard',
+  AccountType.cash: 'cash',
+  AccountType.investment: 'investment',
+  AccountType.loan: 'loan',
 };

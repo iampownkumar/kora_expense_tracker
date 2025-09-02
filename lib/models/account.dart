@@ -1,6 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'package:flutter/material.dart';
 import '../utils/json_converters.dart';
+import 'account_type.dart';
 
 part 'account.g.dart';
 
@@ -25,7 +26,7 @@ class Account {
   final double balance;
   
   /// Account type (savings, credit, etc.)
-  final String type;
+  final AccountType type;
   
   /// Account description (optional)
   final String? description;
@@ -59,7 +60,7 @@ class Account {
     required IconData icon,
     required Color color,
     double balance = 0.0,
-    String type = 'savings',
+    AccountType type = AccountType.savings,
     String? description,
   }) {
     final now = DateTime.now();
@@ -84,7 +85,7 @@ class Account {
     IconData? icon,
     Color? color,
     double? balance,
-    String? type,
+    AccountType? type,
     String? description,
     bool? isActive,
     DateTime? createdAt,
@@ -124,11 +125,9 @@ class Account {
     return balance >= amount;
   }
 
-  /// Get the balance color based on amount
+  /// Get the balance color based on account type and amount
   Color get balanceColor {
-    if (balance > 0) return Colors.green;
-    if (balance < 0) return Colors.red;
-    return Colors.grey;
+    return type.getBalanceColor(balance);
   }
 
   /// Get the balance icon based on amount
@@ -136,6 +135,26 @@ class Account {
     if (balance > 0) return Icons.trending_up;
     if (balance < 0) return Icons.trending_down;
     return Icons.remove;
+  }
+
+  /// Check if this account is a liability (debt)
+  bool get isLiability => type.isLiability;
+
+  /// Check if this account is an asset
+  bool get isAsset => type.isAsset;
+
+  /// Get formatted balance with currency symbol
+  String getFormattedBalance({String currencySymbol = '₹'}) {
+    final absBalance = balance.abs();
+    if (absBalance >= 10000000) {
+      return '$currencySymbol${(absBalance / 10000000).toStringAsFixed(1)}Cr';
+    } else if (absBalance >= 100000) {
+      return '$currencySymbol${(absBalance / 100000).toStringAsFixed(1)}L';
+    } else if (absBalance >= 1000) {
+      return '$currencySymbol${(absBalance / 1000).toStringAsFixed(1)}K';
+    } else {
+      return '$currencySymbol${absBalance.toStringAsFixed(0)}';
+    }
   }
 
   /// Convert to JSON

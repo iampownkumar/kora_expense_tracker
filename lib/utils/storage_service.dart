@@ -98,11 +98,17 @@ class StorageService {
   /// Save accounts to local storage
   static Future<bool> saveAccounts(List<Account> accounts) async {
     try {
+      print('StorageService: Saving ${accounts.length} accounts');
       final jsonList = accounts.map((a) => a.toJson()).toList();
+      print('StorageService: JSON conversion successful');
       final jsonString = jsonEncode(jsonList);
-      return await prefs.setString(AppConstants.accountsKey, jsonString);
+      print('StorageService: JSON encoding successful, length: ${jsonString.length}');
+      final result = await prefs.setString(AppConstants.accountsKey, jsonString);
+      print('StorageService: SharedPreferences save result: $result');
+      return result;
     } catch (e) {
-      print('Error saving accounts: $e');
+      print('StorageService: Error saving accounts: $e');
+      print('StorageService: Error stack trace: ${StackTrace.current}');
       return false;
     }
   }

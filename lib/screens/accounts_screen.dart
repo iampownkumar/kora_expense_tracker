@@ -24,6 +24,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
   late Animation<double> _fadeAnimation;
   final ScrollController _scrollController = ScrollController();
   bool _showScrollToTop = false;
+  DateTime? _lastBackPress;
 
   @override
   void initState() {
@@ -58,15 +59,55 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        // Check if we're on dashboard (index 0)
+        final provider = context.read<AppProvider>();
+        if (provider.selectedTabIndex != 0) {
+          // Go to dashboard first
+          provider.setSelectedTab(0);
+          return false; // Don't exit app
+        }
+        
+        // If already on dashboard, check for double back press
+        final now = DateTime.now();
+        if (_lastBackPress == null || now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
+          _lastBackPress = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Press back again to exit'),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+          return false; // Don't exit app
+        }
+        
+        // Double back press - exit app
+        return true;
+      },
+      child: Scaffold(
       body: Consumer<AppProvider>(
         builder: (context, provider, child) {
           final accounts = _getFilteredAccounts(provider.accounts);
           final accountCounts = _getAccountCounts(provider.accounts);
           
-          return CustomScrollView(
-            controller: _scrollController,
-            slivers: [
+          return GestureDetector(
+            onHorizontalDragEnd: (details) {
+              // Swipe left/right to cycle through account types
+              if (details.primaryVelocity! > 0) {
+                // Swipe right - go to previous filter
+                _cycleFilter(-1);
+              } else if (details.primaryVelocity! < 0) {
+                // Swipe left - go to next filter
+                _cycleFilter(1);
+              }
+            },
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
               // App Bar with search
               _buildSliverAppBar(context, provider),
               
@@ -98,7 +139,8 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                 _buildEmptyState(context, provider)
               else
                 _buildAccountsList(accounts, provider),
-            ],
+              ],
+            ),
           );
         },
       ),
@@ -154,6 +196,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
               ),
             )
           : null,
+      ),
     );
   }
 
@@ -268,11 +311,31 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
 
   Widget _buildFilterChips(BuildContext context) {
     final theme = Theme.of(context);
+    final ScrollController filterScrollController = ScrollController();
+    
+    // Auto-scroll to selected filter when it changes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (filterScrollController.hasClients) {
+        final selectedIndex = _selectedFilter == null ? 0 : AccountType.values.indexOf(_selectedFilter!) + 1;
+        final chipWidth = 120.0; // Approximate width of each chip
+        final screenWidth = MediaQuery.of(context).size.width;
+        final scrollPosition = (selectedIndex * chipWidth) - (screenWidth / 2) + (chipWidth / 2);
+        // Ensure we don't scroll beyond bounds
+        final maxScroll = filterScrollController.position.maxScrollExtent;
+        final finalPosition = scrollPosition.clamp(0.0, maxScroll);
+        filterScrollController.animateTo(
+          finalPosition,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
     
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: AppConstants.defaultPadding),
       child: ListView(
+        controller: filterScrollController,
         scrollDirection: Axis.horizontal,
         children: [
           // All accounts chip
@@ -416,6 +479,54 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     
     // Also remove any other focus
     FocusScope.of(context).unfocus();
+  }
+
+  // Cycle through account type filters with swipe
+  void _cycleFilter(int direction) {
+    // Include all account types for complete swipe loop
+    final List<AccountType?> filters = [
+      null, // All
+      AccountType.savings,
+      AccountType.wallet,
+      AccountType.creditCard,
+      AccountType.cash,
+      AccountType.investment,
+      AccountType.loan,
+    ];
+    final currentIndex = filters.indexOf(_selectedFilter);
+    
+    int newIndex;
+    if (direction > 0) {
+      // Swipe left - next filter
+      newIndex = (currentIndex + 1) % filters.length;
+    } else {
+      // Swipe right - previous filter
+      newIndex = (currentIndex - 1 + filters.length) % filters.length;
+    }
+    
+    setState(() {
+      _selectedFilter = filters[newIndex];
+    });
+    
+    // Comment out popup message for production
+    // final filterName = _selectedFilter == null ? 'All' : _selectedFilter!.displayName;
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(
+    //     duration: const Duration(milliseconds: 1200),
+    //     behavior: SnackBarBehavior.floating,
+    //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    //     margin: const EdgeInsets.all(16),
+    //     elevation: 4,
+    //     backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+    //     content: Text(
+    //       'Showing: $filterName',
+    //       style: TextStyle(
+    //         color: Theme.of(context).colorScheme.onSurfaceVariant,
+    //         fontWeight: FontWeight.w500,
+    //       ),
+    //     ),
+    //   ),
+    // );
   }
 
   List<Account> _getFilteredAccounts(List<Account> accounts) {

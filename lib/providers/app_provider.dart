@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kora_expense_tracker/models/transaction.dart';
 import 'package:kora_expense_tracker/models/account.dart';
+import 'package:kora_expense_tracker/models/account_type.dart';
 import 'package:kora_expense_tracker/models/category.dart';
 import 'package:kora_expense_tracker/models/settings.dart';
 import 'package:kora_expense_tracker/utils/storage_service.dart';
@@ -32,6 +33,39 @@ class AppProvider extends ChangeNotifier {
   double get totalBalance {
     return _accounts.fold(0.0, (sum, account) => sum + account.balance);
   }
+
+  /// Get total assets (positive balances from asset accounts)
+  double get totalAssets {
+    return _accounts
+        .where((account) => account.isAsset)
+        .fold(0.0, (sum, account) => sum + account.balance);
+  }
+
+  /// Get total liabilities (negative balances from liability accounts)
+  double get totalLiabilities {
+    return _accounts
+        .where((account) => account.isLiability)
+        .fold(0.0, (sum, account) => sum + account.balance.abs());
+  }
+
+  /// Get net worth (assets - liabilities)
+  double get netWorth {
+    return totalAssets - totalLiabilities;
+  }
+
+  /// Get accounts grouped by type
+  Map<AccountType, List<Account>> get accountsByType {
+    final Map<AccountType, List<Account>> grouped = {};
+    for (final account in _accounts) {
+      grouped.putIfAbsent(account.type, () => []).add(account);
+    }
+    return grouped;
+  }
+
+  /// Get accounts filtered by type
+  List<Account> getAccountsByType(AccountType type) {
+    return _accounts.where((account) => account.type == type).toList();
+  }
   
   double get totalIncome {
     return _transactions
@@ -61,14 +95,19 @@ class AppProvider extends ChangeNotifier {
   
   // Initialize app data
   Future<void> initialize() async {
+    print('AppProvider: Initializing...');
     _setLoading(true);
     try {
+      print('AppProvider: Loading all data...');
       await _loadAllData();
+      print('AppProvider: Data loading complete');
       _error = null;
     } catch (e) {
+      print('AppProvider: Error during initialization: $e');
       _error = 'Failed to load data: $e';
     } finally {
       _setLoading(false);
+      print('AppProvider: Initialization complete');
     }
   }
   
@@ -80,25 +119,36 @@ class AppProvider extends ChangeNotifier {
   
   // Load all data from storage
   Future<void> _loadAllData() async {
-    final futures = await Future.wait([
-      StorageService.loadTransactions(),
-      StorageService.loadAccounts(),
-      StorageService.loadCategories(),
-      StorageService.loadSettings(),
-    ]);
+    print('AppProvider: Loading transactions...');
+    final transactions = await StorageService.loadTransactions();
+    print('AppProvider: Loaded ${transactions.length} transactions');
     
-    _transactions = futures[0] as List<Transaction>;
-    _accounts = futures[1] as List<Account>;
-    _categories = futures[2] as List<Category>;
-    _settings = futures[3] as Settings;
+    print('AppProvider: Loading accounts...');
+    final accounts = await StorageService.loadAccounts();
+    print('AppProvider: Loaded ${accounts.length} accounts');
+    
+    print('AppProvider: Loading categories...');
+    final categories = await StorageService.loadCategories();
+    print('AppProvider: Loaded ${categories.length} categories');
+    
+    print('AppProvider: Loading settings...');
+    final settings = await StorageService.loadSettings();
+    print('AppProvider: Settings loaded');
+    
+    _transactions = transactions;
+    _accounts = accounts;
+    _categories = categories;
+    _settings = settings;
     
     // If no categories exist, create default ones
     if (_categories.isEmpty) {
+      print('AppProvider: No categories found, creating defaults...');
       await _createDefaultCategories();
     }
     
     // If no accounts exist, create default ones
     if (_accounts.isEmpty) {
+      print('AppProvider: No accounts found, creating defaults...');
       await _createDefaultAccounts();
     }
   }
@@ -120,16 +170,22 @@ class AppProvider extends ChangeNotifier {
   
   // Create default accounts
   Future<void> _createDefaultAccounts() async {
+    print('Creating default accounts...');
     for (final accountData in AppConstants.defaultAccounts) {
+      print('Creating account: ${accountData['name']} with type: ${accountData['type']}');
       final account = Account.create(
         name: accountData['name'],
         icon: accountData['icon'],
         color: accountData['color'],
         balance: accountData['balance'],
+        type: accountData['type'] as AccountType,
       );
+      print('Account created: ${account.id}');
       _accounts.add(account);
     }
+    print('Saving ${_accounts.length} default accounts to storage');
     await StorageService.saveAccounts(_accounts);
+    print('Default accounts creation complete');
   }
   
   // Tab navigation
@@ -209,16 +265,26 @@ class AppProvider extends ChangeNotifier {
   // Account management
   Future<bool> addAccount(Account account) async {
     try {
+      print('Adding account: ${account.name} with type: ${account.type}');
       _accounts.add(account);
+      print('Account added to local list. Total accounts: ${_accounts.length}');
+      
       try {
-        await StorageService.saveAccounts(_accounts);
+        final success = await StorageService.saveAccounts(_accounts);
+        print('Storage save result: $success');
+        if (!success) {
+          print('Warning: Storage save failed, but account added to local state');
+        }
       } catch (e) {
-        // Handle storage errors gracefully
         print('Storage error: $e');
+        print('Account remains in local state despite storage error');
       }
+      
       notifyListeners();
+      print('Notified listeners. Account addition complete.');
       return true;
     } catch (e) {
+      print('Error adding account: $e');
       _error = 'Failed to add account: $e';
       notifyListeners();
       return false;
