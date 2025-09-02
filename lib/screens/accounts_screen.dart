@@ -117,7 +117,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                 child: FadeTransition(
                   opacity: _fadeAnimation,
                   child: Padding(
-                    padding: const EdgeInsets.all(AppConstants.defaultPadding),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                     child: FinancialSummaryCard(
                       totalAssets: provider.totalAssets,
                       totalLiabilities: provider.totalLiabilities,
@@ -157,6 +157,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
             ],
           ),
           child: FloatingActionButton.extended(
+            heroTag: "accounts_fab",
             onPressed: () => _showAddAccountDialog(context),
             icon: const Icon(Icons.add),
             label: const Text('Add Account'),
@@ -205,7 +206,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     final theme = Theme.of(context);
     
     return SliverAppBar(
-      expandedHeight: 160,
+      expandedHeight: 140,
       floating: false,
       pinned: true,
       backgroundColor: theme.brightness == Brightness.dark 
@@ -260,7 +261,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                 ),
                 // Search bar area
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 4), // changed from 16 to 4 for reduce the height
                   child: TextField(
                     controller: _searchController,
                     focusNode: _searchFocusNode,
@@ -333,7 +334,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     });
     
     return Container(
-      height: 50,
+      height: 40, // changed from 50 to 40 for reduce the height
       padding: const EdgeInsets.symmetric(horizontal: AppConstants.defaultPadding),
       child: ListView(
         controller: filterScrollController,

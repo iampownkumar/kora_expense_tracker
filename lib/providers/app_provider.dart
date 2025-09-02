@@ -31,7 +31,9 @@ class AppProvider extends ChangeNotifier {
   
   // Computed values for instant feedback
   double get totalBalance {
-    return _accounts.fold(0.0, (sum, account) => sum + account.balance);
+    // Total balance should only include asset accounts (savings, wallet, cash, investment)
+    // Liability accounts (credit cards, loans) should not be included in total balance
+    return totalAssets;
   }
 
   /// Get total assets (positive balances from asset accounts)

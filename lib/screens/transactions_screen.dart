@@ -439,6 +439,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         ],
       ),
       child: FloatingActionButton(
+        heroTag: "transactions_fab",
         onPressed: () => _addTransaction(context, appProvider),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,

@@ -34,7 +34,7 @@ class FinancialSummaryCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
         child: Container(
-          padding: const EdgeInsets.all(AppConstants.defaultPadding),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppConstants.borderRadius),
             gradient: LinearGradient(
@@ -114,11 +114,11 @@ class FinancialSummaryCard extends StatelessWidget {
                 ],
               ),
               
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               
               // Net Worth (main metric)
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: _getNetWorthColor(netWorth, theme).withOpacity(0.05),
                   borderRadius: BorderRadius.circular(12),
@@ -150,7 +150,7 @@ class FinancialSummaryCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       _formatCurrency(netWorth),
-                      style: theme.textTheme.headlineLarge?.copyWith(
+                      style: theme.textTheme.titleLarge?.copyWith(
                         color: _getNetWorthColor(netWorth, theme),
                         fontWeight: FontWeight.bold,
                       ),
@@ -185,7 +185,7 @@ class FinancialSummaryCard extends StatelessWidget {
                 ),
               ),
               
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               
               // Assets vs Liabilities breakdown
               Row(
@@ -212,7 +212,7 @@ class FinancialSummaryCard extends StatelessWidget {
                 ],
               ),
               
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               
               // Account type breakdown
               _buildAccountTypeBreakdown(context),
@@ -233,7 +233,7 @@ class FinancialSummaryCard extends StatelessWidget {
     final theme = Theme.of(context);
     
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),

@@ -341,7 +341,7 @@ The enhanced architecture supports:
   - JSON serialization working
 
 - [x] **UI Components**
-  - TransactionListItem with swipe-to-delete
+  - TransactionListItem with professional design
   - Enhanced dashboard with styled FAB
   - Professional card layouts
   - Material 3 compliance

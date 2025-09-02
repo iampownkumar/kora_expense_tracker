@@ -41,6 +41,7 @@ class CategoriesScreen extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: "categories_fab",
         onPressed: () {
           // TODO: Add category
         },

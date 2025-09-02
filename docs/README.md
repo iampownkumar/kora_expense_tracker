@@ -25,7 +25,7 @@ Kora Expense Tracker is designed to be effortless and intuitive—like swiping t
 - **Bottom Navigation**: Easy one-thumb access to core sections
 - **Floating Action Button**: Quick transaction addition with expandable options
 - **Inline Account/Category Creation**: Add new items directly from transaction forms
-- **Gesture Support**: Swipe to delete, long-press for multi-select
+- **Gesture Support**: Swipe to filter, long-press for multi-select
 - **Pull-to-refresh**: Natural data refresh mechanism
 
 ### Design & Accessibility

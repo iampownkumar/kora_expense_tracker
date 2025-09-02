@@ -9,13 +9,45 @@ import 'package:kora_expense_tracker/models/category.dart';
 import 'package:kora_expense_tracker/models/account.dart';
 import 'package:kora_expense_tracker/models/account_type.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  final ScrollController _scrollController = ScrollController();
+  int _lastSelectedTabIndex = 0;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _resetScrollPosition() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, appProvider, child) {
+        // Check if user returned to dashboard from another tab
+        if (appProvider.selectedTabIndex == 0 && _lastSelectedTabIndex != 0) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _resetScrollPosition();
+          });
+        }
+        _lastSelectedTabIndex = appProvider.selectedTabIndex;
+        
         return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
@@ -34,7 +66,8 @@ class DashboardScreen extends StatelessWidget {
           await appProvider.refresh();
         },
           child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
+            controller: _scrollController,
+            physics: const ClampingScrollPhysics(),
             padding: const EdgeInsets.all(AppConstants.defaultPadding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,84 +76,126 @@ class DashboardScreen extends StatelessWidget {
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: Container(
-                    padding: const EdgeInsets.all(AppConstants.defaultPadding),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Theme.of(context).colorScheme.primaryContainer,
-                          Theme.of(context).colorScheme.secondaryContainer,
-                        ],
+                  child: InkWell(
+                    onTap: () {
+                      // Navigate to accounts tab in bottom navigation
+                      appProvider.setSelectedTab(2); // Accounts tab is at index 2
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.all(AppConstants.defaultPadding),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Theme.of(context).colorScheme.primaryContainer,
+                            Theme.of(context).colorScheme.secondaryContainer,
+                          ],
+                        ),
                       ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _getGreeting(),
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                    fontWeight: FontWeight.w500,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _getGreeting(),
+                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Total Balance',
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Total Balance',
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.account_balance_wallet,
+                                    size: 32,
                                     color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
                                   ),
-                                ),
-                              ],
-                            ),
-                            Icon(
-                              Icons.account_balance_wallet,
-                              size: 32,
-                              color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppConstants.defaultPadding),
-                        Text(
-                          Formatters.formatCurrency(appProvider.totalBalance),
-                          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 16,
+                                    color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.6),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: AppConstants.defaultPadding),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildBalanceItem(
-                                context,
-                                'Income',
-                                Formatters.formatCurrency(appProvider.totalIncome),
-                                AppConstants.successColor,
-                                Icons.arrow_upward,
-                              ),
+                          const SizedBox(height: AppConstants.defaultPadding),
+                          Text(
+                            Formatters.formatCurrency(appProvider.totalBalance),
+                            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
                             ),
-                            const SizedBox(width: AppConstants.defaultPadding),
-                            Expanded(
-                              child: _buildBalanceItem(
-                                context,
-                                'Expenses',
-                                Formatters.formatCurrency(appProvider.totalExpenses),
-                                AppConstants.errorColor,
-                                Icons.arrow_downward,
+                          ),
+                          const SizedBox(height: AppConstants.smallPadding),
+                          // Net Worth Row
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.trending_up,
+                                size: 16,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                              const SizedBox(width: 4),
+                              Text(
+                                'Net Worth: ',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                                ),
+                              ),
+                              Text(
+                                Formatters.formatCurrency(appProvider.netWorth),
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppConstants.defaultPadding),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildBalanceItem(
+                                  context,
+                                  'Income',
+                                  Formatters.formatCurrency(appProvider.totalIncome),
+                                  AppConstants.successColor,
+                                  Icons.arrow_upward,
+                                ),
+                              ),
+                              const SizedBox(width: AppConstants.defaultPadding),
+                              Expanded(
+                                child: _buildBalanceItem(
+                                  context,
+                                  'Expenses',
+                                  Formatters.formatCurrency(appProvider.totalExpenses),
+                                  AppConstants.errorColor,
+                                  Icons.arrow_downward,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -202,6 +277,7 @@ class DashboardScreen extends StatelessWidget {
                                   category: category,
                                   account: account,
                                   toAccount: toAccount,
+                                  enableSwipeToDelete: true, // Enable swipe-to-delete for dashboard
                                   onTap: () {
                                     // Show transaction details or edit dialog
                                     showDialog(
@@ -368,6 +444,7 @@ class DashboardScreen extends StatelessWidget {
           ],
         ),
         child: FloatingActionButton(
+          heroTag: "dashboard_fab",
           onPressed: () {
             showDialog(
               context: context,
