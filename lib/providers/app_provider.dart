@@ -6,6 +6,7 @@ import 'package:kora_expense_tracker/models/category.dart';
 import 'package:kora_expense_tracker/models/settings.dart';
 import 'package:kora_expense_tracker/utils/storage_service.dart';
 import 'package:kora_expense_tracker/constants/app_constants.dart';
+import 'package:kora_expense_tracker/providers/credit_card_provider.dart';
 
 /// Main app provider for managing all state with real-time updates
 class AppProvider extends ChangeNotifier {
@@ -19,6 +20,14 @@ class AppProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   int _selectedTabIndex = 0;
+  
+  // Credit Card Provider reference for balance sync
+  CreditCardProvider? _creditCardProvider;
+  
+  // Setter for CreditCardProvider reference
+  void setCreditCardProvider(CreditCardProvider provider) {
+    _creditCardProvider = provider;
+  }
   
   // Getters
   List<Transaction> get transactions => _transactions;
@@ -36,18 +45,30 @@ class AppProvider extends ChangeNotifier {
     return totalAssets;
   }
 
-  /// Get total assets (positive balances from asset accounts)
+  /// Get total assets (positive balances from asset accounts + overpaid credit cards)
   double get totalAssets {
-    return _accounts
-        .where((account) => account.isAsset)
-        .fold(0.0, (sum, account) => sum + account.balance);
+    return _accounts.fold(0.0, (sum, account) {
+      if (account.isAsset) {
+        // Regular assets: positive balance
+        return sum + account.balance;
+      } else if (account.isLiability && account.balance < 0) {
+        // Overpaid credit cards: negative balance becomes positive asset
+        return sum + account.balance.abs();
+      }
+      return sum;
+    });
   }
 
-  /// Get total liabilities (negative balances from liability accounts)
+  /// Get total liabilities (positive balances from liability accounts)
+  /// For credit cards: positive balance = debt, negative balance = credit (reduces liabilities)
   double get totalLiabilities {
     return _accounts
         .where((account) => account.isLiability)
-        .fold(0.0, (sum, account) => sum + account.balance.abs());
+        .fold(0.0, (sum, account) {
+          // For liabilities: positive balance = debt, negative balance = credit
+          // Only positive balances count as liabilities
+          return sum + (account.balance > 0 ? account.balance : 0);
+        });
   }
 
   /// Get net worth (assets - liabilities)
@@ -406,9 +427,23 @@ class AppProvider extends ChangeNotifier {
       Account updatedAccount;
       
       if (transaction.isIncome) {
-        updatedAccount = account.addToBalance(transaction.amount.abs() * multiplier);
+        // For credit cards (liabilities), income reduces debt (subtract from balance)
+        if (account.type == AccountType.creditCard) {
+          // For credit cards, income should reduce debt (subtract from balance)
+          updatedAccount = account.subtractFromBalance(transaction.amount.abs() * multiplier);
+        } else {
+          // For regular accounts, income increases balance
+          updatedAccount = account.addToBalance(transaction.amount.abs() * multiplier);
+        }
       } else {
-        updatedAccount = account.subtractFromBalance(transaction.amount.abs() * multiplier);
+        // For credit cards (liabilities), expenses increase debt (add to balance)
+        if (account.type == AccountType.creditCard) {
+          // For credit cards, expenses should increase debt (add to balance)
+          updatedAccount = account.addToBalance(transaction.amount.abs() * multiplier);
+        } else {
+          // For regular accounts, expenses decrease balance
+          updatedAccount = account.subtractFromBalance(transaction.amount.abs() * multiplier);
+        }
       }
       
       try {
@@ -420,6 +455,13 @@ class AppProvider extends ChangeNotifier {
       
       // Update local state
       _accounts[accountIndex] = updatedAccount;
+      
+      // If this is a credit card account, also update the credit card outstanding balance
+      if (account.type == AccountType.creditCard && _creditCardProvider != null) {
+        // For credit cards, the account balance directly represents the outstanding balance
+        final newOutstandingBalance = updatedAccount.balance;
+        await _creditCardProvider!.updateCreditCardBalance(account.id, newOutstandingBalance);
+      }
     }
   }
   

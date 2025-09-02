@@ -88,7 +88,7 @@ class AccountCard extends StatelessWidget {
                     children: [
                       // Balance
                       Text(
-                        account.getFormattedBalance(),
+                        account.type == AccountType.creditCard ? account.getFormattedUserBalance() : account.getFormattedBalance(),
                         style: theme.textTheme.titleLarge?.copyWith(
                           color: account.balanceColor,
                           fontWeight: FontWeight.bold,
@@ -306,7 +306,7 @@ class CompactAccountCard extends StatelessWidget {
               
               // Balance
               Text(
-                account.getFormattedBalance(),
+                account.type == AccountType.creditCard ? account.getFormattedUserBalance() : account.getFormattedBalance(),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: account.balanceColor,
                   fontWeight: FontWeight.w600,

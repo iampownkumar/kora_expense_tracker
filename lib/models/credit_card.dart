@@ -300,13 +300,26 @@ class CreditCard {
 
   /// Get utilization color for UI
   Color get utilizationColor {
-    final utilization = utilizationPercentage;
+    final utilization = utilizationPercentage.abs();
     if (utilization >= 0.90) return Colors.red;
     if (utilization >= 0.80) return Colors.orange;
     if (utilization >= 0.70) return Colors.deepOrange;
     if (utilization >= 0.50) return Colors.yellow;
     if (utilization >= 0.30) return Colors.lightGreen;
     return Colors.green;
+  }
+
+  /// Get user-friendly utilization percentage (removes minus for credit)
+  String get userFriendlyUtilization {
+    final percentage = utilizationPercentage.abs() * 100;
+    return '${percentage.toStringAsFixed(1)}%';
+  }
+
+  /// Get utilization status for user display
+  String get userUtilizationStatus {
+    if (outstandingBalance < 0) return 'Credit Available';
+    if (outstandingBalance == 0) return 'Paid Off';
+    return utilizationStatus;
   }
 
   /// Get risk assessment
@@ -342,6 +355,27 @@ class CreditCard {
   String getFormattedBalance({String currencySymbol = '₹'}) {
     final formatter = NumberFormat('#,##0.00');
     return '$currencySymbol${formatter.format(outstandingBalance)}';
+  }
+
+  /// Get user-friendly formatted balance (removes minus for overpaid amounts)
+  String getFormattedUserBalance({String currencySymbol = '₹'}) {
+    final formatter = NumberFormat('#,##0.00');
+    // If overpaid (negative), show as positive credit
+    final displayAmount = outstandingBalance < 0 ? outstandingBalance.abs() : outstandingBalance;
+    return '$currencySymbol${formatter.format(displayAmount)}';
+  }
+
+  /// Get balance label based on status
+  String get balanceLabel {
+    if (outstandingBalance < 0) return 'Available Credit';
+    if (outstandingBalance == 0) return 'Outstanding';
+    return 'Outstanding';
+  }
+
+  /// Get balance color for user display
+  Color get userBalanceColor {
+    if (outstandingBalance <= 0) return Colors.green; // Credit or zero = good
+    return Colors.red; // Debt = bad
   }
 
   /// Get formatted credit limit

@@ -8,6 +8,8 @@ import '../models/settings.dart';
 import '../models/credit_card.dart';
 import '../models/credit_card_statement.dart';
 import '../models/payment_record.dart';
+import '../models/payment.dart';
+import '../models/bank_account.dart';
 
 /// Service for handling local data storage using SharedPreferences
 class StorageService {
@@ -570,17 +572,163 @@ class StorageService {
            prefs.containsKey(AppConstants.categoriesKey);
   }
 
+  // Payment Storage Methods
+
+  /// Save payments to local storage
+  static Future<bool> savePayments(List<Payment> payments) async {
+    try {
+      final jsonList = payments.map((p) => p.toJson()).toList();
+      final jsonString = jsonEncode(jsonList);
+      return await prefs.setString(AppConstants.paymentsKey, jsonString);
+    } catch (e) {
+      print('Error saving payments: $e');
+      return false;
+    }
+  }
+
+  /// Load payments from local storage
+  static Future<List<Payment>> loadPayments() async {
+    try {
+      final jsonString = prefs.getString(AppConstants.paymentsKey);
+      if (jsonString == null || jsonString.isEmpty) {
+        return [];
+      }
+      
+      final jsonList = jsonDecode(jsonString) as List;
+      return jsonList.map((json) => Payment.fromJson(json)).toList();
+    } catch (e) {
+      print('Error loading payments: $e');
+      return [];
+    }
+  }
+
+  /// Add a single payment
+  static Future<bool> addPayment(Payment payment) async {
+    try {
+      final payments = await loadPayments();
+      payments.add(payment);
+      return await savePayments(payments);
+    } catch (e) {
+      print('Error adding payment: $e');
+      return false;
+    }
+  }
+
+  /// Update a payment
+  static Future<bool> updatePayment(Payment payment) async {
+    try {
+      final payments = await loadPayments();
+      final index = payments.indexWhere((p) => p.id == payment.id);
+      if (index != -1) {
+        payments[index] = payment;
+        return await savePayments(payments);
+      }
+      return false;
+    } catch (e) {
+      print('Error updating payment: $e');
+      return false;
+    }
+  }
+
+  /// Delete a payment
+  static Future<bool> deletePayment(String paymentId) async {
+    try {
+      final payments = await loadPayments();
+      payments.removeWhere((p) => p.id == paymentId);
+      return await savePayments(payments);
+    } catch (e) {
+      print('Error deleting payment: $e');
+      return false;
+    }
+  }
+
+  // Bank Account Storage Methods
+
+  /// Save bank accounts to local storage
+  static Future<bool> saveBankAccounts(List<BankAccount> bankAccounts) async {
+    try {
+      final jsonList = bankAccounts.map((ba) => ba.toJson()).toList();
+      final jsonString = jsonEncode(jsonList);
+      return await prefs.setString(AppConstants.bankAccountsKey, jsonString);
+    } catch (e) {
+      print('Error saving bank accounts: $e');
+      return false;
+    }
+  }
+
+  /// Load bank accounts from local storage
+  static Future<List<BankAccount>> loadBankAccounts() async {
+    try {
+      final jsonString = prefs.getString(AppConstants.bankAccountsKey);
+      if (jsonString == null || jsonString.isEmpty) {
+        return [];
+      }
+      
+      final jsonList = jsonDecode(jsonString) as List;
+      return jsonList.map((json) => BankAccount.fromJson(json)).toList();
+    } catch (e) {
+      print('Error loading bank accounts: $e');
+      return [];
+    }
+  }
+
+  /// Add a single bank account
+  static Future<bool> addBankAccount(BankAccount bankAccount) async {
+    try {
+      final bankAccounts = await loadBankAccounts();
+      bankAccounts.add(bankAccount);
+      return await saveBankAccounts(bankAccounts);
+    } catch (e) {
+      print('Error adding bank account: $e');
+      return false;
+    }
+  }
+
+  /// Update a bank account
+  static Future<bool> updateBankAccount(BankAccount bankAccount) async {
+    try {
+      final bankAccounts = await loadBankAccounts();
+      final index = bankAccounts.indexWhere((ba) => ba.id == bankAccount.id);
+      if (index != -1) {
+        bankAccounts[index] = bankAccount;
+        return await saveBankAccounts(bankAccounts);
+      }
+      return false;
+    } catch (e) {
+      print('Error updating bank account: $e');
+      return false;
+    }
+  }
+
+  /// Delete a bank account
+  static Future<bool> deleteBankAccount(String bankAccountId) async {
+    try {
+      final bankAccounts = await loadBankAccounts();
+      bankAccounts.removeWhere((ba) => ba.id == bankAccountId);
+      return await saveBankAccounts(bankAccounts);
+    } catch (e) {
+      print('Error deleting bank account: $e');
+      return false;
+    }
+  }
+
   /// Get storage statistics
   static Future<Map<String, int>> getStorageStats() async {
     try {
       final transactions = await loadTransactions();
       final accounts = await loadAccounts();
       final categories = await loadCategories();
+      final creditCards = await loadCreditCards();
+      final payments = await loadPayments();
+      final bankAccounts = await loadBankAccounts();
 
       return {
         'transactions': transactions.length,
         'accounts': accounts.length,
         'categories': categories.length,
+        'credit_cards': creditCards.length,
+        'payments': payments.length,
+        'bank_accounts': bankAccounts.length,
       };
     } catch (e) {
       print('Error getting storage stats: $e');

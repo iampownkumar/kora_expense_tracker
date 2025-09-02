@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/credit_card_provider.dart';
+import '../providers/app_provider.dart';
 import '../models/credit_card.dart';
+import '../models/transaction.dart';
 import '../utils/formatters.dart';
 
 /// Credit Card Detail Screen - Comprehensive view of a single credit card
@@ -291,10 +293,10 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
             const SizedBox(width: 12),
             Expanded(
               child: _buildMetricCard(
-                'Outstanding',
-                _currentCard.getFormattedBalance(),
+                _currentCard.balanceLabel,
+                _currentCard.getFormattedUserBalance(),
                 Icons.money_off,
-                Colors.red,
+                _currentCard.userBalanceColor,
               ),
             ),
           ],
@@ -314,7 +316,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
             Expanded(
               child: _buildMetricCard(
                 'Utilization',
-                '${(_currentCard.utilizationPercentage * 100).toStringAsFixed(1)}%',
+                _currentCard.userFriendlyUtilization,
                 Icons.trending_up,
                 _currentCard.utilizationColor,
               ),
@@ -447,31 +449,57 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   Widget _buildRecentActivity() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Recent Activity',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+    return Consumer<AppProvider>(
+      builder: (context, appProvider, child) {
+        // Get transactions for this credit card
+        final creditCardTransactions = appProvider.transactions
+            .where((transaction) => transaction.accountId == _currentCard.id)
+            .toList()
+          ..sort((a, b) => b.date.compareTo(a.date)); // Sort by date, newest first
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Recent Activity',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (creditCardTransactions.isNotEmpty)
+                  TextButton(
+                    onPressed: () => _showTransactionHistory(),
+                    child: const Text('View All'),
+                  ),
+              ],
             ),
-          ),
-          child: const Text(
-            'Recent activity will be displayed here once transactions are integrated.',
-            style: TextStyle(color: Colors.grey),
-          ),
-        ),
-      ],
+            const SizedBox(height: 16),
+            
+            if (creditCardTransactions.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: const Text(
+                  'No transactions found for this credit card.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              )
+            else
+              ...creditCardTransactions.take(5).map((transaction) => 
+                _buildTransactionItem(transaction)
+              ).toList(),
+          ],
+        );
+      },
     );
   }
 
@@ -552,7 +580,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            '${(_currentCard.utilizationPercentage * 100).toStringAsFixed(1)}% utilized',
+            '${_currentCard.userFriendlyUtilization} ${_currentCard.outstandingBalance < 0 ? 'credit available' : 'utilized'}',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: _currentCard.utilizationColor,
               fontWeight: FontWeight.bold,
@@ -888,6 +916,74 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransactionItem(Transaction transaction) {
+    final theme = Theme.of(context);
+    final isIncome = transaction.isIncome;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Transaction icon
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: (isIncome ? Colors.green : Colors.red).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              isIncome ? Icons.arrow_downward : Icons.arrow_upward,
+              color: isIncome ? Colors.green : Colors.red,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 12),
+          
+          // Transaction details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  transaction.description,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  Formatters.formatDate(transaction.date),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Amount
+          Text(
+            '${isIncome ? '+' : '-'}${Formatters.formatCurrency(transaction.amount.abs())}',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: isIncome ? Colors.green : Colors.red,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),

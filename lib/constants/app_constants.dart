@@ -22,6 +22,8 @@ class AppConstants {
   static const String creditCardsKey = 'credit_cards';
   static const String creditCardStatementsKey = 'credit_card_statements';
   static const String paymentRecordsKey = 'payment_records';
+  static const String paymentsKey = 'payments';
+  static const String bankAccountsKey = 'bank_accounts';
   
   // Transaction Types
   static const String transactionTypeIncome = 'income';

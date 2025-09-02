@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:kora_expense_tracker/models/account.dart';
 import 'package:kora_expense_tracker/models/account_type.dart';
 import 'package:kora_expense_tracker/constants/app_constants.dart';
+import 'package:kora_expense_tracker/screens/add_credit_card_screen.dart';
 
 /// A user-friendly dialog for adding new accounts with auto-focus and progressive disclosure
 class AddAccountDialog extends StatefulWidget {
@@ -32,10 +33,9 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
   int _currentStep = 0;
   
   final List<FocusNode> _focusNodes = [
-    FocusNode(),
-    FocusNode(),
-    FocusNode(),
-    FocusNode(),
+    FocusNode(), // Name
+    FocusNode(), // Balance
+    FocusNode(), // Description
   ];
 
   @override
@@ -255,6 +255,17 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
       ),
       child: InkWell(
         onTap: () {
+          // If credit card is selected, redirect to Add Credit Card screen
+          if (type == AccountType.creditCard) {
+            Navigator.of(context).pop(); // Close this dialog
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const AddCreditCardScreen(),
+              ),
+            );
+            return;
+          }
+          
           setState(() {
             _selectedType = type;
             _selectedIcon = type.icon;
@@ -757,4 +768,6 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
       Colors.lightBlue,
     ];
   }
+
+
 }

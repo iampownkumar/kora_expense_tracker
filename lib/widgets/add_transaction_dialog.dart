@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kora_expense_tracker/constants/app_constants.dart';
 import 'package:kora_expense_tracker/models/transaction.dart';
+import 'package:kora_expense_tracker/models/account_type.dart';
 import 'package:kora_expense_tracker/providers/app_provider.dart';
 import 'package:kora_expense_tracker/utils/formatters.dart';
 
@@ -416,9 +417,11 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                     if (selectedAccount != null) ...[
                       const SizedBox(height: 2),
                       Text(
-                        '${Formatters.getCurrencySymbol()}${selectedAccount.balance.toStringAsFixed(0)}',
+                        selectedAccount.type == AccountType.creditCard 
+                          ? '${Formatters.getCurrencySymbol()}${selectedAccount.balance.abs().toStringAsFixed(0)} ${selectedAccount.balance < 0 ? '(Credit)' : '(Debt)'}'
+                          : '${Formatters.getCurrencySymbol()}${selectedAccount.balance.toStringAsFixed(0)}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.orange,
+                          color: selectedAccount.balanceColor,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -477,9 +480,11 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                     if (selectedAccount != null) ...[
                       const SizedBox(height: 2),
                       Text(
-                        '${Formatters.getCurrencySymbol()}${selectedAccount.balance.toStringAsFixed(0)}',
+                        selectedAccount.type == AccountType.creditCard 
+                          ? '${Formatters.getCurrencySymbol()}${selectedAccount.balance.abs().toStringAsFixed(0)} ${selectedAccount.balance < 0 ? '(Credit)' : '(Debt)'}'
+                          : '${Formatters.getCurrencySymbol()}${selectedAccount.balance.toStringAsFixed(0)}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.blue,
+                          color: selectedAccount.balanceColor,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -538,9 +543,11 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                     if (selectedAccount != null) ...[
                       const SizedBox(height: 2),
                       Text(
-                        '${Formatters.getCurrencySymbol()}${selectedAccount.balance.toStringAsFixed(0)}',
+                        selectedAccount.type == AccountType.creditCard 
+                          ? '${Formatters.getCurrencySymbol()}${selectedAccount.balance.abs().toStringAsFixed(0)} ${selectedAccount.balance < 0 ? '(Credit)' : '(Debt)'}'
+                          : '${Formatters.getCurrencySymbol()}${selectedAccount.balance.toStringAsFixed(0)}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.green,
+                          color: selectedAccount.balanceColor,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -827,7 +834,15 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                     overflow: TextOverflow.ellipsis,
                     maxLines: 2,
                   ),
-                  subtitle: Text('${Formatters.getCurrencySymbol()}${account.balance.toStringAsFixed(0)}'),
+                  subtitle: Text(
+                    account.type == AccountType.creditCard 
+                      ? '${Formatters.getCurrencySymbol()}${account.balance.abs().toStringAsFixed(0)} ${account.balance < 0 ? '(Credit)' : '(Debt)'}'
+                      : '${Formatters.getCurrencySymbol()}${account.balance.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      color: account.balanceColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   onTap: () {
                     setState(() {
                       _selectedAccountId = account.id;
@@ -878,7 +893,15 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                     overflow: TextOverflow.ellipsis,
                     maxLines: 2,
                   ),
-                  subtitle: Text('${Formatters.getCurrencySymbol()}${account.balance.toStringAsFixed(0)}'),
+                  subtitle: Text(
+                    account.type == AccountType.creditCard 
+                      ? '${Formatters.getCurrencySymbol()}${account.balance.abs().toStringAsFixed(0)} ${account.balance < 0 ? '(Credit)' : '(Debt)'}'
+                      : '${Formatters.getCurrencySymbol()}${account.balance.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      color: account.balanceColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   onTap: () {
                     setState(() {
                       _selectedToAccountId = account.id;
@@ -925,7 +948,15 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                     overflow: TextOverflow.ellipsis,
                     maxLines: 2,
                   ),
-                  subtitle: Text('${Formatters.getCurrencySymbol()}${account.balance.toStringAsFixed(0)}'),
+                  subtitle: Text(
+                    account.type == AccountType.creditCard 
+                      ? '${Formatters.getCurrencySymbol()}${account.balance.abs().toStringAsFixed(0)} ${account.balance < 0 ? '(Credit)' : '(Debt)'}'
+                      : '${Formatters.getCurrencySymbol()}${account.balance.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      color: account.balanceColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   onTap: () {
                     setState(() {
                       _selectedAccountId = account.id;

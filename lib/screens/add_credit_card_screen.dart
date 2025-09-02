@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/credit_card_provider.dart';
+import '../providers/app_provider.dart';
 import '../models/credit_card.dart';
+import '../models/account.dart';
+import '../models/account_type.dart';
 import '../utils/formatters.dart';
 
 /// Add Credit Card Screen - User-friendly form for adding new credit cards
@@ -827,24 +830,55 @@ class _AddCreditCardScreenState extends State<AddCreditCardScreen> {
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
       );
 
-      final provider = context.read<CreditCardProvider>();
-      final success = await provider.addCreditCard(creditCard);
-
-      if (success) {
-        if (mounted) {
-          Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Credit card added successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+      final creditCardProvider = context.read<CreditCardProvider>();
+      final appProvider = context.read<AppProvider>();
+      
+      // Add credit card
+      final creditCardSuccess = await creditCardProvider.addCreditCard(creditCard);
+      
+      if (creditCardSuccess) {
+        // Also create an Account object for the credit card with the same ID
+        final account = Account(
+          id: creditCard.id, // Use the same ID as the credit card
+          name: _nameController.text.trim(),
+          balance: creditCard.outstandingBalance, // Direct balance for liability
+          type: AccountType.creditCard,
+          icon: _selectedIcon,
+          color: _selectedColor,
+          description: 'Credit Card - ${_selectedNetwork} ${_lastFourDigitsController.text.trim()}',
+          isActive: true,
+          createdAt: creditCard.createdAt,
+          updatedAt: creditCard.updatedAt,
+        );
+        
+        // Add account to the app provider
+        final accountSuccess = await appProvider.addAccount(account);
+        
+        if (accountSuccess) {
+          if (mounted) {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Credit card added successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Credit card added but failed to sync with accounts'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error adding credit card: ${provider.error}'),
+              content: Text('Error adding credit card: ${creditCardProvider.error}'),
               backgroundColor: Colors.red,
             ),
           );

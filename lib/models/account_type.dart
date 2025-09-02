@@ -37,7 +37,10 @@ enum AccountType {
   /// Get the appropriate balance color for this account type
   Color getBalanceColor(double balance) {
     if (isLiability) {
-      // For liabilities, lower balance is better (less debt)
+      // For liabilities (credit cards):
+      // balance > 0: Has debt (red)
+      // balance = 0: No debt (green) 
+      // balance < 0: Has credit/overpaid (green - this is good!)
       return balance <= 0 ? Colors.green : Colors.red;
     } else {
       // For assets, higher balance is better

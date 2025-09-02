@@ -4,6 +4,8 @@ import '../providers/credit_card_provider.dart';
 import '../models/credit_card.dart';
 import '../utils/formatters.dart';
 import '../constants/app_constants.dart';
+import 'payment_screen.dart';
+import 'bank_accounts_screen.dart';
 import 'credit_card_detail_screen.dart';
 import 'add_credit_card_screen.dart';
 
@@ -112,8 +114,8 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.primaryContainer,
+              const Color(0xFF1E3A8A), // Darker blue for better contrast
+              const Color(0xFF1E40AF), // Slightly lighter blue
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -121,7 +123,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+              color: const Color(0xFF1E40AF).withValues(alpha: 0.3),
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
@@ -135,13 +137,13 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                 Icon(
                   Icons.credit_card,
                   size: 28,
-                  color: Theme.of(context).colorScheme.onPrimary,
+                  color: Colors.white,
                 ),
                 const SizedBox(width: 12),
                 Text(
                   'Credit Overview',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.onPrimary,
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -156,16 +158,16 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                     'Total Limit',
                     Formatters.formatCurrency(provider.totalCreditLimit),
                     Icons.account_balance,
-                    color: AppConstants.creditLimitColor,
+                    color: const Color(0xFF60A5FA), // Bright blue for better visibility
                   ),
                 ),
                 Expanded(
                   child: _buildOverviewStat(
                     context,
-                    'Outstanding',
-                    Formatters.formatCurrency(provider.totalOutstandingBalance),
+                    provider.totalOutstandingBalance < 0 ? 'Available Credit' : 'Outstanding',
+                    Formatters.formatCurrency(provider.totalOutstandingBalance.abs()),
                     Icons.account_balance_wallet,
-                    color: AppConstants.outstandingColor,
+                    color: provider.totalOutstandingBalance <= 0 ? const Color(0xFF34D399) : const Color(0xFFF87171), // Bright green/red
                   ),
                 ),
                 Expanded(
@@ -174,7 +176,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                     'Available',
                     Formatters.formatCurrency(provider.totalAvailableCredit),
                     Icons.account_balance_wallet,
-                    color: AppConstants.availableColor,
+                    color: const Color(0xFF34D399), // Bright green
                   ),
                 ),
               ],
@@ -210,15 +212,15 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                           ),
                         ),
                         Text(
-                          '${(provider.overallUtilization * 100).toStringAsFixed(1)}%',
+                          '${(provider.overallUtilization.abs() * 100).toStringAsFixed(1)}%',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: _getUtilizationColor(provider.overallUtilization),
+                            color: _getUtilizationColor(provider.overallUtilization.abs()),
                             fontWeight: FontWeight.bold,
                             fontSize: 20,
                           ),
                         ),
                         Text(
-                          provider.overallUtilizationStatus,
+                          provider.overallUtilization < 0 ? 'Credit Available' : provider.overallUtilizationStatus,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7),
                           ),
@@ -441,10 +443,10 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                     Expanded(
                       child: _buildCardStat(
                         context,
-                        'Outstanding',
-                        card.getFormattedBalance(),
+                        card.balanceLabel,
+                        card.getFormattedUserBalance(),
                         Icons.account_balance_wallet,
-                        color: AppConstants.outstandingColor,
+                        color: card.userBalanceColor,
                       ),
                     ),
                     Expanded(
@@ -474,7 +476,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                     ),
                     const SizedBox(width: 16),
                     Text(
-                      '${(card.utilizationPercentage * 100).toStringAsFixed(1)}%',
+                      card.userFriendlyUtilization,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: card.utilizationColor,
@@ -621,7 +623,8 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.white70,
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
           ),
           textAlign: TextAlign.center,
         ),
@@ -785,18 +788,12 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
   }
 
   void _showQuickPaymentDialog(BuildContext context, CreditCard card) {
-    // TODO: Implement quick payment dialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Make Payment - ${card.name}'),
-        content: Text('Quick payment functionality will be implemented here.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => PaymentScreen(
+          creditCard: card,
+          suggestedAmount: card.isDueSoon || card.isOverdue ? card.minimumPaymentAmount : null,
+        ),
       ),
     );
   }

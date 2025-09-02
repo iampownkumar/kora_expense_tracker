@@ -131,11 +131,19 @@ class Account {
     return type.getBalanceColor(balance);
   }
 
-  /// Get the balance icon based on amount
+   /// Get the balance icon based on amount and account type
   IconData get balanceIcon {
-    if (balance > 0) return Icons.trending_up;
-    if (balance < 0) return Icons.trending_down;
-    return Icons.remove;
+    if (type == AccountType.creditCard) {
+      // For credit cards: negative balance (credit) is good (upward trend)
+      if (balance < 0) return Icons.trending_up; // Credit is good!
+      if (balance > 0) return Icons.trending_down; // Debt is bad
+      return Icons.remove; // Zero balance
+    } else {
+      // For regular accounts: positive balance is good
+      if (balance > 0) return Icons.trending_up;
+      if (balance < 0) return Icons.trending_down;
+      return Icons.remove;
+    }
   }
 
   /// Check if this account is a liability (debt)
@@ -151,6 +159,14 @@ class Account {
     final formatter = NumberFormat('#,##0');
     final formattedNumber = formatter.format(absBalance);
     return '$currencySymbol$formattedNumber';
+  }
+
+  /// Get user-friendly formatted balance (removes minus for credit card credits)
+  String getFormattedUserBalance({String currencySymbol = '₹'}) {
+    final formatter = NumberFormat('#,##0');
+    // For credit cards, if balance is negative (credit), show as positive
+    final displayAmount = (type == AccountType.creditCard && balance < 0) ? balance.abs() : balance.abs();
+    return '$currencySymbol${formatter.format(displayAmount)}';
   }
 
   /// Convert to JSON

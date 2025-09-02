@@ -135,6 +135,30 @@ class CreditCardProvider extends ChangeNotifier {
       return false;
     }
   }
+
+  /// Update credit card balance after payment
+  Future<bool> updateCreditCardBalance(String creditCardId, double newOutstandingBalance) async {
+    try {
+      final index = _creditCards.indexWhere((card) => card.id == creditCardId);
+      if (index != -1) {
+        final card = _creditCards[index];
+        final updatedCard = card.copyWith(
+          outstandingBalance: newOutstandingBalance,
+          availableCredit: card.creditLimit - newOutstandingBalance,
+          updatedAt: DateTime.now(),
+        );
+        _creditCards[index] = updatedCard;
+        await StorageService.saveCreditCards(_creditCards);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _error = 'Failed to update credit card balance: $e';
+      notifyListeners();
+      return false;
+    }
+  }
   
   /// Delete a credit card
   Future<bool> deleteCreditCard(String creditCardId) async {

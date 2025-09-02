@@ -5,6 +5,7 @@ import 'package:kora_expense_tracker/constants/app_constants.dart';
 import 'package:kora_expense_tracker/utils/storage_service.dart';
 import 'package:kora_expense_tracker/providers/app_provider.dart';
 import 'package:kora_expense_tracker/providers/credit_card_provider.dart';
+import 'package:kora_expense_tracker/providers/payment_provider.dart';
 import 'package:kora_expense_tracker/screens/home_screen.dart';
 
 void main() async {
@@ -25,7 +26,16 @@ class KoraExpenseTrackerApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (context) => AppProvider()..initialize()),
         ChangeNotifierProvider(create: (context) => CreditCardProvider()),
+        ChangeNotifierProvider(create: (context) => PaymentProvider()),
       ],
+      builder: (context, child) {
+        // Set up the CreditCardProvider reference in AppProvider
+        final appProvider = context.read<AppProvider>();
+        final creditCardProvider = context.read<CreditCardProvider>();
+        appProvider.setCreditCardProvider(creditCardProvider);
+        
+        return child!;
+      },
       child: MaterialApp(
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
