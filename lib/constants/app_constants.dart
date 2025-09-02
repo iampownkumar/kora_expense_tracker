@@ -19,6 +19,9 @@ class AppConstants {
   static const String accountsKey = 'accounts';
   static const String categoriesKey = 'categories';
   static const String settingsKey = 'settings';
+  static const String creditCardsKey = 'credit_cards';
+  static const String creditCardStatementsKey = 'credit_card_statements';
+  static const String paymentRecordsKey = 'payment_records';
   
   // Transaction Types
   static const String transactionTypeIncome = 'income';
@@ -139,13 +142,21 @@ class AppConstants {
   // Popular Bank Types for Quick Selection
   static List<Map<String, dynamic>> get popularBanks => AccountType.getPopularBanks();
   
-  // Theme Colors
-  static const Color primaryColor = Colors.blue;
-  static const Color secondaryColor = Colors.blueAccent;
-  static const Color successColor = Colors.green;
-  static const Color errorColor = Colors.red;
-  static const Color warningColor = Colors.orange;
-  static const Color infoColor = Colors.blue;
+  // Theme Colors - Kora Finance Brand Colors
+  static const Color primaryColor = Color(0xFF1E40AF); // Deep Professional Blue
+  static const Color secondaryColor = Color(0xFF3B82F6); // Bright Accent Blue
+  static const Color successColor = Color(0xFF059669); // Professional Green
+  static const Color errorColor = Color(0xFFDC2626); // Professional Red
+  static const Color warningColor = Color(0xFFD97706); // Professional Orange
+  static const Color infoColor = Color(0xFF0EA5E9); // Professional Cyan
+  
+  // Credit Card Specific Colors
+  static const Color creditLimitColor = Color(0xFF2B6CB0); // Strong Blue
+  static const Color outstandingColor = Color(0xFFC53030); // Strong Red
+  static const Color availableColor = Color(0xFF2F855A); // Strong Green
+  static const Color utilizationGoodColor = Color(0xFF2F855A); // Good Green
+  static const Color utilizationModerateColor = Color(0xFFD97706); // Moderate Orange
+  static const Color utilizationHighColor = Color(0xFFDC2626); // High Red
   
   // Animation Durations
   static const Duration shortAnimationDuration = Duration(milliseconds: 200);

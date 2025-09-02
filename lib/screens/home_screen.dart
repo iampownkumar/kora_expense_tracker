@@ -5,6 +5,7 @@ import 'package:kora_expense_tracker/providers/app_provider.dart';
 import 'package:kora_expense_tracker/screens/dashboard_screen.dart';
 import 'package:kora_expense_tracker/screens/transactions_screen.dart';
 import 'package:kora_expense_tracker/screens/accounts_screen.dart';
+import 'package:kora_expense_tracker/screens/credit_cards_screen.dart';
 import 'package:kora_expense_tracker/screens/categories_screen.dart';
 import 'package:kora_expense_tracker/screens/more_screen.dart';
 
@@ -20,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const DashboardScreen(),
     const TransactionsScreen(),
     const AccountsScreen(),
+    const CreditCardsScreen(),
     const CategoriesScreen(),
     const MoreScreen(),
   ];
@@ -50,6 +52,10 @@ class _HomeScreenState extends State<HomeScreen> {
           NavigationDestination(
             icon: Icon(Icons.account_balance),
             label: 'Accounts',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.credit_card),
+            label: 'Credit Cards',
           ),
           NavigationDestination(
             icon: Icon(Icons.category),

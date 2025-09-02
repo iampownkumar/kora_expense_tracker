@@ -5,6 +5,9 @@ import '../models/transaction.dart';
 import '../models/account.dart';
 import '../models/category.dart';
 import '../models/settings.dart';
+import '../models/credit_card.dart';
+import '../models/credit_card_statement.dart';
+import '../models/payment_record.dart';
 
 /// Service for handling local data storage using SharedPreferences
 class StorageService {
@@ -275,6 +278,216 @@ class StorageService {
 
   // Utility Methods
   
+  // Credit Card Storage Methods
+  
+  /// Save credit cards to local storage
+  static Future<bool> saveCreditCards(List<CreditCard> creditCards) async {
+    try {
+      final jsonList = creditCards.map((cc) => cc.toJson()).toList();
+      final jsonString = jsonEncode(jsonList);
+      return await prefs.setString(AppConstants.creditCardsKey, jsonString);
+    } catch (e) {
+      print('Error saving credit cards: $e');
+      return false;
+    }
+  }
+
+  /// Load credit cards from local storage
+  static Future<List<CreditCard>> loadCreditCards() async {
+    try {
+      final jsonString = prefs.getString(AppConstants.creditCardsKey);
+      if (jsonString == null || jsonString.isEmpty) {
+        return [];
+      }
+      
+      final jsonList = jsonDecode(jsonString) as List;
+      return jsonList.map((json) => CreditCard.fromJson(json)).toList();
+    } catch (e) {
+      print('Error loading credit cards: $e');
+      return [];
+    }
+  }
+
+  /// Add a single credit card
+  static Future<bool> addCreditCard(CreditCard creditCard) async {
+    try {
+      final creditCards = await loadCreditCards();
+      creditCards.add(creditCard);
+      return await saveCreditCards(creditCards);
+    } catch (e) {
+      print('Error adding credit card: $e');
+      return false;
+    }
+  }
+
+  /// Update a credit card
+  static Future<bool> updateCreditCard(CreditCard creditCard) async {
+    try {
+      final creditCards = await loadCreditCards();
+      final index = creditCards.indexWhere((cc) => cc.id == creditCard.id);
+      if (index != -1) {
+        creditCards[index] = creditCard;
+        return await saveCreditCards(creditCards);
+      }
+      return false;
+    } catch (e) {
+      print('Error updating credit card: $e');
+      return false;
+    }
+  }
+
+  /// Delete a credit card
+  static Future<bool> deleteCreditCard(String creditCardId) async {
+    try {
+      final creditCards = await loadCreditCards();
+      creditCards.removeWhere((cc) => cc.id == creditCardId);
+      return await saveCreditCards(creditCards);
+    } catch (e) {
+      print('Error deleting credit card: $e');
+      return false;
+    }
+  }
+
+  // Credit Card Statement Storage Methods
+  
+  /// Save credit card statements to local storage
+  static Future<bool> saveCreditCardStatements(List<CreditCardStatement> statements) async {
+    try {
+      final jsonList = statements.map((stmt) => stmt.toJson()).toList();
+      final jsonString = jsonEncode(jsonList);
+      return await prefs.setString(AppConstants.creditCardStatementsKey, jsonString);
+    } catch (e) {
+      print('Error saving credit card statements: $e');
+      return false;
+    }
+  }
+
+  /// Load credit card statements from local storage
+  static Future<List<CreditCardStatement>> loadCreditCardStatements() async {
+    try {
+      final jsonString = prefs.getString(AppConstants.creditCardStatementsKey);
+      if (jsonString == null || jsonString.isEmpty) {
+        return [];
+      }
+      
+      final jsonList = jsonDecode(jsonString) as List;
+      return jsonList.map((json) => CreditCardStatement.fromJson(json)).toList();
+    } catch (e) {
+      print('Error loading credit card statements: $e');
+      return [];
+    }
+  }
+
+  /// Add a single credit card statement
+  static Future<bool> addCreditCardStatement(CreditCardStatement statement) async {
+    try {
+      final statements = await loadCreditCardStatements();
+      statements.add(statement);
+      return await saveCreditCardStatements(statements);
+    } catch (e) {
+      print('Error adding credit card statement: $e');
+      return false;
+    }
+  }
+
+  /// Update a credit card statement
+  static Future<bool> updateCreditCardStatement(CreditCardStatement statement) async {
+    try {
+      final statements = await loadCreditCardStatements();
+      final index = statements.indexWhere((stmt) => stmt.id == statement.id);
+      if (index != -1) {
+        statements[index] = statement;
+        return await saveCreditCardStatements(statements);
+      }
+      return false;
+    } catch (e) {
+      print('Error updating credit card statement: $e');
+      return false;
+    }
+  }
+
+  /// Delete a credit card statement
+  static Future<bool> deleteCreditCardStatement(String statementId) async {
+    try {
+      final statements = await loadCreditCardStatements();
+      statements.removeWhere((stmt) => stmt.id == statementId);
+      return await saveCreditCardStatements(statements);
+    } catch (e) {
+      print('Error deleting credit card statement: $e');
+      return false;
+    }
+  }
+
+  // Payment Record Storage Methods
+  
+  /// Save payment records to local storage
+  static Future<bool> savePaymentRecords(List<PaymentRecord> payments) async {
+    try {
+      final jsonList = payments.map((payment) => payment.toJson()).toList();
+      final jsonString = jsonEncode(jsonList);
+      return await prefs.setString(AppConstants.paymentRecordsKey, jsonString);
+    } catch (e) {
+      print('Error saving payment records: $e');
+      return false;
+    }
+  }
+
+  /// Load payment records from local storage
+  static Future<List<PaymentRecord>> loadPaymentRecords() async {
+    try {
+      final jsonString = prefs.getString(AppConstants.paymentRecordsKey);
+      if (jsonString == null || jsonString.isEmpty) {
+        return [];
+      }
+      
+      final jsonList = jsonDecode(jsonString) as List;
+      return jsonList.map((json) => PaymentRecord.fromJson(json)).toList();
+    } catch (e) {
+      print('Error loading payment records: $e');
+      return [];
+    }
+  }
+
+  /// Add a single payment record
+  static Future<bool> addPaymentRecord(PaymentRecord payment) async {
+    try {
+      final payments = await loadPaymentRecords();
+      payments.add(payment);
+      return await savePaymentRecords(payments);
+    } catch (e) {
+      print('Error adding payment record: $e');
+      return false;
+    }
+  }
+
+  /// Update a payment record
+  static Future<bool> updatePaymentRecord(PaymentRecord payment) async {
+    try {
+      final payments = await loadPaymentRecords();
+      final index = payments.indexWhere((p) => p.id == payment.id);
+      if (index != -1) {
+        payments[index] = payment;
+        return await savePaymentRecords(payments);
+      }
+      return false;
+    } catch (e) {
+      print('Error updating payment record: $e');
+      return false;
+    }
+  }
+
+  /// Delete a payment record
+  static Future<bool> deletePaymentRecord(String paymentId) async {
+    try {
+      final payments = await loadPaymentRecords();
+      payments.removeWhere((p) => p.id == paymentId);
+      return await savePaymentRecords(payments);
+    } catch (e) {
+      print('Error deleting payment record: $e');
+      return false;
+    }
+  }
+
   /// Clear all data
   static Future<bool> clearAllData() async {
     try {
@@ -282,6 +495,9 @@ class StorageService {
       await prefs.remove(AppConstants.accountsKey);
       await prefs.remove(AppConstants.categoriesKey);
       await prefs.remove(AppConstants.settingsKey);
+      await prefs.remove(AppConstants.creditCardsKey);
+      await prefs.remove(AppConstants.creditCardStatementsKey);
+      await prefs.remove(AppConstants.paymentRecordsKey);
       return true;
     } catch (e) {
       print('Error clearing data: $e');
