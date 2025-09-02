@@ -99,7 +99,7 @@ enum AccountType {
       {
         'name': 'SBI Bank',
         'icon': Icons.account_balance,
-        'color': Colors.blue.shade800,
+        'color': Colors.blue,
         'type': AccountType.savings.value,
       },
       {
