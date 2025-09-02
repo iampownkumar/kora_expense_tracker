@@ -113,10 +113,14 @@ class TransactionListItem extends StatelessWidget {
                             size: 16,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            account?.name ?? 'Unknown Account',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          Flexible(
+                            child: Text(
+                              account?.name ?? 'Unknown Account',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           if (transaction.isTransfer && toAccount != null) ...[
@@ -129,10 +133,14 @@ class TransactionListItem extends StatelessWidget {
                               size: 16,
                             ),
                             const SizedBox(width: 4),
-                            Text(
-                              toAccount?.name ?? 'Unknown Account',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            Flexible(
+                              child: Text(
+                                toAccount?.name ?? 'Unknown Account',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],

@@ -246,6 +246,8 @@ class AccountCard extends StatelessWidget {
       return '${date.day}/${date.month}/${date.year}';
     }
   }
+
+
 }
 
 /// A compact version of AccountCard for list views
@@ -316,4 +318,6 @@ class CompactAccountCard extends StatelessWidget {
       ),
     );
   }
+
+
 }

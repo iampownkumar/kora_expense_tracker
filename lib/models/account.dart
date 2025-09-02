@@ -1,5 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../utils/json_converters.dart';
 import 'account_type.dart';
 
@@ -146,15 +147,10 @@ class Account {
   /// Get formatted balance with currency symbol
   String getFormattedBalance({String currencySymbol = '₹'}) {
     final absBalance = balance.abs();
-    if (absBalance >= 10000000) {
-      return '$currencySymbol${(absBalance / 10000000).toStringAsFixed(1)}Cr';
-    } else if (absBalance >= 100000) {
-      return '$currencySymbol${(absBalance / 100000).toStringAsFixed(1)}L';
-    } else if (absBalance >= 1000) {
-      return '$currencySymbol${(absBalance / 1000).toStringAsFixed(1)}K';
-    } else {
-      return '$currencySymbol${absBalance.toStringAsFixed(0)}';
-    }
+    // Format with commas for thousands separator using NumberFormat
+    final formatter = NumberFormat('#,##0');
+    final formattedNumber = formatter.format(absBalance);
+    return '$currencySymbol$formattedNumber';
   }
 
   /// Convert to JSON

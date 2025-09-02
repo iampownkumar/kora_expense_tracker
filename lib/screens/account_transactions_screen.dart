@@ -5,60 +5,34 @@ import 'package:kora_expense_tracker/providers/app_provider.dart';
 import 'package:kora_expense_tracker/models/transaction.dart';
 import 'package:kora_expense_tracker/models/account.dart';
 import 'package:kora_expense_tracker/models/category.dart';
-import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
 import 'package:kora_expense_tracker/widgets/transaction_list_item.dart';
 import 'package:kora_expense_tracker/widgets/transaction_detail_sheet.dart';
 import 'package:kora_expense_tracker/utils/formatters.dart';
 
-/// Comprehensive Transaction Screen with filtering, search, and sorting
-class TransactionsScreen extends StatefulWidget {
-  const TransactionsScreen({super.key});
+/// Account-specific transactions screen with filtering and swipe gestures
+class AccountTransactionsScreen extends StatefulWidget {
+  final Account account;
+
+  const AccountTransactionsScreen({
+    super.key,
+    required this.account,
+  });
 
   @override
-  State<TransactionsScreen> createState() => _TransactionsScreenState();
+  State<AccountTransactionsScreen> createState() => _AccountTransactionsScreenState();
 }
 
-class _TransactionsScreenState extends State<TransactionsScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocus = FocusNode();
-  
-  String _searchQuery = '';
+class _AccountTransactionsScreenState extends State<AccountTransactionsScreen> {
   String _selectedFilter = 'All';
   String _sortBy = 'Date';
   bool _sortAscending = false;
-  bool _isSearchVisible = false;
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _searchFocus.dispose();
-    super.dispose();
-  }
-
-  /// Cycle through filter options with swipe gestures
-  void _cycleFilter(int direction) {
-    final filters = ['All', 'Income', 'Expense', 'Transfer'];
-    final currentIndex = filters.indexOf(_selectedFilter);
-    
-    int newIndex;
-    if (direction > 0) {
-      // Swipe left - go to next filter
-      newIndex = (currentIndex + 1) % filters.length;
-    } else {
-      // Swipe right - go to previous filter
-      newIndex = (currentIndex - 1 + filters.length) % filters.length;
-    }
-    
-    setState(() {
-      _selectedFilter = filters[newIndex];
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, appProvider, child) {
-        final filteredTransactions = _getFilteredTransactions(appProvider.transactions);
+        final accountTransactions = _getAccountTransactions(appProvider.transactions);
+        final filteredTransactions = _getFilteredTransactions(accountTransactions);
         final groupedTransactions = _groupTransactionsByDate(filteredTransactions);
 
         return GestureDetector(
@@ -76,7 +50,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             appBar: _buildAppBar(context, appProvider),
             body: Column(
               children: [
-                if (_isSearchVisible) _buildSearchBar(),
+                _buildAccountInfo(context),
                 _buildFilterChips(),
                 _buildSortOptions(),
                 Expanded(
@@ -88,33 +62,17 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ),
               ],
             ),
-            floatingActionButton: _buildFAB(context, appProvider),
           ),
         );
       },
     );
   }
 
-  /// Build the app bar with search and filter actions
+  /// Build the app bar
   PreferredSizeWidget _buildAppBar(BuildContext context, AppProvider appProvider) {
     return AppBar(
-      title: Text('Transactions (${appProvider.transactions.length})'),
+      title: Text('${widget.account.name} Transactions'),
       actions: [
-        IconButton(
-          icon: Icon(_isSearchVisible ? Icons.close : Icons.search),
-          onPressed: () {
-            setState(() {
-              _isSearchVisible = !_isSearchVisible;
-              if (!_isSearchVisible) {
-                _searchController.clear();
-                _searchQuery = '';
-                _searchFocus.unfocus();
-              } else {
-                _searchFocus.requestFocus();
-              }
-            });
-          },
-        ),
         PopupMenuButton<String>(
           icon: const Icon(Icons.sort),
           onSelected: (value) {
@@ -155,7 +113,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               child: Row(
                 children: [
                   Icon(
-                    Icons.payments, // change the icon for the amount feild
+                    Icons.payments,
                     size: 20,
                     color: _sortBy == 'Amount' ? Theme.of(context).colorScheme.primary : null,
                   ),
@@ -196,36 +154,70 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  /// Build the search bar
-  Widget _buildSearchBar() {
+  /// Build account information card
+  Widget _buildAccountInfo(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      child: TextField(
-        controller: _searchController,
-        focusNode: _searchFocus,
-        decoration: InputDecoration(
-          hintText: 'Search transactions...',
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() {
-                      _searchQuery = '';
-                    });
-                  },
-                )
-              : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+      margin: const EdgeInsets.all(AppConstants.defaultPadding),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(AppConstants.defaultPadding),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: widget.account.type.color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  widget.account.icon,
+                  color: widget.account.type.color,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.account.name,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.account.type.displayName,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Current Balance',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.account.getFormattedBalance(),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: widget.account.balanceColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        onChanged: (value) {
-          setState(() {
-            _searchQuery = value.toLowerCase();
-          });
-        },
       ),
     );
   }
@@ -412,9 +404,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            _searchQuery.isNotEmpty || _selectedFilter != 'All'
-                ? 'Try adjusting your search or filters'
-                : 'Tap + to add your first transaction',
+            _selectedFilter != 'All'
+                ? 'No $_selectedFilter transactions for this account'
+                : 'No transactions for this account yet',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -425,52 +417,34 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  /// Build the floating action button
-  Widget _buildFAB(BuildContext context, AppProvider appProvider) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: FloatingActionButton(
-        onPressed: () => _addTransaction(context, appProvider),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
-        ),
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.primary.withOpacity(0.8),
-              ],
-            ),
-          ),
-          child: const Icon(
-            Icons.add_rounded,
-            size: 32,
-            weight: 100,
-          ),
-        ),
-      ),
-    );
+  /// Cycle through filter options with swipe gestures
+  void _cycleFilter(int direction) {
+    final filters = ['All', 'Income', 'Expense', 'Transfer'];
+    final currentIndex = filters.indexOf(_selectedFilter);
+    
+    int newIndex;
+    if (direction > 0) {
+      // Swipe left - go to next filter
+      newIndex = (currentIndex + 1) % filters.length;
+    } else {
+      // Swipe right - go to previous filter
+      newIndex = (currentIndex - 1 + filters.length) % filters.length;
+    }
+    
+    setState(() {
+      _selectedFilter = filters[newIndex];
+    });
   }
 
-  /// Get filtered transactions based on search and filter criteria
+  /// Get transactions for this specific account
+  List<Transaction> _getAccountTransactions(List<Transaction> transactions) {
+    return transactions.where((transaction) {
+      return transaction.accountId == widget.account.id || 
+             transaction.toAccountId == widget.account.id;
+    }).toList();
+  }
+
+  /// Get filtered transactions based on filter criteria
   List<Transaction> _getFilteredTransactions(List<Transaction> transactions) {
     var filtered = transactions.where((transaction) {
       // Apply type filter
@@ -484,14 +458,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         if (_selectedFilter == 'Transfer' && transaction.type != AppConstants.transactionTypeTransfer) {
           return false;
         }
-      }
-
-      // Apply search filter
-      if (_searchQuery.isNotEmpty) {
-        final query = _searchQuery.toLowerCase();
-        return transaction.description.toLowerCase().contains(query) ||
-               transaction.amount.toString().contains(query) ||
-               (transaction.notes?.toLowerCase().contains(query) ?? false);
       }
 
       return true;
@@ -531,14 +497,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     return grouped;
   }
 
-  /// Add new transaction
-  void _addTransaction(BuildContext context, AppProvider appProvider) {
-    showDialog(
-      context: context,
-      builder: (context) => AddTransactionDialog(appProvider: appProvider),
-    );
-  }
-
   /// Show transaction details in bottom sheet
   void _showTransactionDetails(BuildContext context, Transaction transaction) {
     final appProvider = Provider.of<AppProvider>(context, listen: false);
@@ -555,12 +513,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   /// Edit existing transaction
   void _editTransaction(BuildContext context, Transaction transaction, AppProvider appProvider) {
-    showDialog(
-      context: context,
-      builder: (context) => AddTransactionDialog(
-        appProvider: appProvider,
-        transaction: transaction,
-      ),
-    );
+    // Import AddTransactionDialog if needed
+    // showDialog(
+    //   context: context,
+    //   builder: (context) => AddTransactionDialog(
+    //     appProvider: appProvider,
+    //     transaction: transaction,
+    //   ),
+    // );
   }
 }

@@ -191,18 +191,30 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   }
 
   Widget _buildTypeSelector() {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          _buildTypeChip('Income', Icons.trending_up, Colors.green),
-          _buildTypeChip('Expense', Icons.trending_down, Colors.red),
-          _buildTypeChip('Transfer', Icons.swap_horiz, Colors.blue),
-        ],
+    return GestureDetector(
+      onPanUpdate: (details) {
+        // Detect horizontal swipe gestures
+        if (details.delta.dx > 10) {
+          // Swipe right - go to previous type
+          _cycleType(-1);
+        } else if (details.delta.dx < -10) {
+          // Swipe left - go to next type
+          _cycleType(1);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceVariant,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            _buildTypeChip('Income', Icons.trending_up, Colors.green),
+            _buildTypeChip('Expense', Icons.trending_down, Colors.red),
+            _buildTypeChip('Transfer', Icons.swap_horiz, Colors.blue),
+          ],
+        ),
       ),
     );
   }
@@ -214,7 +226,16 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       AppConstants.transactionTypeTransfer,
     ];
     final currentIndex = types.indexOf(_selectedType);
-    final newIndex = (currentIndex + direction) % types.length;
+    
+    int newIndex;
+    if (direction > 0) {
+      // Swipe left - go to next type
+      newIndex = (currentIndex + 1) % types.length;
+    } else {
+      // Swipe right - go to previous type
+      newIndex = (currentIndex - 1 + types.length) % types.length;
+    }
+    
     setState(() {
       _selectedType = types[newIndex];
       // Always reset category and toAccount when type changes (even during edit)
@@ -782,7 +803,11 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   void _showFromAccountPicker() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -792,21 +817,30 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            ...widget.appProvider.accounts.map((account) => ListTile(
-              leading: Icon(account.icon, color: account.color),
-              title: Text(account.name),
-              subtitle: Text('${Formatters.getCurrencySymbol()}${account.balance.toStringAsFixed(0)}'),
-              onTap: () {
-                setState(() {
-                  _selectedAccountId = account.id;
-                });
-                Navigator.of(context).pop();
-                // Auto-focus next field after selection
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _showToAccountPicker();
-                });
-              },
-            )),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: widget.appProvider.accounts.map((account) => ListTile(
+                  leading: Icon(account.icon, color: account.color),
+                  title: Text(
+                    account.name,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                  ),
+                  subtitle: Text('${Formatters.getCurrencySymbol()}${account.balance.toStringAsFixed(0)}'),
+                  onTap: () {
+                    setState(() {
+                      _selectedAccountId = account.id;
+                    });
+                    Navigator.of(context).pop();
+                    // Auto-focus next field after selection
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _showToAccountPicker();
+                    });
+                  },
+                )).toList(),
+              ),
+            ),
           ],
         ),
       ),
@@ -820,7 +854,11 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -830,21 +868,30 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            ...availableAccounts.map((account) => ListTile(
-              leading: Icon(account.icon, color: account.color),
-              title: Text(account.name),
-              subtitle: Text('${Formatters.getCurrencySymbol()}${account.balance.toStringAsFixed(0)}'),
-              onTap: () {
-                setState(() {
-                  _selectedToAccountId = account.id;
-                });
-                Navigator.of(context).pop();
-                // Auto-focus notes field after selection
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _notesFocus.requestFocus();
-                });
-              },
-            )),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: availableAccounts.map((account) => ListTile(
+                  leading: Icon(account.icon, color: account.color),
+                  title: Text(
+                    account.name,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                  ),
+                  subtitle: Text('${Formatters.getCurrencySymbol()}${account.balance.toStringAsFixed(0)}'),
+                  onTap: () {
+                    setState(() {
+                      _selectedToAccountId = account.id;
+                    });
+                    Navigator.of(context).pop();
+                    // Auto-focus notes field after selection
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _notesFocus.requestFocus();
+                    });
+                  },
+                )).toList(),
+              ),
+            ),
           ],
         ),
       ),
@@ -854,7 +901,11 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   void _showAccountPicker() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -864,21 +915,30 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            ...widget.appProvider.accounts.map((account) => ListTile(
-              leading: Icon(account.icon, color: account.color),
-              title: Text(account.name),
-              subtitle: Text('${Formatters.getCurrencySymbol()}${account.balance.toStringAsFixed(0)}'),
-              onTap: () {
-                setState(() {
-                  _selectedAccountId = account.id;
-                });
-                Navigator.of(context).pop();
-                // Auto-focus next field after selection
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _showCategoryPicker();
-                });
-              },
-            )),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: widget.appProvider.accounts.map((account) => ListTile(
+                  leading: Icon(account.icon, color: account.color),
+                  title: Text(
+                    account.name,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                  ),
+                  subtitle: Text('${Formatters.getCurrencySymbol()}${account.balance.toStringAsFixed(0)}'),
+                  onTap: () {
+                    setState(() {
+                      _selectedAccountId = account.id;
+                    });
+                    Navigator.of(context).pop();
+                    // Auto-focus next field after selection
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _showCategoryPicker();
+                    });
+                  },
+                )).toList(),
+              ),
+            ),
           ],
         ),
       ),
@@ -900,7 +960,11 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -910,27 +974,36 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            ...categories.map((category) => ListTile(
-              leading: Icon(category.icon, color: category.color),
-              title: Text(category.name),
-              onTap: () {
-                setState(() {
-                  _selectedCategoryId = category.id;
-                });
-                Navigator.of(context).pop();
-                // Auto-focus notes field after selection
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _notesFocus.requestFocus();
-                  // Auto-select all text in notes if editing
-                  if (widget.transaction != null) {
-                    _notesController.selection = TextSelection(
-                      baseOffset: 0,
-                      extentOffset: _notesController.text.length,
-                    );
-                  }
-                });
-              },
-            )),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: categories.map((category) => ListTile(
+                  leading: Icon(category.icon, color: category.color),
+                  title: Text(
+                    category.name,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                  ),
+                  onTap: () {
+                    setState(() {
+                      _selectedCategoryId = category.id;
+                    });
+                    Navigator.of(context).pop();
+                    // Auto-focus notes field after selection
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _notesFocus.requestFocus();
+                      // Auto-select all text in notes if editing
+                      if (widget.transaction != null) {
+                        _notesController.selection = TextSelection(
+                          baseOffset: 0,
+                          extentOffset: _notesController.text.length,
+                        );
+                      }
+                    });
+                  },
+                )).toList(),
+              ),
+            ),
           ],
         ),
       ),

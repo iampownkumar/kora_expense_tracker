@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:kora_expense_tracker/models/account_type.dart';
 import 'package:kora_expense_tracker/constants/app_constants.dart';
 
@@ -51,24 +52,64 @@ class FinancialSummaryCard extends StatelessWidget {
               // Header
               Row(
                 children: [
-                  Icon(
-                    Icons.account_balance_wallet,
-                    color: theme.colorScheme.primary,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Financial Health',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.trending_up,
                       color: theme.colorScheme.primary,
+                      size: 20,
                     ),
                   ),
-                  const Spacer(),
-                  Icon(
-                    Icons.touch_app,
-                    color: theme.colorScheme.onSurfaceVariant,
-                    size: 16,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Financial Health',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        Text(
+                          _getHealthStatus(netWorth),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: _getNetWorthColor(netWorth, theme),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getNetWorthColor(netWorth, theme).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _getNetWorthIcon(netWorth),
+                          color: _getNetWorthColor(netWorth, theme),
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Tap for details',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: _getNetWorthColor(netWorth, theme),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -76,41 +117,69 @@ class FinancialSummaryCard extends StatelessWidget {
               const SizedBox(height: 16),
               
               // Net Worth (main metric)
-              Center(
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _getNetWorthColor(netWorth, theme).withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _getNetWorthColor(netWorth, theme).withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
                 child: Column(
                   children: [
-                    Text(
-                      'Net Worth',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatCurrency(netWorth),
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        color: _getNetWorthColor(netWorth, theme),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          _getNetWorthIcon(netWorth),
+                          Icons.account_balance_wallet,
                           color: _getNetWorthColor(netWorth, theme),
-                          size: 16,
+                          size: 20,
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 8),
                         Text(
-                          _getNetWorthStatus(netWorth),
-                          style: theme.textTheme.bodySmall?.copyWith(
+                          'Net Worth',
+                          style: theme.textTheme.titleMedium?.copyWith(
                             color: _getNetWorthColor(netWorth, theme),
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _formatCurrency(netWorth),
+                      style: theme.textTheme.headlineLarge?.copyWith(
+                        color: _getNetWorthColor(netWorth, theme),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _getNetWorthColor(netWorth, theme).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _getNetWorthIcon(netWorth),
+                            color: _getNetWorthColor(netWorth, theme),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _getNetWorthStatus(netWorth),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: _getNetWorthColor(netWorth, theme),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -269,15 +338,10 @@ class FinancialSummaryCard extends StatelessWidget {
     final absAmount = amount.abs();
     final symbol = AppConstants.defaultCurrencySymbol;
     
-    if (absAmount >= 10000000) {
-      return '$symbol${(absAmount / 10000000).toStringAsFixed(1)}Cr';
-    } else if (absAmount >= 100000) {
-      return '$symbol${(absAmount / 100000).toStringAsFixed(1)}L';
-    } else if (absAmount >= 1000) {
-      return '$symbol${(absAmount / 1000).toStringAsFixed(1)}K';
-    } else {
-      return '$symbol${absAmount.toStringAsFixed(0)}';
-    }
+    // Format with commas for thousands separator using NumberFormat
+    final formatter = NumberFormat('#,##0');
+    final formattedNumber = formatter.format(absAmount);
+    return '$symbol$formattedNumber';
   }
 
   Color _getNetWorthColor(double netWorth, ThemeData theme) {
@@ -296,5 +360,13 @@ class FinancialSummaryCard extends StatelessWidget {
     if (netWorth > 0) return 'Positive';
     if (netWorth < 0) return 'Negative';
     return 'Neutral';
+  }
+
+  String _getHealthStatus(double netWorth) {
+    if (netWorth > 100000) return 'Excellent';
+    if (netWorth > 50000) return 'Good';
+    if (netWorth > 0) return 'Positive';
+    if (netWorth > -50000) return 'Needs Attention';
+    return 'Critical';
   }
 }

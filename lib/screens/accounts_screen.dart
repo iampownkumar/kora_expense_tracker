@@ -6,6 +6,7 @@ import 'package:kora_expense_tracker/models/account_type.dart';
 import 'package:kora_expense_tracker/widgets/account_card.dart';
 import 'package:kora_expense_tracker/widgets/financial_summary_card.dart';
 import 'package:kora_expense_tracker/widgets/add_account_dialog.dart';
+import 'package:kora_expense_tracker/screens/account_transactions_screen.dart';
 import 'package:kora_expense_tracker/constants/app_constants.dart';
 
 class AccountsScreen extends StatefulWidget {
@@ -450,7 +451,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
               padding: const EdgeInsets.only(bottom: 12),
               child: AccountCard(
                 account: account,
-                onTap: () => _showAccountDetails(context, account),
+                onTap: () => _navigateToAccountTransactions(context, account),
                 onEdit: () => _showEditAccountDialog(context, account),
                 onDelete: () => _showDeleteConfirmation(context, account, provider),
               ),
@@ -621,78 +622,12 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     );
   }
 
-  void _showAccountDetails(BuildContext context, Account account) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      isDismissible: true,
-      enableDrag: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              // Drag handle
-              Container(
-                margin: const EdgeInsets.symmetric(vertical: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Text(
-                      'Account Details',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        // Clear search focus when returning
-                        _clearSearchFocus();
-                      },
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(),
-              // Account card
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(16),
-                  child: AccountCard(
-                    account: account,
-                    isExpanded: true,
-                    showActions: true,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+  void _navigateToAccountTransactions(BuildContext context, Account account) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AccountTransactionsScreen(account: account),
       ),
-    ).then((_) {
-      // Clear search focus when modal is dismissed
-      _clearSearchFocus();
-    });
+    );
   }
 
   void _showFinancialDetails(BuildContext context, AppProvider provider) {
@@ -728,13 +663,38 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    Text(
-                      'Financial Overview',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.analytics,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 20,
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Financial Overview',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Detailed financial health analysis',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     IconButton(
                       onPressed: () {
                         Navigator.of(context).pop();
@@ -754,12 +714,18 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                   padding: const EdgeInsets.all(16),
         child: Column(
                     children: [
+                      // Financial Health Score
+                      _buildHealthScoreCard(context, provider),
+                      const SizedBox(height: 16),
+                      
+                      // Main Financial Metrics
                       _buildFinancialDetailCard(
                         context,
                         'Total Assets',
                         provider.totalAssets,
                         Colors.green,
                         Icons.trending_up,
+                        'Your total asset value',
                       ),
                       const SizedBox(height: 12),
                       _buildFinancialDetailCard(
@@ -768,6 +734,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                         provider.totalLiabilities,
                         Colors.red,
                         Icons.trending_down,
+                        'Your total debt and obligations',
                       ),
                       const SizedBox(height: 12),
                       _buildFinancialDetailCard(
@@ -776,7 +743,12 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                         provider.netWorth,
                         provider.netWorth >= 0 ? Colors.green : Colors.red,
                         provider.netWorth >= 0 ? Icons.trending_up : Icons.trending_down,
+                        'Assets minus liabilities',
                       ),
+                      const SizedBox(height: 16),
+                      
+                      // Financial Insights
+                      _buildInsightsCard(context, provider),
                     ],
                   ),
                 ),
@@ -797,6 +769,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     double amount,
     Color color,
     IconData icon,
+    String description,
   ) {
     final theme = Theme.of(context);
     
@@ -805,7 +778,14 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(icon, color: color, size: 24),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -817,6 +797,14 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                  const SizedBox(height: 2),
+                  Text(
+                    description,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
                   Text(
                     '₹${amount.toStringAsFixed(0)}',
                     style: theme.textTheme.headlineSmall?.copyWith(
@@ -831,6 +819,276 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
         ),
       ),
     );
+  }
+
+  Widget _buildHealthScoreCard(BuildContext context, AppProvider provider) {
+    final theme = Theme.of(context);
+    final healthScore = _calculateHealthScore(provider);
+    final healthColor = _getHealthScoreColor(healthScore);
+    final healthStatus = _getHealthScoreStatus(healthScore);
+    
+    return Card(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              healthColor.withOpacity(0.1),
+              healthColor.withOpacity(0.05),
+            ],
+          ),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: healthColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.health_and_safety,
+                    color: healthColor,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Financial Health Score',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        'Based on your financial metrics',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Column(
+                  children: [
+                    Text(
+                      '$healthScore',
+                      style: theme.textTheme.headlineLarge?.copyWith(
+                        color: healthColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Score',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: theme.colorScheme.outline.withOpacity(0.3),
+                ),
+                Column(
+                  children: [
+                    Text(
+                      healthStatus,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: healthColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Status',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInsightsCard(BuildContext context, AppProvider provider) {
+    final theme = Theme.of(context);
+    final insights = _generateInsights(provider);
+    
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.lightbulb,
+                    color: theme.colorScheme.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Financial Insights',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...insights.map((insight) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    insight['icon'],
+                    color: insight['color'],
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      insight['text'],
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: insight['color'],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  int _calculateHealthScore(AppProvider provider) {
+    // Simple health score calculation based on net worth and asset-to-liability ratio
+    final netWorth = provider.netWorth;
+    final assets = provider.totalAssets;
+    final liabilities = provider.totalLiabilities;
+    
+    int score = 50; // Base score
+    
+    // Net worth factor
+    if (netWorth > 100000) score += 30;
+    else if (netWorth > 50000) score += 20;
+    else if (netWorth > 0) score += 10;
+    else if (netWorth > -50000) score -= 10;
+    else score -= 20;
+    
+    // Asset-to-liability ratio
+    if (liabilities > 0) {
+      final ratio = assets / liabilities;
+      if (ratio > 3) score += 20;
+      else if (ratio > 2) score += 10;
+      else if (ratio > 1) score += 5;
+      else score -= 10;
+    } else if (assets > 0) {
+      score += 20; // No liabilities is great
+    }
+    
+    return score.clamp(0, 100);
+  }
+
+  Color _getHealthScoreColor(int score) {
+    if (score >= 80) return Colors.green;
+    if (score >= 60) return Colors.orange;
+    if (score >= 40) return Colors.amber;
+    return Colors.red;
+  }
+
+  String _getHealthScoreStatus(int score) {
+    if (score >= 80) return 'Excellent';
+    if (score >= 60) return 'Good';
+    if (score >= 40) return 'Fair';
+    return 'Poor';
+  }
+
+  List<Map<String, dynamic>> _generateInsights(AppProvider provider) {
+    final insights = <Map<String, dynamic>>[];
+    final netWorth = provider.netWorth;
+    final assets = provider.totalAssets;
+    final liabilities = provider.totalLiabilities;
+    
+    if (netWorth > 0) {
+      insights.add({
+        'icon': Icons.check_circle,
+        'color': Colors.green,
+        'text': 'Great! You have a positive net worth.',
+      });
+    } else {
+      insights.add({
+        'icon': Icons.warning,
+        'color': Colors.orange,
+        'text': 'Consider reducing liabilities to improve net worth.',
+      });
+    }
+    
+    if (liabilities > 0 && assets > 0) {
+      final ratio = assets / liabilities;
+      if (ratio > 2) {
+        insights.add({
+          'icon': Icons.trending_up,
+          'color': Colors.green,
+          'text': 'Strong asset-to-liability ratio of ${ratio.toStringAsFixed(1)}:1.',
+        });
+      } else if (ratio < 1) {
+        insights.add({
+          'icon': Icons.trending_down,
+          'color': Colors.red,
+          'text': 'Liabilities exceed assets. Focus on debt reduction.',
+        });
+      }
+    }
+    
+    if (provider.accounts.length > 3) {
+      insights.add({
+        'icon': Icons.account_balance,
+        'color': Colors.blue,
+        'text': 'Good diversification with ${provider.accounts.length} accounts.',
+      });
+    }
+    
+    if (insights.isEmpty) {
+      insights.add({
+        'icon': Icons.info,
+        'color': Colors.blue,
+        'text': 'Add more accounts to get detailed insights.',
+      });
+    }
+    
+    return insights;
   }
 
   void _showFilterOptions(BuildContext context) {

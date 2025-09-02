@@ -95,19 +95,14 @@ class AppProvider extends ChangeNotifier {
   
   // Initialize app data
   Future<void> initialize() async {
-    print('AppProvider: Initializing...');
     _setLoading(true);
     try {
-      print('AppProvider: Loading all data...');
       await _loadAllData();
-      print('AppProvider: Data loading complete');
       _error = null;
     } catch (e) {
-      print('AppProvider: Error during initialization: $e');
       _error = 'Failed to load data: $e';
     } finally {
       _setLoading(false);
-      print('AppProvider: Initialization complete');
     }
   }
   
@@ -117,38 +112,28 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
   
-  // Load all data from storage
+  // Load all data from storage in parallel for better performance
   Future<void> _loadAllData() async {
-    print('AppProvider: Loading transactions...');
-    final transactions = await StorageService.loadTransactions();
-    print('AppProvider: Loaded ${transactions.length} transactions');
+    // Load all data in parallel for faster initialization
+    final results = await Future.wait([
+      StorageService.loadTransactions(),
+      StorageService.loadAccounts(),
+      StorageService.loadCategories(),
+      StorageService.loadSettings(),
+    ]);
     
-    print('AppProvider: Loading accounts...');
-    final accounts = await StorageService.loadAccounts();
-    print('AppProvider: Loaded ${accounts.length} accounts');
-    
-    print('AppProvider: Loading categories...');
-    final categories = await StorageService.loadCategories();
-    print('AppProvider: Loaded ${categories.length} categories');
-    
-    print('AppProvider: Loading settings...');
-    final settings = await StorageService.loadSettings();
-    print('AppProvider: Settings loaded');
-    
-    _transactions = transactions;
-    _accounts = accounts;
-    _categories = categories;
-    _settings = settings;
+    _transactions = results[0] as List<Transaction>;
+    _accounts = results[1] as List<Account>;
+    _categories = results[2] as List<Category>;
+    _settings = results[3] as Settings;
     
     // If no categories exist, create default ones
     if (_categories.isEmpty) {
-      print('AppProvider: No categories found, creating defaults...');
       await _createDefaultCategories();
     }
     
     // If no accounts exist, create default ones
     if (_accounts.isEmpty) {
-      print('AppProvider: No accounts found, creating defaults...');
       await _createDefaultAccounts();
     }
   }

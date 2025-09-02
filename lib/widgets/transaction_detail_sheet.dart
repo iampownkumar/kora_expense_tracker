@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/models/transaction.dart';
 import 'package:kora_expense_tracker/models/account.dart';
+import 'package:kora_expense_tracker/models/account_type.dart';
 import 'package:kora_expense_tracker/models/category.dart';
 import 'package:kora_expense_tracker/providers/app_provider.dart';
 import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
@@ -11,44 +11,51 @@ import 'package:kora_expense_tracker/constants/app_constants.dart';
 /// Bottom sheet for displaying detailed transaction information
 class TransactionDetailSheet extends StatelessWidget {
   final Transaction transaction;
+  final AppProvider appProvider;
 
   const TransactionDetailSheet({
     super.key,
     required this.transaction,
+    required this.appProvider,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppProvider>(
-      builder: (context, appProvider, child) {
-        final account = appProvider.accounts.isNotEmpty
-            ? appProvider.accounts.firstWhere(
-                (acc) => acc.id == transaction.accountId,
-                orElse: () => appProvider.accounts.first,
-              )
-            : Account(
-                id: 'default',
-                name: 'Unknown Account',
-                type: 'cash',
-                balance: 0.0,
-                color: Colors.blue,
-                icon: Icons.account_balance_wallet,
-              );
-        
-        final category = appProvider.categories.isNotEmpty
-            ? appProvider.categories.firstWhere(
-                (cat) => cat.id == transaction.categoryId,
-                orElse: () => appProvider.categories.first,
-              )
-            : Category(
-                id: 'default',
-                name: 'Unknown Category',
-                type: 'expense',
-                color: Colors.grey,
-                icon: Icons.category,
-              );
+    final account = appProvider.accounts.isNotEmpty
+        ? appProvider.accounts.firstWhere(
+            (acc) => acc.id == transaction.accountId,
+            orElse: () => appProvider.accounts.first,
+          )
+        : Account(
+            id: 'default',
+            name: 'Unknown Account',
+            type: AccountType.cash,
+            balance: 0.0,
+            color: Colors.blue,
+            icon: Icons.account_balance_wallet,
+            isActive: true,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
+    
+    final category = appProvider.categories.isNotEmpty
+        ? appProvider.categories.firstWhere(
+            (cat) => cat.id == transaction.categoryId,
+            orElse: () => appProvider.categories.first,
+          )
+        : Category(
+            id: 'default',
+            name: 'Unknown Category',
+            type: 'expense',
+            color: Colors.grey,
+            icon: Icons.category,
+            isDefault: false,
+            isActive: true,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
 
-        return Container(
+    return Container(
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -191,13 +198,13 @@ class TransactionDetailSheet extends StatelessWidget {
                       child: OutlinedButton.icon(
                         onPressed: () {
                           Navigator.pop(context);
-                          showDialog(
-                            context: context,
-                            builder: (context) => AddTransactionDialog(
-                              appProvider: appProvider,
-                              transaction: transaction,
-                            ),
-                          );
+                                                  showDialog(
+                          context: context,
+                          builder: (context) => AddTransactionDialog(
+                            appProvider: appProvider,
+                            transaction: transaction,
+                          ),
+                        );
                         },
                         icon: const Icon(Icons.edit),
                         label: const Text('Edit'),
@@ -224,8 +231,6 @@ class TransactionDetailSheet extends StatelessWidget {
             ],
           ),
         );
-      },
-    );
   }
 
   /// Build a detail row with label and value
@@ -328,10 +333,10 @@ class TransactionDetailSheet extends StatelessWidget {
               Navigator.pop(context); // Close confirmation dialog
               Navigator.pop(context); // Close detail sheet
               ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                content: Text('Transaction "${transaction.description}" deleted'),
-                backgroundColor: Theme.of(context).colorScheme.error,
-              ),
+                SnackBar(
+                  content: Text('Transaction "${transaction.description}" deleted'),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
               );
             },
             style: FilledButton.styleFrom(
