@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/payment_provider.dart';
-import '../providers/credit_card_provider.dart';
+import '../providers/app_provider.dart';
 import '../models/credit_card.dart';
-import '../models/payment.dart';
-import '../models/bank_account.dart';
+import '../models/account.dart';
+import '../models/transaction.dart';
 import '../utils/formatters.dart';
 import '../constants/app_constants.dart';
 
@@ -28,17 +27,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   final _amountController = TextEditingController();
   final _notesController = TextEditingController();
   
-  String _selectedPaymentMethod = 'bank_transfer';
-  BankAccount? _selectedBankAccount;
+  final String _selectedPaymentMethod = 'transfer'; // Fixed to account transfer only
+  Account? _selectedSourceAccount;
   bool _isProcessing = false;
-
-  final List<String> _paymentMethods = [
-    'bank_transfer',
-    'debit_card',
-    'upi',
-    'net_banking',
-    'wallet',
-  ];
 
   @override
   void initState() {
@@ -46,11 +37,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
     if (widget.suggestedAmount != null) {
       _amountController.text = widget.suggestedAmount!.toStringAsFixed(2);
     }
-    
-    // Initialize payment provider
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PaymentProvider>().initialize();
-    });
   }
 
   @override
@@ -77,12 +63,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
         ],
       ),
-      body: Consumer<PaymentProvider>(
-        builder: (context, paymentProvider, child) {
-          if (paymentProvider.isLoading && paymentProvider.bankAccounts.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
+      body: Consumer<AppProvider>(
+        builder: (context, appProvider, child) {
           return Form(
             key: _formKey,
             child: SingleChildScrollView(
@@ -98,24 +80,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   _buildAmountSection(),
                   const SizedBox(height: 24),
                   
-                  // Payment Method
+                  // Payment Method (Fixed to Account Transfer)
                   _buildPaymentMethodSection(),
                   const SizedBox(height: 24),
                   
-                  // Bank Account Selection (if applicable)
-                  if (_selectedPaymentMethod == 'bank_transfer' || _selectedPaymentMethod == 'net_banking')
-                    _buildBankAccountSection(paymentProvider),
+                  // Source Account Selection (always required for account transfer)
+                  _buildSourceAccountSection(appProvider),
                   
                   // Notes
                   _buildNotesSection(),
                   const SizedBox(height: 32),
                   
                   // Process Payment Button
-                  _buildProcessPaymentButton(paymentProvider),
+                  _buildProcessPaymentButton(appProvider),
                   const SizedBox(height: 16),
                   
                   // Recent Payments
-                  _buildRecentPayments(paymentProvider),
+                  _buildRecentPayments(appProvider),
                 ],
               ),
             ),
@@ -293,41 +274,55 @@ class _PaymentScreenState extends State<PaymentScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 16),
-        DropdownButtonFormField<String>(
-          value: _selectedPaymentMethod,
-          decoration: InputDecoration(
-            labelText: 'Select Payment Method',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-            ),
-            prefixIcon: const Icon(Icons.payment),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(12),
+            color: Colors.grey.shade50,
           ),
-          items: _paymentMethods.map((method) => DropdownMenuItem(
-            value: method,
-            child: Text(_getPaymentMethodDisplayText(method)),
-          )).toList(),
-          onChanged: (value) {
-            setState(() {
-              _selectedPaymentMethod = value!;
-              _selectedBankAccount = null; // Reset bank account selection
-            });
-          },
+          child: Row(
+            children: [
+              Icon(
+                Icons.account_balance,
+                color: Colors.blue,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Account Transfer',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              const Spacer(),
+              Icon(
+                Icons.lock,
+                color: Colors.grey.shade500,
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Payments are processed as account transfers from your selected account to the credit card.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Colors.grey.shade600,
+            fontStyle: FontStyle.italic,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildBankAccountSection(PaymentProvider paymentProvider) {
-    final availableAccounts = paymentProvider.verifiedBankAccounts;
+  Widget _buildSourceAccountSection(AppProvider appProvider) {
+    // Get asset accounts (savings, wallet, cash, investment) that can be used for payments
+    final availableAccounts = appProvider.accounts
+        .where((account) => account.isAsset && account.balance > 0)
+        .toList();
     
     if (availableAccounts.isEmpty) {
       return Card(
@@ -343,7 +338,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'No Bank Accounts Available',
+                'No Source Accounts Available',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.orange,
@@ -351,14 +346,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Please add and verify a bank account to make payments.',
+                'Please add accounts with available balance to make payments.',
                 style: Theme.of(context).textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => _navigateToAddBankAccount(),
-                child: const Text('Add Bank Account'),
+                onPressed: () => _navigateToAddAccount(),
+                child: const Text('Add Account'),
               ),
             ],
           ),
@@ -370,16 +365,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Select Bank Account',
+          'Select Source Account',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 16),
-        DropdownButtonFormField<BankAccount>(
-          value: _selectedBankAccount,
+        DropdownButtonFormField<Account>(
+          value: _selectedSourceAccount,
           decoration: InputDecoration(
-            labelText: 'Choose Bank Account',
+            labelText: 'Choose Source Account',
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -399,9 +394,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(account.displayName),
+                Text(account.name),
                 Text(
-                  '${account.maskedAccountNumber} • ${account.getFormattedBalance()}',
+                  '${account.type.displayName} • ${Formatters.formatCurrency(account.balance)}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
@@ -411,12 +406,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
           )).toList(),
           onChanged: (value) {
             setState(() {
-              _selectedBankAccount = value;
+              _selectedSourceAccount = value;
             });
           },
           validator: (value) {
             if (value == null) {
-              return 'Please select a bank account';
+              return 'Please select a source account';
             }
             return null;
           },
@@ -460,11 +455,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _buildProcessPaymentButton(PaymentProvider paymentProvider) {
+  Widget _buildProcessPaymentButton(AppProvider appProvider) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _isProcessing ? null : () => _processPayment(paymentProvider),
+        onPressed: _isProcessing ? null : () => _processPayment(appProvider),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
@@ -492,31 +487,78 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _buildRecentPayments(PaymentProvider paymentProvider) {
-    final recentPayments = paymentProvider.getPaymentsForCard(widget.creditCard.id)
-        .take(5)
-        .toList();
-
-    if (recentPayments.isEmpty) {
-      return const SizedBox.shrink();
-    }
+  Widget _buildRecentPayments(AppProvider appProvider) {
+    // Get recent transfer transactions to this credit card
+    final recentPayments = appProvider.transactions
+        .where((transaction) => 
+            transaction.isTransfer && 
+            transaction.toAccountId == widget.creditCard.id)
+        .toList()
+      ..sort((a, b) => b.date.compareTo(a.date)); // Sort by date, newest first
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Recent Payments',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+        Row(
+          children: [
+            Text(
+              'Payment History',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Spacer(),
+            if (recentPayments.isNotEmpty)
+              Text(
+                '${recentPayments.length} payment${recentPayments.length == 1 ? '' : 's'}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.grey.shade600,
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 16),
-        ...recentPayments.map((payment) => _buildPaymentItem(payment)),
+        if (recentPayments.isEmpty)
+          Card(
+            color: Colors.blue.shade50,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.history,
+                    color: Colors.blue,
+                    size: 32,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No Payment History',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'This will be your first payment to this credit card.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.blue.shade700,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ...recentPayments.take(10).map((transaction) => _buildPaymentItem(transaction)).toList(),
       ],
     );
   }
 
-  Widget _buildPaymentItem(Payment payment) {
+  Widget _buildPaymentItem(Transaction transaction) {
+    final sourceAccount = context.read<AppProvider>().getAccountForTransaction(transaction.accountId);
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
@@ -524,34 +566,74 @@ class _PaymentScreenState extends State<PaymentScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: payment.statusColor.withValues(alpha: 0.1),
+            color: Colors.green.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(
-            Icons.payment,
-            color: payment.statusColor,
+          child: const Icon(
+            Icons.account_balance_wallet,
+            color: Colors.green,
             size: 20,
           ),
         ),
-        title: Text(payment.getFormattedAmount()),
-        subtitle: Text(
-          '${payment.paymentMethodDisplayText} • ${Formatters.formatDate(payment.paymentDate)}',
-        ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: payment.statusColor,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            payment.statusDisplayText,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+        title: Row(
+          children: [
+            Text(
+              Formatters.formatCurrency(transaction.amount.abs()),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.green.shade700,
+              ),
             ),
-          ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.green,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'PAID',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
         ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Text(
+              'From ${sourceAccount?.name ?? 'Unknown Account'}',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              Formatters.formatDate(transaction.date),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey.shade600,
+              ),
+            ),
+            if (transaction.notes != null && transaction.notes!.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                transaction.notes!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.grey.shade600,
+                  fontStyle: FontStyle.italic,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
+        ),
+        isThreeLine: true,
       ),
     );
   }
@@ -560,32 +642,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
     _amountController.text = amount.toStringAsFixed(2);
   }
 
-  String _getPaymentMethodDisplayText(String method) {
-    switch (method) {
-      case 'bank_transfer':
-        return 'Bank Transfer';
-      case 'debit_card':
-        return 'Debit Card';
-      case 'upi':
-        return 'UPI';
-      case 'net_banking':
-        return 'Net Banking';
-      case 'wallet':
-        return 'Digital Wallet';
-      default:
-        return method;
-    }
-  }
 
-  Future<void> _processPayment(PaymentProvider paymentProvider) async {
+
+  Future<void> _processPayment(AppProvider appProvider) async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Validate bank account selection for applicable payment methods
-    if ((_selectedPaymentMethod == 'bank_transfer' || _selectedPaymentMethod == 'net_banking') &&
-        _selectedBankAccount == null) {
+    // Validate source account selection for transfer payments
+    if (_selectedPaymentMethod == 'transfer' && _selectedSourceAccount == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select a bank account'),
+          content: Text('Please select a source account'),
           backgroundColor: Colors.red,
         ),
       );
@@ -597,54 +663,44 @@ class _PaymentScreenState extends State<PaymentScreen> {
     try {
       final amount = double.parse(_amountController.text);
       
-      // Create payment
-      final payment = Payment.create(
-        creditCardId: widget.creditCard.id,
-        amount: amount,
-        paymentMethod: _selectedPaymentMethod,
-        bankAccountId: _selectedBankAccount?.id,
-        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
-      );
-
-      // Add payment
-      final success = await paymentProvider.addPayment(payment);
-      
-      if (success) {
-        // Process payment
-        final processSuccess = await paymentProvider.processPayment(payment);
-        
-        if (processSuccess) {
-          // Update credit card balance
-          final creditCardProvider = context.read<CreditCardProvider>();
-          await creditCardProvider.updateCreditCardBalance(
-            widget.creditCard.id,
-            widget.creditCard.outstandingBalance - amount,
+      // Find the Credit Card Payment category
+      final creditCardPaymentCategory = appProvider.categories
+          .firstWhere(
+            (category) => category.name == 'Credit Card Payment',
+            orElse: () => appProvider.categories.first, // Fallback to first category
           );
 
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Payment processed successfully!'),
-                backgroundColor: Colors.green,
-              ),
-            );
-            Navigator.of(context).pop();
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(paymentProvider.error ?? 'Payment processing failed'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+      // Create transfer transaction from source account to credit card
+      final transaction = Transaction.create(
+        type: 'transfer',
+        amount: amount,
+        description: 'Credit Card Payment - ${widget.creditCard.name}',
+        categoryId: creditCardPaymentCategory.id,
+        accountId: _selectedSourceAccount?.id ?? 'cash', // Use selected account or cash
+        toAccountId: widget.creditCard.id, // Credit card as destination
+        notes: _notesController.text.trim().isEmpty 
+            ? 'Payment via Account Transfer'
+            : '${_notesController.text.trim()} (via Account Transfer)',
+      );
+
+      // Add transaction using AppProvider
+      final success = await appProvider.addTransaction(transaction);
+      
+      if (success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Payment processed successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.of(context).pop();
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(paymentProvider.error ?? 'Failed to create payment'),
+              content: Text(appProvider.error ?? 'Payment processing failed'),
               backgroundColor: Colors.red,
             ),
           );
@@ -666,12 +722,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  void _navigateToAddBankAccount() {
-    // TODO: Navigate to add bank account screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Add Bank Account feature coming soon!'),
-      ),
-    );
+  void _navigateToAddAccount() {
+    // Navigate to accounts screen where user can add new accounts
+    Navigator.of(context).pushNamed('/accounts');
   }
 }

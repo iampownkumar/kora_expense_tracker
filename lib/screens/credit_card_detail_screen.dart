@@ -5,6 +5,8 @@ import '../providers/app_provider.dart';
 import '../models/credit_card.dart';
 import '../models/transaction.dart';
 import '../utils/formatters.dart';
+import 'payment_screen.dart';
+import 'credit_card_analytics_screen.dart';
 
 /// Credit Card Detail Screen - Comprehensive view of a single credit card
 class CreditCardDetailScreen extends StatefulWidget {
@@ -179,6 +181,14 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Quick Analytics Overview
+              _buildQuickAnalyticsOverview(),
+              const SizedBox(height: 24),
+              
+              // View Detailed Analytics Button
+              _buildViewDetailedAnalyticsButton(),
+              const SizedBox(height: 24),
+              
               // Utilization Chart
               _buildUtilizationChart(),
               const SizedBox(height: 24),
@@ -649,6 +659,163 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
     );
   }
 
+  Widget _buildQuickAnalyticsOverview() {
+    return Consumer<AppProvider>(
+      builder: (context, appProvider, child) {
+        final transactions = appProvider.transactions
+            .where((transaction) => transaction.accountId == _currentCard.id)
+            .toList();
+        
+        final monthlySpending = _calculateMonthlySpending(transactions);
+        final totalSpending = monthlySpending.values.fold(0.0, (sum, amount) => sum + amount);
+        final avgMonthlySpending = monthlySpending.isNotEmpty ? totalSpending / monthlySpending.length : 0.0;
+        
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                Theme.of(context).primaryColor.withValues(alpha: 0.05),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.analytics,
+                    color: Theme.of(context).primaryColor,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Quick Analytics',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildQuickMetric(
+                      'Total Spending',
+                      Formatters.formatCurrency(totalSpending),
+                      Icons.trending_up,
+                      Colors.blue,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildQuickMetric(
+                      'Avg Monthly',
+                      Formatters.formatCurrency(avgMonthlySpending),
+                      Icons.calendar_month,
+                      Colors.green,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildQuickMetric(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildViewDetailedAnalyticsButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () => _navigateToDetailedAnalytics(),
+        icon: const Icon(Icons.analytics),
+        label: const Text('View Detailed Analytics'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Theme.of(context).primaryColor,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Map<String, double> _calculateMonthlySpending(List<Transaction> transactions) {
+    final Map<String, double> monthlySpending = {};
+    
+    for (final transaction in transactions) {
+      if (transaction.type == 'expense') {
+        final monthKey = '${transaction.date.year}-${transaction.date.month.toString().padLeft(2, '0')}';
+        monthlySpending[monthKey] = (monthlySpending[monthKey] ?? 0) + transaction.amount.abs();
+      }
+    }
+    
+    return monthlySpending;
+  }
+
+  void _navigateToDetailedAnalytics() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => CreditCardAnalyticsScreen(
+          creditCard: _currentCard,
+        ),
+      ),
+    );
+  }
+
   Widget _buildEmptyState({
     required IconData icon,
     required String title,
@@ -897,9 +1064,15 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   void _showPaymentDialog() {
-    // TODO: Implement payment dialog
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Payment functionality coming soon!')),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => PaymentScreen(
+          creditCard: _currentCard,
+          suggestedAmount: _currentCard.isDueSoon || _currentCard.isOverdue 
+              ? _currentCard.minimumPaymentAmount 
+              : null,
+        ),
+      ),
     );
   }
 

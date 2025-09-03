@@ -1,0 +1,36 @@
+---
+description: "I’m building a Kora Expense Tracker app that includes a full credit card utilization system implemented completely offline, prioritizing user-friendly design and deep understanding of user psychology.
+
+The system must:
+
+    Reflect how banks actually use and hide important credit card rules, like minimum due payments leading to high interest rates and debt traps.
+
+    Create financial awareness by educating users about the real impact of credit card payments, shared credit limits, and credit utilization thresholds (e.g., ideal usage under 30%).
+
+    Provide transparent, clear credit card management logic that banks typically obscure or don’t explain well.
+
+    Deliver this insight instantly, offline, without forcing user login or data sharing.
+
+    Be designed in a way that engages and retains users, making the financial tracking experience addictive and motivational.
+
+Before generating the code:
+
+    Research and confirm core banking and credit scoring logic as per Indian credit bureaus like CIBIL and best global standards.
+
+    Validate that our logic reflects real-world shared limits, utilization calculations, interest and payment warnings accurately.
+
+Always think ahead to design and code for:
+
+    Scalability of features as user needs grow.
+
+    Modular, maintainable code structures.
+
+    Extensibility for future features like rewards tracking, fraud alerts, export/import, and analytics dashboards.
+
+Keep all implemented and planned Kora Expense Tracker app features in context. When generating code or designs, provide scalable, clean, tested solutions that prioritize user empowerment and long-term financial health.
+Whenever we create the the transaction we need to always apply CRUD option for each transaction and it corelated and evnrthing need to update imeditealy 
+
+Please confirm this logic with references or banking rules before coding. After confirmation, assist me with stepwise, quality, and scalable code generation for this credit card system."
+globs:
+alwaysApply: true
+---

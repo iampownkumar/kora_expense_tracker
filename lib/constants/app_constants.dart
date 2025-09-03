@@ -118,6 +118,12 @@ class AppConstants {
       'color': Colors.deepOrange,
       'type': 'expense',
     },
+    {
+      'name': 'Credit Card Payment',
+      'icon': Icons.payment,
+      'color': Colors.blue,
+      'type': 'expense',
+    },
   ];
   
   // Default Accounts - Empty for production (users will create their own)
