@@ -1,86 +1,126 @@
 # Credit Card Management - Quick Reference Guide
 
-## 🚀 Quick Start
-This guide helps developers quickly understand and implement credit card management features.
+## 🚀 **Quick Start**
 
-## 📋 Common Tasks
+### **Adding Transactions from Credit Card Screen**
+1. Open Credit Card → Click FAB (+) button
+2. Account is pre-selected → Start typing description
+3. Tab to Amount → Enter amount
+4. Tab to Category → Select category
+5. Tab to Notes → Add notes (optional)
+6. Save → Success message appears
 
-### Adding a New Credit Card
-1. User goes to Accounts → Add Account → Credit Card
-2. Redirects to `AddCreditCardScreen`
-3. Creates both `Account` and `CreditCard` objects with same ID
-4. Updates both `AppProvider` and `CreditCardProvider`
+### **Generating Statements**
+1. Go to Statements tab
+2. Click "Generate Statement"
+3. If already exists → Orange warning message
+4. If new → Confirmation dialog → Generate
+5. Statement appears in history
 
-### Displaying Credit Card Balance
-```dart
-// Use user-friendly display
-Text(card.getFormattedUserBalance()) // Shows "₹100" instead of "₹-100"
+### **Making Payments**
+1. Go to Payments tab
+2. Click "Make Payment" or "Pay Now"
+3. Select amount (Full/Minimum)
+4. Choose source account
+5. Add notes (optional)
+6. Process Payment
 
-// Use proper label
-Text(card.balanceLabel) // Shows "Available Credit" or "Outstanding"
-
-// Use proper color
-Color color = card.userBalanceColor // Green for credit, red for debt
-```
-
-### Transaction Dialog Account Display
-```dart
-// Show debt/credit context
-Text(
-  account.type == AccountType.creditCard 
-    ? '${Formatters.getCurrencySymbol()}${account.balance.abs().toStringAsFixed(0)} ${account.balance < 0 ? '(Credit)' : '(Debt)'}'
-    : '${Formatters.getCurrencySymbol()}${account.balance.toStringAsFixed(0)}',
-  style: TextStyle(color: account.balanceColor),
-)
-```
-
-## 🎯 Key Methods
-
-### CreditCard Model
-- `getFormattedUserBalance()` - User-friendly balance (no minus for credit)
-- `balanceLabel` - "Available Credit" or "Outstanding"
-- `userBalanceColor` - Green for credit/zero, red for debt
-- `userFriendlyUtilization` - Positive percentage for credit
-- `userUtilizationStatus` - "Credit Available" or "Paid Off"
-
-### Account Model
-- `getFormattedUserBalance()` - User-friendly balance for credit cards
-- `balanceIcon` - Upward trend for credit cards with credit
-- `balanceColor` - Proper color based on account type
-
-### AppProvider
-- `totalAssets` - Includes overpaid credit cards as assets
-- `totalLiabilities` - Only positive balances count as debt
-- `netWorth` - Assets minus liabilities (correct calculation)
-
-## 🔧 Troubleshooting
-
-### Balance Not Syncing
-1. Check both objects use same ID
-2. Verify `CreditCardProvider` reference in `AppProvider`
-3. Check `_updateAccountBalances()` method
-
-### Wrong Colors
-1. Check `AccountType.getBalanceColor()` logic
-2. Verify liability logic: `balance <= 0 ? green : red`
-
-### Import Errors
-1. Add `import 'package:kora_expense_tracker/models/account_type.dart';`
-2. Check all `AccountType.creditCard` references
-
-## 📁 Key Files
-- `lib/models/credit_card.dart` - Credit card display logic
-- `lib/models/account.dart` - Account display logic
-- `lib/providers/app_provider.dart` - Net worth calculation
-- `lib/widgets/add_transaction_dialog.dart` - Transaction dialog
-- `lib/screens/credit_cards_screen.dart` - Credit overview
-
-## 🎨 UI Principles
-- **Green = Good** (no debt, available credit)
-- **Red = Bad** (debt, overdue)
-- **No minus signs** for credits
-- **Clear labels** for context
-- **Upward trends** for positive states
+### **Viewing Payment History**
+1. Go to Payments tab
+2. Scroll to "Payment History"
+3. Click "View All" → Full history screen
+4. See summary cards and detailed list
 
 ---
-*Use this guide for quick reference during development. For detailed implementation, see the full documentation.*
+
+## 🐛 **Common Issues & Quick Fixes**
+
+| Issue | Quick Fix |
+|-------|-----------|
+| Statement generation error | Check if statement already exists, delete if needed |
+| Auto-focus not working | Ensure account is pre-selected from credit card screen |
+| Payment history empty | Verify transactions are 'expense' type with correct toAccountId |
+| App shows error screen | Click "Retry" button or refresh the screen |
+| Minimum payment shows ₹25 | Fixed - now shows ₹0 when calculated amount is less |
+
+---
+
+## 📱 **Screen Navigation**
+
+```
+Credit Cards Screen
+├── Credit Card List
+│   ├── Bill Date Info
+│   ├── Due Date Info
+│   └── Days Remaining
+└── FAB (+) → Add Credit Card
+
+Credit Card Detail Screen
+├── Overview Tab
+│   ├── Card Visual
+│   ├── Key Metrics
+│   ├── Payment Status
+│   ├── Quick Actions
+│   └── Recent Activity
+├── Transactions Tab
+│   ├── Transaction List
+│   ├── Analytics Button
+│   └── FAB (+) → Add Transaction
+├── Statements Tab
+│   ├── Current Statement
+│   ├── Statement History
+│   └── Generate Statement
+└── Payments Tab
+    ├── Payment Overview
+    ├── Quick Actions
+    └── Payment History
+```
+
+---
+
+## ⚡ **Keyboard Shortcuts & Flow**
+
+### **Transaction Entry Flow**
+1. **Description** (auto-focused) → Type transaction description
+2. **Amount** (Tab/Enter) → Enter amount
+3. **Category** (Tab/Enter) → Select category
+4. **Notes** (Tab/Enter) → Add notes
+5. **Save** (Button) → Complete transaction
+
+### **Quick Actions**
+- **FAB (+) on Overview** → Add Transaction
+- **FAB (+) on Transactions** → Add Transaction  
+- **FAB (+) on Statements** → Generate Statement
+- **FAB (+) on Payments** → Make Payment
+
+---
+
+## 🔧 **Technical Notes**
+
+### **Export Functionality**
+- **Status**: Simulated only (shows success messages)
+- **Required**: File permissions and PDF/CSV libraries
+- **Impact**: Low - core functionality works
+
+### **Auto-Pay**
+- **Status**: Setup only (scheduled payments)
+- **Required**: Background processing
+- **Impact**: Medium - manual trigger needed
+
+### **Error Recovery**
+- **Statement Errors**: Auto-cleared on refresh
+- **Payment Errors**: Retry button available
+- **App Errors**: No restart required
+
+---
+
+## 📞 **Support**
+
+For issues not covered in this guide:
+1. Check the main documentation
+2. Verify data integrity
+3. Try refresh/retry options
+4. Check error messages for specific guidance
+
+**Last Updated**: December 2024  
+**Version**: 2.0.0

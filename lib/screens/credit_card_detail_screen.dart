@@ -8,6 +8,9 @@ import '../utils/formatters.dart';
 import 'payment_screen.dart';
 import 'credit_card_analytics_screen.dart';
 import 'edit_credit_card_screen.dart';
+import '../widgets/transaction_detail_sheet.dart';
+import '../widgets/add_transaction_dialog.dart';
+import 'payment_history_screen.dart';
 
 /// Credit Card Detail Screen - Comprehensive view of a single credit card
 class CreditCardDetailScreen extends StatefulWidget {
@@ -74,11 +77,12 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
         ],
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
           tabs: const [
             Tab(icon: Icon(Icons.dashboard), text: 'Overview'),
+            Tab(icon: Icon(Icons.list_alt), text: 'Transactions'),
             Tab(icon: Icon(Icons.receipt_long), text: 'Statements'),
             Tab(icon: Icon(Icons.payment), text: 'Payments'),
-            Tab(icon: Icon(Icons.analytics), text: 'Analytics'),
           ],
         ),
       ),
@@ -86,9 +90,9 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
         controller: _tabController,
         children: [
           _buildOverviewTab(),
+          _buildTransactionsTab(),
           _buildStatementsTab(),
           _buildPaymentsTab(),
-          _buildAnalyticsTab(),
         ],
       ),
       floatingActionButton: _buildFloatingActionButton(),
@@ -459,9 +463,9 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () => _showCardDetails(),
-                icon: const Icon(Icons.info),
-                label: const Text('Card Details'),
+                onPressed: () => _showTransactionHistory(),
+                icon: const Icon(Icons.analytics),
+                label: const Text('Analytics'),
               ),
             ),
             const SizedBox(width: 12),
@@ -848,17 +852,33 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   Widget _buildFloatingActionButton() {
-    if (_tabController.index == 1) {
+    if (_tabController.index == 0) {
+      // Overview tab - Add Transaction
+      return FloatingActionButton(
+        onPressed: _showAddTransactionDialog,
+        child: const Icon(Icons.add),
+        tooltip: 'Add Transaction',
+      );
+    } else if (_tabController.index == 1) {
+      // Transactions tab
+      return FloatingActionButton(
+        onPressed: _showAddTransactionDialog,
+        child: const Icon(Icons.add),
+        tooltip: 'Add Transaction',
+      );
+    } else if (_tabController.index == 2) {
       // Statements tab
       return FloatingActionButton(
         onPressed: _generateStatement,
         child: const Icon(Icons.add),
+        tooltip: 'Generate Statement',
       );
-    } else if (_tabController.index == 2) {
+    } else if (_tabController.index == 3) {
       // Payments tab
       return FloatingActionButton(
         onPressed: _showPaymentDialog,
         child: const Icon(Icons.payment),
+        tooltip: 'Make Payment',
       );
     }
     return const SizedBox.shrink();
@@ -1081,6 +1101,37 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   void _generateStatement() {
+    final provider = context.read<CreditCardProvider>();
+    final statements = provider.getStatementsForCard(_currentCard.id);
+    
+    // Check if statement already exists for current period
+    final now = DateTime.now();
+    final billingDay = _currentCard.billingCycleDay;
+    DateTime periodStart;
+    
+    if (now.day >= billingDay) {
+      periodStart = DateTime(now.year, now.month, billingDay);
+    } else {
+      periodStart = DateTime(now.year, now.month - 1, billingDay);
+    }
+    
+    final existingStatement = statements.any((stmt) => 
+        stmt.periodStart.year == periodStart.year && 
+        stmt.periodStart.month == periodStart.month);
+    
+    if (existingStatement) {
+      // Show message that statement already exists
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Statement already generated for this billing period!'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+    
+    // Show generation dialog
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1222,18 +1273,108 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   void _showTransactionHistory() {
-    // Navigate to transactions screen with filter for this credit card
-    Navigator.of(context).pushNamed('/transactions', arguments: {
-      'filter': 'account',
-      'accountId': _currentCard.id,
-    });
+    // Navigate to the Transactions tab within this credit card detail screen
+    _tabController.animateTo(1); // Transactions tab index
   }
 
   void _showStatementDetails(statement) {
-    // TODO: Implement statement details
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Statement details coming soon!')),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Statement #${statement.statementNumber}'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildStatementDetailRow('Period', statement.periodDisplay),
+              _buildStatementDetailRow('Total Due', statement.getFormattedTotalDue()),
+              _buildStatementDetailRow('Minimum Payment', statement.getFormattedMinimumPayment()),
+              _buildStatementDetailRow('Due Date', Formatters.formatDate(statement.paymentDueDate)),
+              _buildStatementDetailRow('Status', statement.paymentStatus),
+              _buildStatementDetailRow('Generated', Formatters.formatDate(statement.generatedDate)),
+              if (statement.paidAmount > 0)
+                _buildStatementDetailRow('Paid Amount', Formatters.formatCurrency(statement.paidAmount)),
+              if (statement.paidDate != null)
+                _buildStatementDetailRow('Paid Date', Formatters.formatDate(statement.paidDate!)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
+  }
+
+  Widget _buildStatementDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+          Text(value),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteStatement(statement) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Statement'),
+        content: Text(
+          'Are you sure you want to delete Statement #${statement.statementNumber}? '
+          'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _deleteStatement(statement);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteStatement(statement) async {
+    final creditCardProvider = context.read<CreditCardProvider>();
+    final success = await creditCardProvider.deleteStatement(statement.id);
+    
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Statement deleted successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(creditCardProvider.error ?? 'Failed to delete statement'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showPaymentDetails(payment) {
@@ -1485,6 +1626,34 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _showStatementDetails(statement),
+                  icon: const Icon(Icons.visibility, size: 16),
+                  label: const Text('View Details'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _confirmDeleteStatement(statement),
+                  icon: const Icon(Icons.delete, size: 16),
+                  label: const Text('Delete'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -1730,8 +1899,10 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
             if (paymentTransactions.isNotEmpty)
               TextButton(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Full payment history coming soon!')),
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => PaymentHistoryScreen(creditCard: _currentCard),
+                    ),
                   );
                 },
                 child: const Text('View All'),
@@ -2234,13 +2405,93 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   void _setupAutoPay() {
-    // Simulate auto-pay setup
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Auto-pay setup completed! Your payments will be automatic.'),
-        backgroundColor: Colors.green,
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Setup Auto-Pay'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Auto-pay will automatically pay your credit card bill 4 days before the due date.',
+            ),
+            const SizedBox(height: 16),
+            const Text('Choose payment amount:'),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _confirmAutoPaySetup(true),
+                    child: const Text('Full Balance'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _confirmAutoPaySetup(false),
+                    child: const Text('Minimum Payment'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
       ),
     );
+  }
+
+  void _confirmAutoPaySetup(bool payFullBalance) async {
+    Navigator.of(context).pop(); // Close dialog
+    
+    final creditCardProvider = context.read<CreditCardProvider>();
+    final appProvider = context.read<AppProvider>();
+    
+    // Get the first available account for payment
+    final accounts = appProvider.accounts;
+    if (accounts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No accounts available for auto-pay. Please add an account first.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+    final paymentAccount = accounts.first;
+    final amount = payFullBalance ? _currentCard.outstandingBalance : _currentCard.minimumPaymentAmount;
+    
+    final success = await creditCardProvider.setupAutoPay(
+      _currentCard.id,
+      amount: amount,
+      paymentAccountId: paymentAccount.id,
+      payFullBalance: payFullBalance,
+    );
+    
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Auto-pay setup completed! Will pay ${Formatters.formatCurrency(amount)} 4 days before due date.',
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(creditCardProvider.error ?? 'Failed to setup auto-pay'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showPaymentHistoryExport() {
@@ -2274,6 +2525,253 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
       const SnackBar(
         content: Text('Payment history exported successfully!'),
         backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  // ========================================
+  // TRANSACTIONS TAB
+  // ========================================
+
+  Widget _buildTransactionsTab() {
+    return Consumer<AppProvider>(
+      builder: (context, appProvider, child) {
+        // Get all transactions for this credit card
+        final creditCardTransactions = appProvider.transactions
+            .where((transaction) => 
+                transaction.accountId == _currentCard.id ||
+                transaction.description.toLowerCase().contains(_currentCard.name.toLowerCase()))
+            .toList();
+
+        // Sort by date (newest first)
+        creditCardTransactions.sort((a, b) => b.date.compareTo(a.date));
+
+        return Column(
+          children: [
+            // Header with transaction count
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Theme.of(context).primaryColor,
+                    Theme.of(context).primaryColor.withValues(alpha: 0.8),
+                  ],
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Credit Card Transactions',
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${creditCardTransactions.length} transactions found',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.9),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (creditCardTransactions.isNotEmpty)
+                        ElevatedButton.icon(
+                          onPressed: _showDetailedAnalytics,
+                          icon: const Icon(Icons.analytics, size: 18),
+                          label: const Text('Analytics'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Theme.of(context).primaryColor,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Transaction list
+            Expanded(
+              child: creditCardTransactions.isEmpty
+                  ? _buildEmptyTransactionsState()
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: creditCardTransactions.length,
+                      itemBuilder: (context, index) {
+                        final transaction = creditCardTransactions[index];
+                        return _buildTransactionCard(transaction);
+                      },
+                    ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyTransactionsState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.receipt_long_outlined,
+            size: 64,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No Transactions Yet',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your credit card transactions will appear here',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.grey[500],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: _showAddTransactionDialog,
+            icon: const Icon(Icons.add),
+            label: const Text('Add Transaction'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransactionCard(Transaction transaction) {
+    final isExpense = transaction.type == 'expense';
+    final amountColor = isExpense ? Colors.red : Colors.green;
+    final amountPrefix = isExpense ? '-' : '+';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: isExpense 
+              ? Colors.red.withValues(alpha: 0.1)
+              : Colors.green.withValues(alpha: 0.1),
+          child: Icon(
+            isExpense ? Icons.arrow_upward : Icons.arrow_downward,
+            color: amountColor,
+          ),
+        ),
+        title: Text(
+          transaction.description,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(Formatters.formatDate(transaction.date)),
+            Text(
+              transaction.type.toUpperCase(),
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '$amountPrefix${Formatters.formatCurrency(transaction.amount)}',
+              style: TextStyle(
+                color: amountColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            if (transaction.accountId == _currentCard.id)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'Credit Card',
+                  style: TextStyle(
+                    color: Theme.of(context).primaryColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        onTap: () => _showTransactionDetails(transaction),
+      ),
+    );
+  }
+
+  void _showTransactionDetails(Transaction transaction) {
+    final appProvider = context.read<AppProvider>();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => TransactionDetailSheet(
+        transaction: transaction,
+        appProvider: appProvider,
+      ),
+    );
+  }
+
+  void _showAddTransactionDialog() {
+    final appProvider = context.read<AppProvider>();
+    showDialog(
+      context: context,
+      builder: (context) => AddTransactionDialog(
+        appProvider: appProvider,
+        defaultAccountId: _currentCard.id, // Pre-select this credit card
+      ),
+    ).then((result) {
+      // Only show success message if transaction was actually added
+      if (result == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Transaction added to ${_currentCard.name} successfully!'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    });
+  }
+
+  void _showDetailedAnalytics() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => CreditCardAnalyticsScreen(creditCard: _currentCard),
       ),
     );
   }

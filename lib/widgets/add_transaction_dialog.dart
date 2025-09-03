@@ -9,11 +9,13 @@ import 'package:kora_expense_tracker/utils/formatters.dart';
 class AddTransactionDialog extends StatefulWidget {
   final AppProvider appProvider;
   final Transaction? transaction; // For editing existing transactions
+  final String? defaultAccountId; // Pre-select this account
 
   const AddTransactionDialog({
     super.key,
     required this.appProvider,
     this.transaction,
+    this.defaultAccountId,
   });
 
   @override
@@ -34,6 +36,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   // Focus nodes for auto-navigation
   final FocusNode _descriptionFocus = FocusNode();
   final FocusNode _amountFocus = FocusNode();
+  final FocusNode _categoryFocus = FocusNode();
   final FocusNode _notesFocus = FocusNode();
   
   // Controllers for proper text field management
@@ -67,11 +70,17 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       _descriptionController.text = _description;
       _amountController.text = _amount;
       _notesController.text = _notes;
+    } else if (widget.defaultAccountId != null) {
+      // Pre-select the default account if provided
+      _selectedAccountId = widget.defaultAccountId;
     }
     
-    // Auto-focus description field when screen opens
+    // Auto-focus appropriate field when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Always focus on description field first (transaction type/description)
+      // This allows user to start typing the transaction description immediately
       _descriptionFocus.requestFocus();
+      
       // Auto-select all text if editing
       if (widget.transaction != null) {
         _descriptionController.selection = TextSelection(
@@ -86,6 +95,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   void dispose() {
     _descriptionFocus.dispose();
     _amountFocus.dispose();
+    _categoryFocus.dispose();
     _notesFocus.dispose();
     _descriptionController.dispose();
     _amountController.dispose();
@@ -363,10 +373,16 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                 onChanged: (value) => _amount = value,
                 textInputAction: TextInputAction.next,
                 onSubmitted: (_) {
-                  if (_selectedType == AppConstants.transactionTypeTransfer) {
-                    _showFromAccountPicker();
+                  // If account is pre-selected, go to category
+                  if (widget.defaultAccountId != null) {
+                    _showCategoryPicker();
                   } else {
-                    _showAccountPicker();
+                    // Otherwise, show account picker
+                    if (_selectedType == AppConstants.transactionTypeTransfer) {
+                      _showFromAccountPicker();
+                    } else {
+                      _showAccountPicker();
+                    }
                   }
                 },
               ),
@@ -1125,28 +1141,23 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     }
     
     if (success) {
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true); // Return true to indicate success
       
-      // Show success feedback with non-blocking behavior
-      ScaffoldMessenger.of(context).hideCurrentSnackBar(); // Hide any existing snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(widget.transaction != null 
-              ? 'Transaction updated successfully!' 
-              : (_selectedType == AppConstants.transactionTypeTransfer 
-                  ? 'Transfer completed successfully!' 
-                  : 'Transaction added successfully!')),
-          backgroundColor: _getTypeColor(_selectedType),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 1), // Very short duration
-          margin: const EdgeInsets.only(
-            left: 16,
-            right: 16,
-            bottom: 100, // Keep it above FAB
+      // Show success message only if no defaultAccountId (not from credit card screen)
+      if (widget.defaultAccountId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(widget.transaction != null 
+                ? 'Transaction updated successfully!' 
+                : (_selectedType == AppConstants.transactionTypeTransfer 
+                    ? 'Transfer completed successfully!' 
+                    : 'Transaction added successfully!')),
+            backgroundColor: _getTypeColor(_selectedType),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
           ),
-          dismissDirection: DismissDirection.horizontal, // Allow swipe to dismiss
-        ),
-      );
+        );
+      }
     } else {
       // Show error message
       ScaffoldMessenger.of(context).hideCurrentSnackBar();

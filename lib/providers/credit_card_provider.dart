@@ -216,6 +216,15 @@ class CreditCardProvider extends ChangeNotifier {
   }
 
   /// Generate statement for a credit card
+  /// Check if a statement already exists for the current period
+  bool _statementExistsForPeriod(String creditCardId, DateTime periodStart) {
+    return _statements.any((stmt) => 
+      stmt.creditCardId == creditCardId && 
+      stmt.periodStart.year == periodStart.year &&
+      stmt.periodStart.month == periodStart.month
+    );
+  }
+
   Future<CreditCardStatement?> generateStatement(String creditCardId) async {
     try {
       final card = _creditCards.firstWhere((c) => c.id == creditCardId);
@@ -235,6 +244,13 @@ class CreditCardProvider extends ChangeNotifier {
         // Current period started this month
         periodStart = DateTime(now.year, now.month, billingDay);
         periodEnd = DateTime(now.year, now.month + 1, billingDay - 1);
+      }
+      
+      // Check if statement already exists for this period
+      if (_statementExistsForPeriod(creditCardId, periodStart)) {
+        _error = 'Statement already exists for this billing period';
+        notifyListeners();
+        return null;
       }
       
       // Calculate statement amounts (simplified for now)
@@ -268,6 +284,8 @@ class CreditCardProvider extends ChangeNotifier {
       // Save to storage
       await StorageService.saveCreditCardStatements(_statements);
       
+      // Clear any previous errors
+      _error = null;
       notifyListeners();
       return statement;
     } catch (e) {
@@ -341,22 +359,6 @@ class CreditCardProvider extends ChangeNotifier {
       return false;
     }
   }
-  
-  /// Delete a statement
-  Future<bool> deleteStatement(String statementId) async {
-    try {
-      _statements.removeWhere((stmt) => stmt.id == statementId);
-      await StorageService.saveCreditCardStatements(_statements);
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _error = 'Failed to delete statement: $e';
-      notifyListeners();
-      return false;
-    }
-  }
-  
-
   
   /// Check if statement should be generated
   bool _shouldGenerateStatement(CreditCard creditCard) {
@@ -598,6 +600,103 @@ class CreditCardProvider extends ChangeNotifier {
     return totalPayments > 0 ? (onTimePayments / totalPayments) * 100 : 0.0;
   }
   
+  /// Delete a statement
+  Future<bool> deleteStatement(String statementId) async {
+    try {
+      _statements.removeWhere((stmt) => stmt.id == statementId);
+      await StorageService.saveCreditCardStatements(_statements);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = 'Failed to delete statement: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Setup auto-pay for a credit card (pay 4 days before due date)
+  Future<bool> setupAutoPay(String creditCardId, {
+    required double amount,
+    required String paymentAccountId,
+    bool payFullBalance = false,
+  }) async {
+    try {
+      final card = _creditCards.firstWhere((c) => c.id == creditCardId);
+      
+      if (card.nextDueDate == null) {
+        _error = 'Due date not set for this credit card';
+        notifyListeners();
+        return false;
+      }
+      
+      // Calculate payment date (4 days before due date)
+      final paymentDate = card.nextDueDate!.subtract(const Duration(days: 4));
+      
+      // Calculate payment amount
+      final paymentAmount = payFullBalance ? card.outstandingBalance : amount;
+      
+      // Create auto-pay record
+      final autoPayRecord = PaymentRecord.create(
+        creditCardId: creditCardId,
+        amount: paymentAmount,
+        paymentDate: paymentDate,
+        paymentMethod: 'Auto-Pay',
+        sourceAccountId: paymentAccountId,
+        status: 'Scheduled',
+        notes: 'Auto-pay scheduled for 4 days before due date',
+      );
+      
+      _payments.add(autoPayRecord);
+      await StorageService.savePaymentRecords(_payments);
+      
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = 'Failed to setup auto-pay: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Process scheduled auto-pay payments
+  Future<void> processScheduledAutoPayments() async {
+    try {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      
+      for (final payment in _payments) {
+        if (payment.status == 'Scheduled' &&
+            payment.paymentDate.isAtSameMomentAs(today)) {
+          
+          // Process the auto-payment
+          await processPayment(
+            creditCardId: payment.creditCardId,
+            amount: payment.amount,
+            sourceAccountId: payment.sourceAccountId ?? '',
+            paymentMethod: payment.paymentMethod,
+            notes: payment.notes,
+          );
+          
+          // Update payment status
+          final updatedPayment = payment.copyWith(
+            status: 'Completed',
+          );
+          
+          final index = _payments.indexWhere((p) => p.id == payment.id);
+          if (index != -1) {
+            _payments[index] = updatedPayment;
+          }
+        }
+      }
+      
+      await StorageService.savePaymentRecords(_payments);
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to process auto-payments: $e';
+      notifyListeners();
+    }
+  }
+
   // ========================================
   // UTILITY METHODS
   // ========================================
@@ -610,6 +709,7 @@ class CreditCardProvider extends ChangeNotifier {
   
   /// Refresh all data
   Future<void> refresh() async {
+    _error = null; // Clear any previous errors
     await _loadAllData();
     notifyListeners();
   }

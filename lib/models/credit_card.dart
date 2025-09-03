@@ -257,7 +257,7 @@ class CreditCard {
   /// Get minimum payment amount
   double get minimumPaymentAmount {
     final calculated = outstandingBalance * (minimumPaymentPercentage / 100);
-    return calculated > 25.0 ? calculated : 25.0; // Minimum ₹25
+    return calculated > 0.0 ? calculated : 0.0; // Minimum ₹0
   }
 
   /// Check if payment is overdue
