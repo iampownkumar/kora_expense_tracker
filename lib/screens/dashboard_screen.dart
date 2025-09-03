@@ -251,15 +251,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     type: AppConstants.categoryTypeExpense,
                                   ),
                                 );
-                                final account = appProvider.accounts.firstWhere(
-                                  (a) => a.id == transaction.accountId,
-                                  orElse: () => Account.create(
-                                    name: 'Unknown Account',
-                                    icon: Icons.account_balance,
-                                    color: AppConstants.primaryColor,
-                                    type: AccountType.savings,
-                                  ),
-                                );
+                                final account = appProvider.getAccountForTransaction(transaction.accountId);
                                 Account? toAccount;
                                 if (transaction.toAccountId != null) {
                                   toAccount = appProvider.getAccountForTransaction(transaction.toAccountId!);

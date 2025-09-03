@@ -21,39 +21,27 @@ class TransactionDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final account = appProvider.accounts.isNotEmpty
-        ? appProvider.accounts.firstWhere(
-            (acc) => acc.id == transaction.accountId,
-            orElse: () => appProvider.accounts.first,
-          )
-        : Account(
-            id: 'default',
-            name: 'Unknown Account',
-            type: AccountType.cash,
-            balance: 0.0,
-            color: Colors.blue,
-            icon: Icons.account_balance_wallet,
-            isActive: true,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          );
+    // Use proper account lookup that handles deleted accounts
+    final account = appProvider.getAccountForTransaction(transaction.accountId);
     
-    final category = appProvider.categories.isNotEmpty
-        ? appProvider.categories.firstWhere(
-            (cat) => cat.id == transaction.categoryId,
-            orElse: () => appProvider.categories.first,
-          )
-        : Category(
-            id: 'default',
-            name: 'Unknown Category',
-            type: 'expense',
-            color: Colors.grey,
-            icon: Icons.category,
-            isDefault: false,
-            isActive: true,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          );
+    // Handle category lookup with proper fallback
+    Category? category;
+    try {
+      category = appProvider.categories.firstWhere((cat) => cat.id == transaction.categoryId);
+    } catch (e) {
+      // If category not found, create a default one for display
+      category = Category(
+        id: 'unknown',
+        name: 'Unknown Category',
+        type: 'expense',
+        color: Colors.grey,
+        icon: Icons.category,
+        isDefault: false,
+        isActive: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+    }
 
     return Container(
           decoration: BoxDecoration(
@@ -153,7 +141,7 @@ class TransactionDetailSheet extends StatelessWidget {
                     _buildDetailRow(
                       context,
                       'Account',
-                      account.name,
+                      account?.name ?? 'Unknown Account',
                       Theme.of(context).colorScheme.primary,
                     ),
                     if (transaction.type != AppConstants.transactionTypeTransfer)

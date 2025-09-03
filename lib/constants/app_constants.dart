@@ -120,23 +120,8 @@ class AppConstants {
     },
   ];
   
-  // Default Accounts
-  static const List<Map<String, dynamic>> defaultAccounts = [
-    {
-      'name': 'Cash',
-      'icon': Icons.money,
-      'color': Colors.green,
-      'balance': 0.0,
-      'type': AccountType.cash,
-    },
-    {
-      'name': 'Bank Account',
-      'icon': Icons.account_balance,
-      'color': Colors.blue,
-      'balance': 0.0,
-      'type': AccountType.savings,
-    },
-  ];
+  // Default Accounts - Empty for production (users will create their own)
+  static const List<Map<String, dynamic>> defaultAccounts = [];
 
   // Popular Wallet Types for Quick Selection
   static List<Map<String, dynamic>> get popularWallets => AccountType.getPopularWallets();

@@ -680,6 +680,27 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
   
+  // Production cleanup: Remove test accounts (Cash, Bank Account)
+  Future<void> removeTestAccounts() async {
+    try {
+      // Remove test accounts by name (case insensitive)
+      final testAccountNames = ['cash', 'bank account', 'bank'];
+      _accounts.removeWhere((account) => 
+        testAccountNames.any((testName) => 
+          account.name.toLowerCase().contains(testName.toLowerCase())
+        )
+      );
+      
+      // Save updated accounts
+      await StorageService.saveAccounts(_accounts);
+      notifyListeners();
+      
+      print('Test accounts removed successfully');
+    } catch (e) {
+      print('Error removing test accounts: $e');
+    }
+  }
+  
   // Refresh data
   Future<void> refresh() async {
     await _loadAllData();
