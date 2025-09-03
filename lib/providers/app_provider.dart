@@ -354,7 +354,7 @@ class AppProvider extends ChangeNotifier {
       final account = _accounts.firstWhere((a) => a.id == accountId);
       final isCreditCard = account.type == AccountType.creditCard;
       
-      // Create a "Deleted Account" placeholder
+      // Create a "Deleted Account" placeholder for transactions only
       final deletedAccount = Account.create(
         name: 'Deleted Account',
         icon: Icons.delete_outline,
@@ -388,11 +388,8 @@ class AppProvider extends ChangeNotifier {
         await _creditCardProvider!.deleteCreditCard(accountId);
       }
       
-      // Replace the account with the deleted account placeholder
-      final accountIndex = _accounts.indexWhere((a) => a.id == accountId);
-      if (accountIndex != -1) {
-        _accounts[accountIndex] = deletedAccount;
-      }
+      // Remove the account completely from the accounts list
+      _accounts.removeWhere((a) => a.id == accountId);
       
       await StorageService.saveAccounts(_accounts);
       notifyListeners();
@@ -662,6 +659,18 @@ class AppProvider extends ChangeNotifier {
         isValid: false,
         errorMessage: 'Account not found: $e',
       );
+    }
+  }
+  
+  // Get account for transaction display (handles deleted accounts)
+  Account? getAccountForTransaction(String accountId) {
+    try {
+      // First try to find the account in the current accounts list
+      return _accounts.firstWhere((a) => a.id == accountId);
+    } catch (e) {
+      // If account not found, it might be deleted - return null
+      // The UI will show "Unknown Account" for null accounts
+      return null;
     }
   }
   

@@ -304,13 +304,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             children: [
               _buildDateHeader(dateKey, transactions.length),
               ...transactions.map((transaction) {
-                Account? account;
-                try {
-                  account = appProvider.accounts.firstWhere((acc) => acc.id == transaction.accountId);
-                } catch (e) {
-                  // If account not found, it might be deleted - show as null (will display "Unknown Account")
-                  account = null;
-                }
+                Account? account = appProvider.getAccountForTransaction(transaction.accountId);
                 
                 Category? category;
                 try {
@@ -321,12 +315,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 
                 Account? toAccount;
                 if (transaction.toAccountId != null) {
-                  try {
-                    toAccount = appProvider.accounts.firstWhere((acc) => acc.id == transaction.toAccountId);
-                  } catch (e) {
-                    // If account not found, it might be deleted - show as null (will display "Unknown Account")
-                    toAccount = null;
-                  }
+                  toAccount = appProvider.getAccountForTransaction(transaction.toAccountId!);
                 }
                 
                 return TransactionListItem(

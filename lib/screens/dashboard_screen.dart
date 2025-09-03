@@ -262,12 +262,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 );
                                 Account? toAccount;
                                 if (transaction.toAccountId != null) {
-                                  try {
-                                    toAccount = appProvider.accounts.firstWhere((a) => a.id == transaction.toAccountId);
-                                  } catch (e) {
-                                    // If account not found, it might be deleted - show as null (will display "Unknown Account")
-                                    toAccount = null;
-                                  }
+                                  toAccount = appProvider.getAccountForTransaction(transaction.toAccountId!);
                                 }
 
                                 return TransactionListItem(
