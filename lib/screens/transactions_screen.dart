@@ -308,7 +308,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 try {
                   account = appProvider.accounts.firstWhere((acc) => acc.id == transaction.accountId);
                 } catch (e) {
-                  account = appProvider.accounts.isNotEmpty ? appProvider.accounts.first : null;
+                  // If account not found, it might be deleted - show as null (will display "Unknown Account")
+                  account = null;
                 }
                 
                 Category? category;
@@ -323,7 +324,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   try {
                     toAccount = appProvider.accounts.firstWhere((acc) => acc.id == transaction.toAccountId);
                   } catch (e) {
-                    toAccount = appProvider.accounts.isNotEmpty ? appProvider.accounts.first : null;
+                    // If account not found, it might be deleted - show as null (will display "Unknown Account")
+                    toAccount = null;
                   }
                 }
                 

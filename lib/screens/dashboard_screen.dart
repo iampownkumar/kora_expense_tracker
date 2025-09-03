@@ -260,17 +260,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     type: AccountType.savings,
                                   ),
                                 );
-                                final toAccount = transaction.toAccountId != null
-                                    ? appProvider.accounts.firstWhere(
-                                        (a) => a.id == transaction.toAccountId,
-                                        orElse: () => Account.create(
-                                          name: 'Unknown Account',
-                                          icon: Icons.account_balance,
-                                          color: AppConstants.primaryColor,
-                                          type: AccountType.savings,
-                                        ),
-                                      )
-                                    : null;
+                                Account? toAccount;
+                                if (transaction.toAccountId != null) {
+                                  try {
+                                    toAccount = appProvider.accounts.firstWhere((a) => a.id == transaction.toAccountId);
+                                  } catch (e) {
+                                    // If account not found, it might be deleted - show as null (will display "Unknown Account")
+                                    toAccount = null;
+                                  }
+                                }
 
                                 return TransactionListItem(
                                   transaction: transaction,

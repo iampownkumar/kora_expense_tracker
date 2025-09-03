@@ -854,7 +854,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Credit Card'),
-        content: Text('Are you sure you want to delete ${_currentCard.name}? This action cannot be undone.'),
+        content: Text('Are you sure you want to delete ${_currentCard.name}? This action cannot be undone.\n\nThis will remove the credit card from both the Credit Cards screen and Accounts screen.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -863,14 +863,28 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
           TextButton(
             onPressed: () async {
               Navigator.of(context).pop();
-              final provider = context.read<CreditCardProvider>();
-              final success = await provider.deleteCreditCard(_currentCard.id);
-              if (success && mounted) {
+              
+              // Delete from CreditCardProvider
+              final creditCardProvider = context.read<CreditCardProvider>();
+              final creditCardSuccess = await creditCardProvider.deleteCreditCard(_currentCard.id);
+              
+              // CRITICAL: Also delete from AppProvider (Accounts screen)
+              final appProvider = context.read<AppProvider>();
+              final accountSuccess = await appProvider.deleteAccount(_currentCard.id);
+              
+              if (creditCardSuccess && accountSuccess && mounted) {
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Credit card deleted successfully!'),
+                    content: Text('Credit card deleted successfully from both screens!'),
                     backgroundColor: Colors.green,
+                  ),
+                );
+              } else if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Credit card deletion had issues. Credit Card: $creditCardSuccess, Account: $accountSuccess'),
+                    backgroundColor: Colors.orange,
                   ),
                 );
               }

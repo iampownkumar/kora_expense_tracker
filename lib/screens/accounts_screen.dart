@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/providers/app_provider.dart';
+import 'package:kora_expense_tracker/providers/credit_card_provider.dart';
 import 'package:kora_expense_tracker/models/account.dart';
 import 'package:kora_expense_tracker/models/account_type.dart';
 import 'package:kora_expense_tracker/widgets/account_card.dart';
@@ -595,32 +596,248 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
   }
 
   void _showDeleteConfirmation(BuildContext context, Account account, AppProvider provider) {
+    final isCreditCard = account.type == AccountType.creditCard;
+    
+    // Count transactions for this account
+    final transactionCount = provider.transactions.where((t) => 
+      t.accountId == account.id || t.toAccountId == account.id
+    ).length;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Account'),
-        content: Text('Are you sure you want to delete "${account.name}"? This action cannot be undone.'),
+        title: Text('Delete ${account.name}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (transactionCount > 0) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning, color: Colors.orange, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'This account has $transactionCount transaction${transactionCount == 1 ? '' : 's'}.',
+                        style: TextStyle(
+                          color: Colors.orange.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            Text(
+              isCreditCard 
+                ? 'This will remove the credit card from both the Accounts screen and Credit Cards screen.'
+                : 'This action cannot be undone.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Choose deletion option:',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
+          if (transactionCount > 0) ...[
+            TextButton(
+              onPressed: () => _deleteAccountWithTransactions(context, account, provider, isCreditCard),
+              child: Text(
+                'Delete Account Only',
+                style: TextStyle(color: Colors.blue.shade600),
+              ),
+            ),
+            TextButton(
+              onPressed: () => _deleteAccountAndTransactions(context, account, provider, isCreditCard, transactionCount),
+              child: Text(
+                'Delete Account + $transactionCount Transaction${transactionCount == 1 ? '' : 's'}',
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          ] else ...[
+            TextButton(
+              onPressed: () => _deleteAccountWithTransactions(context, account, provider, isCreditCard),
+              child: const Text(
+                'Delete Account',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // Delete account only (keep transactions but mark account as deleted)
+  void _deleteAccountWithTransactions(BuildContext context, Account account, AppProvider provider, bool isCreditCard) async {
+    Navigator.of(context).pop(); // Close the dialog
+    
+    // Show confirmation for account-only deletion
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account Only'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('This will delete the account but keep all transactions.'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info, color: Colors.blue, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Transactions will remain in your history but will show "Unknown Account".',
+                      style: TextStyle(color: Colors.blue),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
           TextButton(
-            onPressed: () {
-              provider.deleteAccount(account.id);
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${account.name} deleted successfully'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete Account', style: TextStyle(color: Colors.blue)),
           ),
         ],
       ),
     );
+    
+    if (confirmed == true) {
+      await _performAccountDeletion(context, account, provider, isCreditCard, false);
+    }
+  }
+  
+  // Delete account and all its transactions
+  void _deleteAccountAndTransactions(BuildContext context, Account account, AppProvider provider, bool isCreditCard, int transactionCount) async {
+    Navigator.of(context).pop(); // Close the dialog
+    
+    // Show confirmation for account + transactions deletion
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account + Transactions'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('This will permanently delete the account and all $transactionCount transaction${transactionCount == 1 ? '' : 's'}.'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.withOpacity(0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.warning, color: Colors.red, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This action cannot be undone. All transaction history will be lost.',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete Everything', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirmed == true) {
+      await _performAccountDeletion(context, account, provider, isCreditCard, true);
+    }
+  }
+  
+  // Perform the actual deletion
+  Future<void> _performAccountDeletion(BuildContext context, Account account, AppProvider provider, bool isCreditCard, bool deleteTransactions) async {
+    try {
+      bool success = false;
+      
+      if (deleteTransactions) {
+        // Delete account with all transactions (handles credit card sync automatically)
+        success = await provider.deleteAccountWithTransactions(account.id);
+      } else {
+        // Delete account only (handles credit card sync automatically)
+        success = await provider.deleteAccount(account.id);
+      }
+      
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              deleteTransactions
+                ? '${account.name} and all transactions deleted successfully!'
+                : (isCreditCard 
+                    ? '${account.name} deleted successfully from both screens!'
+                    : '${account.name} deleted successfully')
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete ${account.name}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error deleting account: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _navigateToAccountTransactions(BuildContext context, Account account) {

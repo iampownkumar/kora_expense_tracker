@@ -25,7 +25,7 @@ class KoraExpenseTrackerApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => AppProvider()..initialize()),
-        ChangeNotifierProvider(create: (context) => CreditCardProvider()),
+        ChangeNotifierProvider(create: (context) => CreditCardProvider()..initialize()),
         ChangeNotifierProvider(create: (context) => PaymentProvider()),
       ],
       builder: (context, child) {

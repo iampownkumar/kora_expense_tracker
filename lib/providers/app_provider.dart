@@ -5,8 +5,20 @@ import 'package:kora_expense_tracker/models/account_type.dart';
 import 'package:kora_expense_tracker/models/category.dart';
 import 'package:kora_expense_tracker/models/settings.dart';
 import 'package:kora_expense_tracker/utils/storage_service.dart';
+import 'package:kora_expense_tracker/utils/formatters.dart';
 import 'package:kora_expense_tracker/constants/app_constants.dart';
 import 'package:kora_expense_tracker/providers/credit_card_provider.dart';
+
+// Transfer validation result
+class TransferValidationResult {
+  final bool isValid;
+  final String errorMessage;
+  
+  const TransferValidationResult({
+    required this.isValid,
+    required this.errorMessage,
+  });
+}
 
 /// Main app provider for managing all state with real-time updates
 class AppProvider extends ChangeNotifier {
@@ -205,6 +217,26 @@ class AppProvider extends ChangeNotifier {
   // Transaction management with instant feedback
   Future<bool> addTransaction(Transaction transaction) async {
     try {
+      // Validate transfer before adding
+      if (transaction.isTransfer && transaction.toAccountId != null) {
+        final validationResult = _validateTransfer(transaction);
+        if (!validationResult.isValid) {
+          _error = validationResult.errorMessage;
+          notifyListeners();
+          return false;
+        }
+      }
+      
+      // Validate expense balance for asset accounts
+      if (transaction.isExpense) {
+        final validationResult = _validateExpenseBalance(transaction);
+        if (!validationResult.isValid) {
+          _error = validationResult.errorMessage;
+          notifyListeners();
+          return false;
+        }
+      }
+      
       _transactions.add(transaction);
       try {
         await StorageService.saveTransactions(_transactions);
@@ -318,12 +350,93 @@ class AppProvider extends ChangeNotifier {
   
   Future<bool> deleteAccount(String accountId) async {
     try {
-      _accounts.removeWhere((a) => a.id == accountId);
+      // Check if this is a credit card account
+      final account = _accounts.firstWhere((a) => a.id == accountId);
+      final isCreditCard = account.type == AccountType.creditCard;
+      
+      // Create a "Deleted Account" placeholder
+      final deletedAccount = Account.create(
+        name: 'Deleted Account',
+        icon: Icons.delete_outline,
+        color: Colors.grey,
+        type: account.type,
+        description: 'This account has been deleted',
+      );
+      
+      // Update all transactions that reference this account
+      for (int i = 0; i < _transactions.length; i++) {
+        final transaction = _transactions[i];
+        if (transaction.accountId == accountId) {
+          // Update the transaction to reference the deleted account
+          _transactions[i] = transaction.copyWith(
+            accountId: deletedAccount.id,
+          );
+        }
+        if (transaction.toAccountId == accountId) {
+          // Update the transaction to reference the deleted account
+          _transactions[i] = transaction.copyWith(
+            toAccountId: deletedAccount.id,
+          );
+        }
+      }
+      
+      // Save updated transactions
+      await StorageService.saveTransactions(_transactions);
+      
+      // If it's a credit card, also delete from CreditCardProvider
+      if (isCreditCard && _creditCardProvider != null) {
+        await _creditCardProvider!.deleteCreditCard(accountId);
+      }
+      
+      // Replace the account with the deleted account placeholder
+      final accountIndex = _accounts.indexWhere((a) => a.id == accountId);
+      if (accountIndex != -1) {
+        _accounts[accountIndex] = deletedAccount;
+      }
+      
       await StorageService.saveAccounts(_accounts);
       notifyListeners();
       return true;
     } catch (e) {
       _error = 'Failed to delete account: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+  
+  // Delete account and all its transactions
+  Future<bool> deleteAccountWithTransactions(String accountId) async {
+    try {
+      // Check if this is a credit card account
+      final account = _accounts.firstWhere((a) => a.id == accountId);
+      final isCreditCard = account.type == AccountType.creditCard;
+      
+      // First, delete all transactions related to this account
+      final transactionsToDelete = _transactions.where((t) => 
+        t.accountId == accountId || t.toAccountId == accountId
+      ).toList();
+      
+      // Remove transactions from the list
+      _transactions.removeWhere((t) => 
+        t.accountId == accountId || t.toAccountId == accountId
+      );
+      
+      // Save updated transactions
+      await StorageService.saveTransactions(_transactions);
+      
+      // If it's a credit card, also delete from CreditCardProvider
+      if (isCreditCard && _creditCardProvider != null) {
+        await _creditCardProvider!.deleteCreditCard(accountId);
+      }
+      
+      // Then delete the account
+      _accounts.removeWhere((a) => a.id == accountId);
+      await StorageService.saveAccounts(_accounts);
+      
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = 'Failed to delete account with transactions: $e';
       notifyListeners();
       return false;
     }
@@ -397,12 +510,26 @@ class AppProvider extends ChangeNotifier {
     final multiplier = isDelete ? -1 : 1;
     
     if (transaction.isTransfer && transaction.toAccountId != null) {
-      // Handle transfers
+      // Handle transfers with proper credit card logic
       final fromAccount = _accounts.firstWhere((a) => a.id == transaction.accountId);
       final toAccount = _accounts.firstWhere((a) => a.id == transaction.toAccountId!);
       
-      final updatedFromAccount = fromAccount.subtractFromBalance(transaction.amount.abs() * multiplier);
-      final updatedToAccount = toAccount.addToBalance(transaction.amount.abs() * multiplier);
+      final transferAmount = transaction.amount.abs() * multiplier;
+      Account updatedFromAccount;
+      Account updatedToAccount;
+      
+      // FROM ACCOUNT: Always subtract (debit)
+      updatedFromAccount = fromAccount.subtractFromBalance(transferAmount);
+      
+      // TO ACCOUNT: Handle based on account type
+      if (toAccount.type == AccountType.creditCard) {
+        // For credit cards: subtract from balance (reduces debt)
+        // This is because credit card balance represents debt, so reducing it is good
+        updatedToAccount = toAccount.subtractFromBalance(transferAmount);
+      } else {
+        // For regular accounts: add to balance (increases assets)
+        updatedToAccount = toAccount.addToBalance(transferAmount);
+      }
       
       try {
         await StorageService.updateAccount(updatedFromAccount);
@@ -418,6 +545,12 @@ class AppProvider extends ChangeNotifier {
       
       if (fromIndex != -1) _accounts[fromIndex] = updatedFromAccount;
       if (toIndex != -1) _accounts[toIndex] = updatedToAccount;
+      
+      // CRITICAL: If the TO account is a credit card, also update the CreditCard entity
+      if (toAccount.type == AccountType.creditCard && _creditCardProvider != null) {
+        final newOutstandingBalance = updatedToAccount.balance;
+        await _creditCardProvider!.updateCreditCardBalance(toAccount.id, newOutstandingBalance);
+      }
     } else {
       // Handle income/expense
       final accountIndex = _accounts.indexWhere((a) => a.id == transaction.accountId);
@@ -462,6 +595,73 @@ class AppProvider extends ChangeNotifier {
         final newOutstandingBalance = updatedAccount.balance;
         await _creditCardProvider!.updateCreditCardBalance(account.id, newOutstandingBalance);
       }
+    }
+  }
+  
+  // Validate transfer logic
+  TransferValidationResult _validateTransfer(Transaction transaction) {
+    try {
+      final fromAccount = _accounts.firstWhere((a) => a.id == transaction.accountId);
+      final toAccount = _accounts.firstWhere((a) => a.id == transaction.toAccountId!);
+      
+      // Rule 1: Only Asset → Liability or Asset → Asset
+      if (fromAccount.type.isLiability) {
+        return const TransferValidationResult(
+          isValid: false,
+          errorMessage: 'Cannot transfer from liability accounts (Credit Cards, Loans). Only asset accounts can initiate transfers.',
+        );
+      }
+      
+      // Rule 2: Check sufficient balance for asset accounts
+      if (fromAccount.type.isAsset && fromAccount.balance < transaction.amount.abs()) {
+        return TransferValidationResult(
+          isValid: false,
+          errorMessage: 'Insufficient balance. Available: ${Formatters.formatCurrency(fromAccount.balance)}, Required: ${Formatters.formatCurrency(transaction.amount.abs())}',
+        );
+      }
+      
+      // Rule 3: Prevent transfer to same account
+      if (fromAccount.id == toAccount.id) {
+        return const TransferValidationResult(
+          isValid: false,
+          errorMessage: 'Cannot transfer to the same account.',
+        );
+      }
+      
+      return const TransferValidationResult(
+        isValid: true,
+        errorMessage: '',
+      );
+    } catch (e) {
+      return TransferValidationResult(
+        isValid: false,
+        errorMessage: 'Account not found: $e',
+      );
+    }
+  }
+  
+  // Validate expense balance for asset accounts
+  TransferValidationResult _validateExpenseBalance(Transaction transaction) {
+    try {
+      final account = _accounts.firstWhere((a) => a.id == transaction.accountId);
+      
+      // Only check balance for asset accounts (savings, cash, wallet, etc.)
+      if (account.type.isAsset && account.balance < transaction.amount.abs()) {
+        return TransferValidationResult(
+          isValid: false,
+          errorMessage: 'Insufficient balance for expense. Available: ${Formatters.formatCurrency(account.balance)}, Required: ${Formatters.formatCurrency(transaction.amount.abs())}',
+        );
+      }
+      
+      return const TransferValidationResult(
+        isValid: true,
+        errorMessage: '',
+      );
+    } catch (e) {
+      return TransferValidationResult(
+        isValid: false,
+        errorMessage: 'Account not found: $e',
+      );
     }
   }
   

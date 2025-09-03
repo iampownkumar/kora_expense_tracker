@@ -827,7 +827,13 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
             Flexible(
               child: ListView(
                 shrinkWrap: true,
-                children: widget.appProvider.accounts.map((account) => ListTile(
+                children: widget.appProvider.accounts.where((account) {
+                  // For transfers, only show asset accounts as source
+                  if (_selectedType == AppConstants.transactionTypeTransfer) {
+                    return account.type.isAsset;
+                  }
+                  return true;
+                }).map((account) => ListTile(
                   leading: Icon(account.icon, color: account.color),
                   title: Text(
                     account.name,
@@ -1080,7 +1086,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     }
   }
 
-  void _saveTransaction() {
+  void _saveTransaction() async {
     if (_amount.isEmpty || _selectedAccountId == null) {
       return;
     }
@@ -1109,35 +1115,55 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       date: DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, _selectedTime.hour, _selectedTime.minute),
     );
 
+    bool success = false;
     if (widget.transaction != null) {
       // Update existing transaction
-      widget.appProvider.updateTransaction(widget.transaction!.id, transaction);
+      success = await widget.appProvider.updateTransaction(widget.transaction!.id, transaction);
     } else {
       // Add new transaction
-      widget.appProvider.addTransaction(transaction);
+      success = await widget.appProvider.addTransaction(transaction);
     }
     
-    Navigator.of(context).pop();
-    
-    // Show success feedback with non-blocking behavior
-    ScaffoldMessenger.of(context).hideCurrentSnackBar(); // Hide any existing snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(widget.transaction != null 
-            ? 'Transaction updated successfully!' 
-            : (_selectedType == AppConstants.transactionTypeTransfer 
-                ? 'Transfer completed successfully!' 
-                : 'Transaction added successfully!')),
-        backgroundColor: _getTypeColor(_selectedType),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 1), // Very short duration
-        margin: const EdgeInsets.only(
-          left: 16,
-          right: 16,
-          bottom: 100, // Keep it above FAB
+    if (success) {
+      Navigator.of(context).pop();
+      
+      // Show success feedback with non-blocking behavior
+      ScaffoldMessenger.of(context).hideCurrentSnackBar(); // Hide any existing snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(widget.transaction != null 
+              ? 'Transaction updated successfully!' 
+              : (_selectedType == AppConstants.transactionTypeTransfer 
+                  ? 'Transfer completed successfully!' 
+                  : 'Transaction added successfully!')),
+          backgroundColor: _getTypeColor(_selectedType),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 1), // Very short duration
+          margin: const EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: 100, // Keep it above FAB
+          ),
+          dismissDirection: DismissDirection.horizontal, // Allow swipe to dismiss
         ),
-        dismissDirection: DismissDirection.horizontal, // Allow swipe to dismiss
-      ),
-    );
+      );
+    } else {
+      // Show error message
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(widget.appProvider.error ?? 'Failed to save transaction'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: 100,
+          ),
+          dismissDirection: DismissDirection.horizontal,
+        ),
+      );
+    }
   }
 }
