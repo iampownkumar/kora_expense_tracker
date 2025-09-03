@@ -1,9 +1,11 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter/material.dart';
+import '../utils/json_converters.dart';
+import '../utils/formatters.dart';
 
 part 'credit_card_statement.g.dart';
 
-/// Credit Card Statement model for managing billing statements
+/// Credit Card Statement model for billing statements
 @JsonSerializable()
 class CreditCardStatement {
   /// Unique identifier for the statement
@@ -12,62 +14,74 @@ class CreditCardStatement {
   /// Credit card ID this statement belongs to
   final String creditCardId;
   
-  /// Statement number
+  /// Statement number (e.g., "2024-001")
   final String statementNumber;
   
-  /// Billing period start date
+  /// Statement period start date
   final DateTime periodStart;
   
-  /// Billing period end date
+  /// Statement period end date
   final DateTime periodEnd;
   
-  /// Total amount due
-  final double totalDue;
+  /// Previous balance
+  final double previousBalance;
   
-  /// Minimum payment required
-  final double minimumDue;
+  /// Payments and credits during the period
+  final double paymentsAndCredits;
   
-  /// Amount paid so far
-  final double paidAmount;
+  /// Purchases during the period
+  final double purchases;
   
-  /// Previous statement balance
-  final double? previousBalance;
-  
-  /// Payment due date
-  final DateTime dueDate;
-  
-  /// Statement status (Pending, Paid, Overdue, Partial)
-  final String status;
+  /// Cash advances during the period
+  final double cashAdvances;
   
   /// Interest charges
-  final double? interestCharges;
+  final double interestCharges;
+  
+  /// Fees and charges
+  final double feesAndCharges;
+  
+  /// New balance (total amount due)
+  final double newBalance;
+  
+  /// Minimum payment due
+  final double minimumPaymentDue;
+  
+  /// Payment due date
+  final DateTime paymentDueDate;
+  
+  /// Amount paid towards this statement
+  final double paidAmount;
   
   /// Late fees
-  final double? lateFees;
+  final double lateFees;
   
   /// Over limit fees
-  final double? overLimitFees;
+  final double overLimitFees;
   
-  /// Purchases during cycle
-  final double? purchases;
+  /// Balance transfers
+  final double balanceTransfers;
   
-  /// Cash advances during cycle
-  final double? cashAdvances;
+  /// Other fees
+  final double fees;
   
-  /// Balance transfers during cycle
-  final double? balanceTransfers;
+  /// Adjustments
+  final double adjustments;
   
-  /// Fees charged during cycle
-  final double? fees;
-  
-  /// Adjustments (credits/refunds)
-  final double? adjustments;
-  
-  /// Payment date (when paid)
+  /// Date when statement was paid
   final DateTime? paidDate;
   
-  /// Statement notes
+  /// Notes
   final String? notes;
+  
+  /// Statement generation date
+  final DateTime generatedDate;
+  
+  /// Statement status
+  final StatementStatus status;
+  
+  /// Whether the statement has been viewed
+  final bool isViewed;
   
   /// Timestamps
   final DateTime createdAt;
@@ -79,100 +93,96 @@ class CreditCardStatement {
     required this.statementNumber,
     required this.periodStart,
     required this.periodEnd,
-    required this.totalDue,
-    required this.minimumDue,
+    required this.previousBalance,
+    required this.paymentsAndCredits,
+    required this.purchases,
+    required this.cashAdvances,
+    required this.interestCharges,
+    required this.feesAndCharges,
+    required this.newBalance,
+    required this.minimumPaymentDue,
+    required this.paymentDueDate,
     this.paidAmount = 0.0,
-    this.previousBalance,
-    required this.dueDate,
-    this.status = 'Pending',
-    this.interestCharges,
-    this.lateFees,
-    this.overLimitFees,
-    this.purchases,
-    this.cashAdvances,
-    this.balanceTransfers,
-    this.fees,
-    this.adjustments,
+    this.lateFees = 0.0,
+    this.overLimitFees = 0.0,
+    this.balanceTransfers = 0.0,
+    this.fees = 0.0,
+    this.adjustments = 0.0,
     this.paidDate,
     this.notes,
+    required this.generatedDate,
+    required this.status,
+    this.isViewed = false,
     required this.createdAt,
     required this.updatedAt,
   });
 
-  /// Create a new CreditCardStatement with current timestamps
+  /// Create a new statement
   factory CreditCardStatement.create({
     required String creditCardId,
-    required String statementNumber,
     required DateTime periodStart,
     required DateTime periodEnd,
-    required double totalDue,
-    required double minimumDue,
-    required DateTime dueDate,
-    double paidAmount = 0.0,
-    double? previousBalance,
-    String status = 'Pending',
-    double? interestCharges,
-    double? lateFees,
-    double? overLimitFees,
-    double? purchases,
-    double? cashAdvances,
-    double? balanceTransfers,
-    double? fees,
-    double? adjustments,
-    DateTime? paidDate,
-    String? notes,
+    required double previousBalance,
+    required double paymentsAndCredits,
+    required double purchases,
+    required double cashAdvances,
+    required double interestCharges,
+    required double feesAndCharges,
+    required double minimumPaymentDue,
+    required DateTime paymentDueDate,
   }) {
     final now = DateTime.now();
+    final newBalance = previousBalance + purchases + cashAdvances + interestCharges + feesAndCharges - paymentsAndCredits;
+    
     return CreditCardStatement(
       id: _generateId(),
       creditCardId: creditCardId,
-      statementNumber: statementNumber,
+      statementNumber: _generateStatementNumber(periodStart),
       periodStart: periodStart,
       periodEnd: periodEnd,
-      totalDue: totalDue,
-      minimumDue: minimumDue,
-      paidAmount: paidAmount,
       previousBalance: previousBalance,
-      dueDate: dueDate,
-      status: status,
-      interestCharges: interestCharges,
-      lateFees: lateFees,
-      overLimitFees: overLimitFees,
+      paymentsAndCredits: paymentsAndCredits,
       purchases: purchases,
       cashAdvances: cashAdvances,
-      balanceTransfers: balanceTransfers,
-      fees: fees,
-      adjustments: adjustments,
-      paidDate: paidDate,
-      notes: notes,
+      interestCharges: interestCharges,
+      feesAndCharges: feesAndCharges,
+      newBalance: newBalance,
+      minimumPaymentDue: minimumPaymentDue,
+      paymentDueDate: paymentDueDate,
+      generatedDate: now,
+      status: StatementStatus.generated,
       createdAt: now,
       updatedAt: now,
     );
   }
 
-  /// Create a copy of this statement with updated fields
+  /// Create a copy with updated fields
   CreditCardStatement copyWith({
     String? id,
     String? creditCardId,
     String? statementNumber,
     DateTime? periodStart,
     DateTime? periodEnd,
-    double? totalDue,
-    double? minimumDue,
-    double? paidAmount,
     double? previousBalance,
-    DateTime? dueDate,
-    String? status,
-    double? interestCharges,
-    double? lateFees,
-    double? overLimitFees,
+    double? paymentsAndCredits,
     double? purchases,
     double? cashAdvances,
+    double? interestCharges,
+    double? feesAndCharges,
+    double? newBalance,
+    double? minimumPaymentDue,
+    DateTime? paymentDueDate,
+    double? paidAmount,
+    double? lateFees,
+    double? overLimitFees,
     double? balanceTransfers,
     double? fees,
     double? adjustments,
     DateTime? paidDate,
     String? notes,
+    DateTime? generatedDate,
+    StatementStatus? status,
+    bool? isViewed,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -182,130 +192,99 @@ class CreditCardStatement {
       statementNumber: statementNumber ?? this.statementNumber,
       periodStart: periodStart ?? this.periodStart,
       periodEnd: periodEnd ?? this.periodEnd,
-      totalDue: totalDue ?? this.totalDue,
-      minimumDue: minimumDue ?? this.minimumDue,
-      paidAmount: paidAmount ?? this.paidAmount,
       previousBalance: previousBalance ?? this.previousBalance,
-      dueDate: dueDate ?? this.dueDate,
-      status: status ?? this.status,
-      interestCharges: interestCharges ?? this.interestCharges,
-      lateFees: lateFees ?? this.lateFees,
-      overLimitFees: overLimitFees ?? this.overLimitFees,
+      paymentsAndCredits: paymentsAndCredits ?? this.paymentsAndCredits,
       purchases: purchases ?? this.purchases,
       cashAdvances: cashAdvances ?? this.cashAdvances,
+      interestCharges: interestCharges ?? this.interestCharges,
+      feesAndCharges: feesAndCharges ?? this.feesAndCharges,
+      newBalance: newBalance ?? this.newBalance,
+      minimumPaymentDue: minimumPaymentDue ?? this.minimumPaymentDue,
+      paymentDueDate: paymentDueDate ?? this.paymentDueDate,
+      paidAmount: paidAmount ?? this.paidAmount,
+      lateFees: lateFees ?? this.lateFees,
+      overLimitFees: overLimitFees ?? this.overLimitFees,
       balanceTransfers: balanceTransfers ?? this.balanceTransfers,
       fees: fees ?? this.fees,
       adjustments: adjustments ?? this.adjustments,
       paidDate: paidDate ?? this.paidDate,
       notes: notes ?? this.notes,
+      generatedDate: generatedDate ?? this.generatedDate,
+      status: status ?? this.status,
+      isViewed: isViewed ?? this.isViewed,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
     );
   }
 
   // ========================================
-  // CALCULATIONS & UTILITIES
+  // UTILITY METHODS
   // ========================================
 
-  /// Get remaining balance
-  double get remainingBalance {
-    return totalDue - paidAmount;
-  }
-
-  /// Check if statement is fully paid
-  bool get isFullyPaid {
-    return paidAmount >= totalDue;
-  }
-
-  /// Check if statement is partially paid
-  bool get isPartiallyPaid {
-    return paidAmount > 0 && paidAmount < totalDue;
-  }
-
-  /// Check if statement is overdue
-  bool get isOverdue {
-    if (isFullyPaid) return false;
-    return DateTime.now().isAfter(dueDate);
-  }
-
-  /// Check if due soon (within 7 days)
-  bool get isDueSoon {
-    if (isFullyPaid) return false;
-    final days = dueDate.difference(DateTime.now()).inDays;
-    return days >= 0 && days <= 7;
-  }
-
-  /// Get days until due date
-  int? get daysUntilDue {
-    if (isFullyPaid) return null;
-    final days = dueDate.difference(DateTime.now()).inDays;
-    return days < 0 ? 0 : days;
-  }
-
-  /// Get payment status for display
-  String get paymentStatus {
-    if (isFullyPaid) return 'Paid';
-    if (isOverdue) return 'Overdue';
-    if (isPartiallyPaid) return 'Partial';
-    if (isDueSoon) return 'Due Soon';
-    return 'Pending';
-  }
-
-  /// Get payment status color
-  String get paymentStatusColor {
-    if (isFullyPaid) return '#4CAF50'; // Green
-    if (isOverdue) return '#F44336'; // Red
-    if (isPartiallyPaid) return '#FF9800'; // Orange
-    if (isDueSoon) return '#FFC107'; // Yellow
-    return '#2196F3'; // Blue
-  }
-
-  /// Get statement period display
+  /// Get statement period display text
   String get periodDisplay {
-    final start = DateFormat('MMM dd').format(periodStart);
-    final end = DateFormat('MMM dd, yyyy').format(periodEnd);
-    return '$start - $end';
-  }
-
-  /// Get due date display
-  String get dueDateDisplay {
-    return DateFormat('MMM dd, yyyy').format(dueDate);
-  }
-
-  /// Get payment percentage
-  double get paymentPercentage {
-    if (totalDue <= 0) return 0.0;
-    return (paidAmount / totalDue) * 100;
-  }
-
-  /// Get statement summary
-  String get summary {
-    return 'Statement #$statementNumber - $periodDisplay';
+    return '${Formatters.formatDate(periodStart)} - ${Formatters.formatDate(periodEnd)}';
   }
 
   /// Get formatted total due
-  String getFormattedTotalDue({String currencySymbol = '₹'}) {
-    final formatter = NumberFormat('#,##0.00');
-    return '$currencySymbol${formatter.format(totalDue)}';
+  String getFormattedTotalDue() {
+    return Formatters.formatCurrency(newBalance);
   }
 
-  /// Get formatted minimum due
-  String getFormattedMinimumDue({String currencySymbol = '₹'}) {
-    final formatter = NumberFormat('#,##0.00');
-    return '$currencySymbol${formatter.format(minimumDue)}';
+  /// Get formatted minimum payment
+  String getFormattedMinimumPayment() {
+    return Formatters.formatCurrency(minimumPaymentDue);
   }
 
-  /// Get formatted paid amount
-  String getFormattedPaidAmount({String currencySymbol = '₹'}) {
-    final formatter = NumberFormat('#,##0.00');
-    return '$currencySymbol${formatter.format(paidAmount)}';
+  /// Get payment status
+  String get paymentStatus {
+    final now = DateTime.now();
+    if (now.isAfter(paymentDueDate)) {
+      return 'Overdue';
+    } else if (paymentDueDate.difference(now).inDays <= 7) {
+      return 'Due Soon';
+    } else {
+      return 'Current';
+    }
   }
 
-  /// Get formatted remaining balance
-  String getFormattedRemainingBalance({String currencySymbol = '₹'}) {
-    final formatter = NumberFormat('#,##0.00');
-    return '$currencySymbol${formatter.format(remainingBalance)}';
+  /// Get payment status color
+  Color get paymentStatusColor {
+    final now = DateTime.now();
+    if (now.isAfter(paymentDueDate)) {
+      return Colors.red;
+    } else if (paymentDueDate.difference(now).inDays <= 7) {
+      return Colors.orange;
+    } else {
+      return Colors.green;
+    }
   }
+
+  /// Check if payment is overdue
+  bool get isOverdue {
+    return DateTime.now().isAfter(paymentDueDate);
+  }
+
+  /// Check if payment is due soon
+  bool get isDueSoon {
+    final daysUntilDue = paymentDueDate.difference(DateTime.now()).inDays;
+    return daysUntilDue >= 0 && daysUntilDue <= 7;
+  }
+
+  /// Get days until due date
+  int get daysUntilDue {
+    final days = paymentDueDate.difference(DateTime.now()).inDays;
+    return days < 0 ? 0 : days;
+  }
+
+  /// Get total due (alias for newBalance)
+  double get totalDue => newBalance;
+
+  /// Get minimum due (alias for minimumPaymentDue)
+  double get minimumDue => minimumPaymentDue;
+
+  /// Get due date (alias for paymentDueDate)
+  DateTime get dueDate => paymentDueDate;
 
   /// Convert to JSON
   Map<String, dynamic> toJson() => _$CreditCardStatementToJson(this);
@@ -313,9 +292,16 @@ class CreditCardStatement {
   /// Create from JSON
   factory CreditCardStatement.fromJson(Map<String, dynamic> json) => _$CreditCardStatementFromJson(json);
 
-  /// Generate a unique ID for statements
+  /// Generate unique ID
   static String _generateId() {
     return 'stmt_${DateTime.now().millisecondsSinceEpoch}_${DateTime.now().microsecond}';
+  }
+
+  /// Generate statement number
+  static String _generateStatementNumber(DateTime periodStart) {
+    final year = periodStart.year;
+    final month = periodStart.month.toString().padLeft(2, '0');
+    return '$year-$month';
   }
 
   @override
@@ -329,6 +315,18 @@ class CreditCardStatement {
 
   @override
   String toString() {
-    return 'CreditCardStatement(id: $id, cardId: $creditCardId, statementNumber: $statementNumber, totalDue: $totalDue, status: $status)';
+    return 'CreditCardStatement(id: $id, statementNumber: $statementNumber, newBalance: $newBalance)';
   }
+}
+
+/// Statement status enum
+enum StatementStatus {
+  @JsonValue('generated')
+  generated,
+  @JsonValue('viewed')
+  viewed,
+  @JsonValue('paid')
+  paid,
+  @JsonValue('overdue')
+  overdue,
 }

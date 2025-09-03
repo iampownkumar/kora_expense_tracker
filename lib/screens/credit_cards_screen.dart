@@ -485,52 +485,9 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                   ],
                 ),
                 
-                // Due Date Info
-                if (card.nextDueDate != null) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: _getDueDateColor(card).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _getDueDateColor(card).withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _getDueDateIcon(card),
-                          size: 16,
-                          color: _getDueDateColor(card),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _getDueDateText(card),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: _getDueDateColor(card),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        if (card.isDueSoon || card.isOverdue)
-                          ElevatedButton(
-                            onPressed: () => _showQuickPaymentDialog(context, card),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF48BB78),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text('Pay Now'),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
+                // Bill & Due Date Info
+                const SizedBox(height: 16),
+                _buildBillDueDateInfo(context, card),
                 
                 // Quick Actions
                 const SizedBox(height: 16),
@@ -767,6 +724,169 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
     if (card.isOverdue) return 'Payment overdue';
     if (card.isDueSoon) return 'Due in ${card.daysUntilDue} days';
     return 'Due in ${card.daysUntilDue} days';
+  }
+
+  /// Build comprehensive bill and due date information
+  Widget _buildBillDueDateInfo(BuildContext context, CreditCard card) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            _getDueDateColor(card).withValues(alpha: 0.1),
+            _getDueDateColor(card).withValues(alpha: 0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _getDueDateColor(card).withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Header with status
+          Row(
+            children: [
+              Icon(
+                _getDueDateIcon(card),
+                size: 20,
+                color: _getDueDateColor(card),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _getDueDateStatusText(card),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: _getDueDateColor(card),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              if (card.isDueSoon || card.isOverdue)
+                ElevatedButton(
+                  onPressed: () => _showQuickPaymentDialog(context, card),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF48BB78),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Pay Now', style: TextStyle(fontSize: 12)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          // Bill and Due Date Details
+          Row(
+            children: [
+              // Bill Date Info
+              Expanded(
+                child: _buildDateInfo(
+                  context,
+                  'Bill Date',
+                  card.nextBillingDate != null 
+                      ? Formatters.formatDate(card.nextBillingDate!)
+                      : 'Not set',
+                  _getDaysUntilBill(card),
+                  Icons.receipt_long,
+                  Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 12),
+              
+              // Due Date Info
+              Expanded(
+                child: _buildDateInfo(
+                  context,
+                  'Due Date',
+                  card.nextDueDate != null 
+                      ? Formatters.formatDate(card.nextDueDate!)
+                      : 'Not set',
+                  card.daysUntilDue,
+                  Icons.payment,
+                  _getDueDateColor(card),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build individual date information widget
+  Widget _buildDateInfo(BuildContext context, String label, String date, int? daysRemaining, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: color.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            date,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (daysRemaining != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              daysRemaining == 0 ? 'Today' : 
+              daysRemaining < 0 ? '${daysRemaining.abs()} days ago' :
+              '$daysRemaining days left',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: daysRemaining <= 0 ? Colors.red : 
+                       daysRemaining <= 7 ? Colors.orange : Colors.green,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Get days until next bill date
+  int? _getDaysUntilBill(CreditCard card) {
+    if (card.nextBillingDate == null) return null;
+    final days = card.nextBillingDate!.difference(DateTime.now()).inDays;
+    return days < 0 ? 0 : days;
+  }
+
+  /// Get due date status text
+  String _getDueDateStatusText(CreditCard card) {
+    if (card.isOverdue) return 'Payment Overdue';
+    if (card.isDueSoon) return 'Due Soon';
+    return 'Payment Due';
   }
 
   // Navigation Methods

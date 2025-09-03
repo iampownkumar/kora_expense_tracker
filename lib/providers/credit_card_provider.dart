@@ -214,6 +214,97 @@ class CreditCardProvider extends ChangeNotifier {
   List<PaymentRecord> getPaymentsForCard(String creditCardId) {
     return _payments.where((payment) => payment.creditCardId == creditCardId).toList();
   }
+
+  /// Generate statement for a credit card
+  Future<CreditCardStatement?> generateStatement(String creditCardId) async {
+    try {
+      final card = _creditCards.firstWhere((c) => c.id == creditCardId);
+      
+      // Calculate statement period
+      final now = DateTime.now();
+      final billingDay = card.billingCycleDay;
+      
+      DateTime periodStart;
+      DateTime periodEnd;
+      
+      if (now.day < billingDay) {
+        // Current period started last month
+        periodStart = DateTime(now.year, now.month - 1, billingDay);
+        periodEnd = DateTime(now.year, now.month, billingDay - 1);
+      } else {
+        // Current period started this month
+        periodStart = DateTime(now.year, now.month, billingDay);
+        periodEnd = DateTime(now.year, now.month + 1, billingDay - 1);
+      }
+      
+      // Calculate statement amounts (simplified for now)
+      final previousBalance = card.outstandingBalance;
+      final paymentsAndCredits = 0.0; // TODO: Calculate from transactions
+      final purchases = 0.0; // TODO: Calculate from transactions
+      final cashAdvances = 0.0; // TODO: Calculate from transactions
+      final interestCharges = 0.0; // TODO: Calculate interest
+      final feesAndCharges = 0.0; // TODO: Calculate fees
+      final minimumPaymentDue = card.minimumPaymentAmount;
+      final paymentDueDate = card.nextDueDate ?? now.add(const Duration(days: 21));
+      
+      // Create statement
+      final statement = CreditCardStatement.create(
+        creditCardId: creditCardId,
+        periodStart: periodStart,
+        periodEnd: periodEnd,
+        previousBalance: previousBalance,
+        paymentsAndCredits: paymentsAndCredits,
+        purchases: purchases,
+        cashAdvances: cashAdvances,
+        interestCharges: interestCharges,
+        feesAndCharges: feesAndCharges,
+        minimumPaymentDue: minimumPaymentDue,
+        paymentDueDate: paymentDueDate,
+      );
+      
+      // Add to statements list
+      _statements.add(statement);
+      
+      // Save to storage
+      await StorageService.saveCreditCardStatements(_statements);
+      
+      notifyListeners();
+      return statement;
+    } catch (e) {
+      _error = 'Failed to generate statement: $e';
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Check for automatic statement generation
+  Future<void> checkForAutomaticStatementGeneration() async {
+    try {
+      for (final card in _creditCards) {
+        if (card.autoGenerateStatements && card.nextBillingDate != null) {
+          final now = DateTime.now();
+          final billingDate = card.nextBillingDate!;
+          
+          // Check if it's time to generate statement (same day or past billing date)
+          if (now.isAfter(billingDate) || now.day == billingDate.day) {
+            // Check if statement already exists for this period
+            final existingStatement = _statements.where((stmt) => 
+              stmt.creditCardId == card.id && 
+              stmt.periodStart.year == billingDate.year &&
+              stmt.periodStart.month == billingDate.month
+            ).isNotEmpty;
+            
+            if (!existingStatement) {
+              await generateStatement(card.id);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      _error = 'Failed to check automatic statement generation: $e';
+      notifyListeners();
+    }
+  }
   
   // ========================================
   // STATEMENT MANAGEMENT
@@ -265,50 +356,7 @@ class CreditCardProvider extends ChangeNotifier {
     }
   }
   
-  /// Generate statement for a credit card
-  Future<CreditCardStatement?> generateStatement(String creditCardId) async {
-    try {
-      final creditCard = getCreditCardById(creditCardId);
-      if (creditCard == null) return null;
-      
-      // Check if we need to generate a new statement
-      if (!_shouldGenerateStatement(creditCard)) return null;
-      
-      // Calculate billing period
-      final billingCycleStart = creditCard.nextBillingCycleStart;
-      final billingCycleEnd = creditCard.nextBillingCycleEnd;
-      
-      // Generate statement number
-      final statementNumber = _generateStatementNumber(creditCardId);
-      
-      // Create new statement
-      final statement = CreditCardStatement.create(
-        creditCardId: creditCardId,
-        statementNumber: statementNumber,
-        periodStart: billingCycleStart,
-        periodEnd: billingCycleEnd,
-        totalDue: creditCard.outstandingBalance,
-        minimumDue: creditCard.minimumPaymentAmount,
-        dueDate: billingCycleEnd.add(Duration(days: creditCard.gracePeriodDays)),
-        previousBalance: _getPreviousStatementBalance(creditCardId),
-      );
-      
-      await addStatement(statement);
-      
-      // Update credit card's next billing date
-      final updatedCard = creditCard.copyWith(
-        nextBillingDate: creditCard.nextBillingCycleStart,
-        nextDueDate: statement.dueDate,
-      );
-      await updateCreditCard(updatedCard);
-      
-      return statement;
-    } catch (e) {
-      _error = 'Failed to generate statement: $e';
-      notifyListeners();
-      return null;
-    }
-  }
+
   
   /// Check if statement should be generated
   bool _shouldGenerateStatement(CreditCard creditCard) {
@@ -333,7 +381,7 @@ class CreditCardProvider extends ChangeNotifier {
     
     // Sort by creation date and get the latest
     statements.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return statements.first.totalDue;
+    return statements.first.newBalance;
   }
   
   // ========================================
@@ -389,12 +437,12 @@ class CreditCardProvider extends ChangeNotifier {
     );
     
     final newPaidAmount = statement.paidAmount + payment.amount;
-    String newStatus = statement.status;
+    StatementStatus newStatus = statement.status;
     
-    if (newPaidAmount >= statement.totalDue) {
-      newStatus = 'Paid';
+    if (newPaidAmount >= statement.newBalance) {
+      newStatus = StatementStatus.paid;
     } else if (newPaidAmount > 0) {
-      newStatus = 'Partial';
+      newStatus = StatementStatus.generated; // Keep as generated for partial payments
     }
     
     final updatedStatement = statement.copyWith(
@@ -540,8 +588,8 @@ class CreditCardProvider extends ChangeNotifier {
         );
         
         totalPayments++;
-        if (payment.paymentDate.isBefore(statement.dueDate) || 
-            payment.paymentDate.isAtSameMomentAs(statement.dueDate)) {
+        if (payment.paymentDate.isBefore(statement.paymentDueDate) || 
+            payment.paymentDate.isAtSameMomentAs(statement.paymentDueDate)) {
           onTimePayments++;
         }
       }
