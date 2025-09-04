@@ -489,6 +489,10 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                 const SizedBox(height: 16),
                 _buildBillDueDateInfo(context, card),
                 
+                // Statement Status
+                const SizedBox(height: 12),
+                _buildStatementStatus(context, card),
+                
                 // Quick Actions
                 const SizedBox(height: 16),
                 Row(
@@ -887,6 +891,83 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
     if (card.isOverdue) return 'Payment Overdue';
     if (card.isDueSoon) return 'Due Soon';
     return 'Payment Due';
+  }
+
+  /// Build statement status indicator
+  Widget _buildStatementStatus(BuildContext context, CreditCard card) {
+    return Consumer<CreditCardProvider>(
+      builder: (context, provider, child) {
+        final hasCurrentStatement = provider.hasStatementForCurrentMonth(card.id);
+        final currentStatement = provider.getCurrentMonthStatement(card.id);
+        
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: hasCurrentStatement 
+                ? Colors.green.withValues(alpha: 0.1)
+                : Colors.orange.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: hasCurrentStatement 
+                  ? Colors.green.withValues(alpha: 0.3)
+                  : Colors.orange.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                hasCurrentStatement ? Icons.receipt_long : Icons.receipt_long_outlined,
+                color: hasCurrentStatement ? Colors.green : Colors.orange,
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Statement Status',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      hasCurrentStatement 
+                          ? 'Generated for ${_getCurrentMonthName()}'
+                          : 'Not generated for ${_getCurrentMonthName()}',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: hasCurrentStatement ? Colors.green : Colors.orange,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (hasCurrentStatement && currentStatement != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Statement #${currentStatement.statementNumber}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Get current month name
+  String _getCurrentMonthName() {
+    final now = DateTime.now();
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[now.month - 1];
   }
 
   // Navigation Methods

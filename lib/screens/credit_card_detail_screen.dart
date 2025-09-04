@@ -1,11 +1,19 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:intl/intl.dart';
 import '../providers/credit_card_provider.dart';
 import '../providers/app_provider.dart';
 import '../models/credit_card.dart';
+import '../models/credit_card_statement.dart';
 import '../models/transaction.dart';
 import '../utils/formatters.dart';
 import 'payment_screen.dart';
+import 'statement_analytics_screen.dart';
 import 'credit_card_analytics_screen.dart';
 import 'edit_credit_card_screen.dart';
 import '../widgets/transaction_detail_sheet.dart';
@@ -33,7 +41,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _currentCard = widget.creditCard;
   }
 
@@ -77,22 +85,20 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
         ],
         bottom: TabBar(
           controller: _tabController,
-          isScrollable: true,
+          isScrollable: false,
           tabs: const [
-            Tab(icon: Icon(Icons.dashboard), text: 'Overview'),
             Tab(icon: Icon(Icons.list_alt), text: 'Transactions'),
             Tab(icon: Icon(Icons.receipt_long), text: 'Statements'),
-            Tab(icon: Icon(Icons.payment), text: 'Payments'),
+            Tab(icon: Icon(Icons.dashboard), text: 'Overview'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildOverviewTab(),
           _buildTransactionsTab(),
           _buildStatementsTab(),
-          _buildPaymentsTab(),
+          _buildOverviewTab(),
         ],
       ),
       floatingActionButton: _buildFloatingActionButton(),
@@ -135,7 +141,8 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   Widget _buildStatementsTab() {
     return Consumer<CreditCardProvider>(
       builder: (context, provider, child) {
-        final statements = provider.getStatementsForCard(_currentCard.id);
+        final allStatements = provider.getStatementsForCard(_currentCard.id);
+        final generatedStatements = allStatements.where((stmt) => stmt.status == StatementStatus.generated).toList();
         
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -146,17 +153,17 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
               _buildCurrentStatementOverview(),
               const SizedBox(height: 24),
               
-              // Statement History
-              if (statements.isNotEmpty) ...[
-                _buildStatementHistoryList(statements),
+              // Statement History (Only Generated Statements)
+              if (generatedStatements.isNotEmpty) ...[
+                _buildStatementHistoryList(generatedStatements),
                 const SizedBox(height: 24),
               ] else ...[
                 _buildStatementHistory(),
                 const SizedBox(height: 24),
               ],
               
-              // Generate Statement Section
-              _buildGenerateStatementSection(),
+              // Past Statements (Paid)
+              _buildPastStatementsSection(),
             ],
           ),
         );
@@ -164,38 +171,6 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
     );
   }
 
-  Widget _buildPaymentsTab() {
-    return Consumer<AppProvider>(
-      builder: (context, appProvider, child) {
-        // Get payment transactions for this credit card
-        final paymentTransactions = appProvider.transactions
-            .where((transaction) => 
-                transaction.type == 'transfer' && 
-                transaction.toAccountId == _currentCard.id)
-            .toList()
-          ..sort((a, b) => b.date.compareTo(a.date)); // Sort by date, newest first
-        
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Payment Overview
-              _buildPaymentOverview(),
-              const SizedBox(height: 24),
-              
-              // Quick Payment Actions
-              _buildQuickPaymentActions(),
-              const SizedBox(height: 24),
-              
-              // Payment History
-              _buildPaymentHistorySection(paymentTransactions),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   Widget _buildAnalyticsTab() {
     return Consumer<CreditCardProvider>(
@@ -441,7 +416,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
               child: ElevatedButton.icon(
                 onPressed: () => _showPaymentDialog(),
                 icon: const Icon(Icons.payment),
-                label: const Text('Make Payment'),
+                label: const Text('Pay Full Due Balance'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
@@ -853,32 +828,25 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
   Widget _buildFloatingActionButton() {
     if (_tabController.index == 0) {
-      // Overview tab - Add Transaction
+      // Transactions tab - Add Transaction
       return FloatingActionButton(
         onPressed: _showAddTransactionDialog,
         child: const Icon(Icons.add),
         tooltip: 'Add Transaction',
       );
     } else if (_tabController.index == 1) {
-      // Transactions tab
-      return FloatingActionButton(
-        onPressed: _showAddTransactionDialog,
-        child: const Icon(Icons.add),
-        tooltip: 'Add Transaction',
-      );
-    } else if (_tabController.index == 2) {
-      // Statements tab
+      // Statements tab - Generate Statement
       return FloatingActionButton(
         onPressed: _generateStatement,
         child: const Icon(Icons.add),
         tooltip: 'Generate Statement',
       );
-    } else if (_tabController.index == 3) {
-      // Payments tab
+    } else if (_tabController.index == 2) {
+      // Overview tab - Add Transaction
       return FloatingActionButton(
-        onPressed: _showPaymentDialog,
-        child: const Icon(Icons.payment),
-        tooltip: 'Make Payment',
+        onPressed: _showAddTransactionDialog,
+        child: const Icon(Icons.add),
+        tooltip: 'Add Transaction',
       );
     }
     return const SizedBox.shrink();
@@ -1087,17 +1055,23 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
     );
   }
 
-  void _showPaymentDialog() {
-    Navigator.of(context).push(
+  void _showPaymentDialog() async {
+    final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => PaymentScreen(
           creditCard: _currentCard,
-          suggestedAmount: _currentCard.isDueSoon || _currentCard.isOverdue 
-              ? _currentCard.minimumPaymentAmount 
-              : null,
+          suggestedAmount: _currentCard.outstandingBalance, // Always suggest full amount for better financial wellness
         ),
       ),
     );
+    
+    // If payment was successful, refresh the screen
+    if (result == true) {
+      // Force UI rebuild to show updated state
+      setState(() {
+        // This will trigger a rebuild with fresh data
+      });
+    }
   }
 
   void _generateStatement() {
@@ -1117,7 +1091,8 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
     
     final existingStatement = statements.any((stmt) => 
         stmt.periodStart.year == periodStart.year && 
-        stmt.periodStart.month == periodStart.month);
+        stmt.periodStart.month == periodStart.month &&
+        stmt.periodStart.day == periodStart.day);
     
     if (existingStatement) {
       // Show message that statement already exists
@@ -1274,7 +1249,206 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
   void _showTransactionHistory() {
     // Navigate to the Transactions tab within this credit card detail screen
-    _tabController.animateTo(1); // Transactions tab index
+    _tabController.animateTo(0); // Transactions tab index (now first tab)
+  }
+
+  void _handleStatementAction(statement) {
+    if (statement.status == StatementStatus.generated) {
+      // Navigate to payment screen for generated statements
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => PaymentScreen(
+            creditCard: _currentCard,
+            suggestedAmount: statement.newBalance, // Suggest full amount instead of minimum
+          ),
+        ),
+      );
+    } else {
+      // Show details for other statuses
+      _showStatementDetails(statement);
+    }
+  }
+
+  /// Show past statement details
+  void _showPastStatementDetails(statement) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Statement #${statement.statementNumber} Details'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildStatementDetailRow('Period', statement.periodDisplay),
+              _buildStatementDetailRow('Total Paid', statement.getFormattedTotalDue()),
+              _buildStatementDetailRow('Paid Date', Formatters.formatDate(statement.paidDate ?? statement.updatedAt)),
+              _buildStatementDetailRow('Status', 'Paid'),
+              _buildStatementDetailRow('Generated', Formatters.formatDate(statement.generatedDate)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Show statement analytics page
+  void _showStatementAnalytics(statement) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => StatementAnalyticsScreen(
+          statement: statement,
+          creditCard: _currentCard,
+        ),
+      ),
+    );
+  }
+
+  /// Delete past statement (simplified)
+  void _deletePastStatement(statement) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Statement'),
+        content: Text(
+          'Are you sure you want to delete Statement #${statement.statementNumber}?\n\nThis will remove the statement record but keep the payment applied to your credit card balance.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _deleteStatementOnly(statement);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Delete statement only (keep payment applied)
+  void _deleteStatementOnly(statement) async {
+    final creditCardProvider = Provider.of<CreditCardProvider>(context, listen: false);
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
+    
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+    
+    final success = await creditCardProvider.deleteStatement(statement.id, appProvider: appProvider);
+    
+    // Close loading indicator
+    if (mounted) Navigator.of(context).pop();
+    
+    if (success && mounted) {
+      // Force UI rebuild to show updated state
+      setState(() {});
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Statement #${statement.statementNumber} deleted. Payment remains applied to your balance.'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+    }
+  }
+
+
+  /// Show past statement transactions
+  void _showPastStatementTransactions(statement) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Statement #${statement.statementNumber} Transactions'),
+        content: Container(
+          width: double.maxFinite,
+          height: 400,
+          child: Column(
+            children: [
+              // Statement Summary
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total Paid:',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      statement.getFormattedTotalDue(),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Transactions List (Placeholder for now)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.receipt_long,
+                        size: 48,
+                        color: Colors.grey.shade400,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Transaction Details',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Detailed transaction breakdown will be shown here.\nThis includes all purchases, payments, and fees for this statement period.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showStatementDetails(statement) {
@@ -1289,7 +1463,6 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
             children: [
               _buildStatementDetailRow('Period', statement.periodDisplay),
               _buildStatementDetailRow('Total Due', statement.getFormattedTotalDue()),
-              _buildStatementDetailRow('Minimum Payment', statement.getFormattedMinimumPayment()),
               _buildStatementDetailRow('Due Date', Formatters.formatDate(statement.paymentDueDate)),
               _buildStatementDetailRow('Status', statement.paymentStatus),
               _buildStatementDetailRow('Generated', Formatters.formatDate(statement.generatedDate)),
@@ -1358,12 +1531,13 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
   Future<void> _deleteStatement(statement) async {
     final creditCardProvider = context.read<CreditCardProvider>();
-    final success = await creditCardProvider.deleteStatement(statement.id);
+    final appProvider = context.read<AppProvider>();
+    final success = await creditCardProvider.deleteStatement(statement.id, appProvider: appProvider);
     
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Statement deleted successfully!'),
+          content: Text('Statement and related payments deleted successfully!'),
           backgroundColor: Colors.green,
         ),
       );
@@ -1378,9 +1552,57 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   void _showPaymentDetails(payment) {
-    // TODO: Implement payment details
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Payment details coming soon!')),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Payment Details'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetailRow('Amount', Formatters.formatCurrency(payment.amount)),
+            _buildDetailRow('Date', Formatters.formatDate(payment.paymentDate)),
+            _buildDetailRow('Method', payment.paymentMethod),
+            if (payment.sourceAccountId != null)
+              _buildDetailRow('Source Account', payment.sourceAccountId!),
+            if (payment.notes != null && payment.notes!.isNotEmpty)
+              _buildDetailRow('Notes', payment.notes!),
+            _buildDetailRow('Status', payment.status.toString().split('.').last),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1390,6 +1612,11 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
   /// Build current statement overview
   Widget _buildCurrentStatementOverview() {
+    return Consumer<CreditCardProvider>(
+      builder: (context, provider, child) {
+        final hasCurrentStatement = provider.hasStatementForCurrentMonth(_currentCard.id);
+        final currentStatement = provider.getCurrentMonthStatement(_currentCard.id);
+        
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1424,6 +1651,23 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
                   color: Theme.of(context).primaryColor,
                 ),
               ),
+                  const Spacer(),
+                  // Statement Status Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: hasCurrentStatement ? Colors.green : Colors.orange,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      hasCurrentStatement ? 'Generated' : 'Not Generated',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
             ],
           ),
           const SizedBox(height: 16),
@@ -1435,6 +1679,22 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
             Icons.calendar_today,
           ),
           const SizedBox(height: 12),
+              
+              // Statement Status
+              if (hasCurrentStatement && currentStatement != null) ...[
+                _buildStatementInfoRow(
+                  'Statement Number',
+                  currentStatement.statementNumber,
+                  Icons.receipt,
+                ),
+                const SizedBox(height: 12),
+                _buildStatementInfoRow(
+                  'Generated Date',
+                  Formatters.formatDate(currentStatement.generatedDate),
+                  Icons.schedule,
+                ),
+                const SizedBox(height: 12),
+              ],
           
           // Outstanding Balance
           _buildStatementInfoRow(
@@ -1445,14 +1705,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
           ),
           const SizedBox(height: 12),
           
-          // Minimum Payment
-          _buildStatementInfoRow(
-            'Minimum Payment',
-            Formatters.formatCurrency(_currentCard.minimumPaymentAmount),
-            Icons.payment,
-            valueColor: Colors.orange,
-          ),
-          const SizedBox(height: 12),
+              // Removed minimum payment display to encourage full payment
           
           // Due Date
           _buildStatementInfoRow(
@@ -1466,6 +1719,8 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
           ),
         ],
       ),
+        );
+      },
     );
   }
 
@@ -1474,11 +1729,27 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Statement History header with Generate Statement button
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
         Text(
           'Statement History',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
           ),
+            ),
+            ElevatedButton.icon(
+              onPressed: _generateStatement,
+              icon: const Icon(Icons.receipt_long, size: 18),
+              label: const Text('Generate Statement'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         Container(
@@ -1519,16 +1790,194 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
     );
   }
 
+  /// Build past statements section (paid statements)
+  Widget _buildPastStatementsSection() {
+    return Consumer<CreditCardProvider>(
+      builder: (context, provider, child) {
+        final pastStatements = provider.getStatementsForCard(_currentCard.id)
+            .where((stmt) => stmt.status == StatementStatus.paid)
+            .toList();
+        
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+              'Past Statements (Paid)',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+            if (pastStatements.isEmpty) ...[
+              // Show empty state message
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.grey.shade200,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.history,
+                      size: 48,
+                      color: Colors.grey.shade400,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No Past Statements',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Paid statements will appear here once you make payments.\nThis helps you track your spending history for each billing cycle.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              // Show past statements
+              ...pastStatements.map((statement) => _buildPastStatementCard(statement)).toList(),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+    /// Build individual past statement card
+  Widget _buildPastStatementCard(statement) {
+    return GestureDetector(
+      onTap: () => _showStatementAnalytics(statement),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.green.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.green.shade200,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.green.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.check_circle,
+                color: Colors.green.shade600,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Statement #${statement.statementNumber}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    statement.periodDisplay,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Paid: ${Formatters.formatDate(statement.paidDate ?? statement.updatedAt)}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.green.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  statement.getFormattedTotalDue(),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green.shade700,
+                  ),
+                ),
+                Text(
+                  'Paid',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.green.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 8),
+            // Small delete button
+            GestureDetector(
+              onTap: () => _deletePastStatement(statement),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  Icons.delete_outline,
+                  color: Colors.red.shade600,
+                  size: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Build statement history list
   Widget _buildStatementHistoryList(List statements) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Statement History header with Generate Statement button
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
         Text(
-          'Statement History',
+              'Statement History',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
           ),
+        ),
+            ElevatedButton.icon(
+                onPressed: _generateStatement,
+              icon: const Icon(Icons.receipt_long, size: 18),
+                label: const Text('Generate Statement'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         ...statements.map((statement) => _buildStatementCard(statement)).toList(),
@@ -1568,31 +2017,31 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
                       'Statement #${statement.statementNumber}',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
                     Text(
                       statement.periodDisplay,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
+              ),
+            ),
+          ],
+        ),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    statement.getFormattedTotalDue(),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+          children: [
+            Text(
+                    'Due: ${Formatters.formatDate(statement.paymentDueDate)}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: statement.paymentStatusColor,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
@@ -1601,46 +2050,72 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
                       color: statement.paymentStatusColor,
                       fontWeight: FontWeight.w500,
                     ),
-                  ),
-                ],
               ),
+          ],
+        ),
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatementDetail(
-                  'Minimum Payment',
-                  statement.getFormattedMinimumPayment(),
-                  Icons.payment,
-                ),
+          // Full Balance - Prominently displayed (RED for generated statements)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.red.shade300,
+                width: 1,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatementDetail(
-                  'Due Date',
-                  Formatters.formatDate(statement.paymentDueDate),
-                  Icons.schedule,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.account_balance_wallet,
+                  color: Colors.red.shade600,
+                  size: 24,
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Text(
+                  'Full Balance: ',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.red.shade700,
+                  ),
+                ),
+                Text(
+                  statement.getFormattedTotalDue(),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red.shade700,
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _showStatementDetails(statement),
-                  icon: const Icon(Icons.visibility, size: 16),
-                  label: const Text('View Details'),
+                  onPressed: () => _handleStatementAction(statement),
+                  icon: Icon(
+                    statement.status == StatementStatus.generated ? Icons.payment : Icons.visibility, 
+                    size: 16
+                  ),
+                  label: Text(statement.status == StatementStatus.generated ? 'Pay Full Due Balance' : 'View Details'),
                   style: OutlinedButton.styleFrom(
+                    foregroundColor: statement.status == StatementStatus.generated ? Colors.green : null,
+                    side: statement.status == StatementStatus.generated 
+                        ? const BorderSide(color: Colors.green)
+                        : null,
                     padding: const EdgeInsets.symmetric(vertical: 8),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              Expanded(
+        Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () => _confirmDeleteStatement(statement),
                   icon: const Icon(Icons.delete, size: 16),
@@ -1653,8 +2128,8 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
                 ),
               ),
             ],
-          ),
-        ],
+        ),
+      ],
       ),
     );
   }
@@ -1670,422 +2145,53 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
           color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
         ),
       ),
-      child: Column(
-        children: [
-          Icon(icon, size: 16, color: Theme.of(context).primaryColor),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Build generate statement section
-  Widget _buildGenerateStatementSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Statement Actions',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _generateStatement,
-                icon: const Icon(Icons.receipt_long),
-                label: const Text('Generate Statement'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  _showExportOptions();
-                },
-                icon: const Icon(Icons.download),
-                label: const Text('Export PDF'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  /// Build payment overview
-  Widget _buildPaymentOverview() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.green.withValues(alpha: 0.1),
-            Colors.green.withValues(alpha: 0.05),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.green.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.payment,
-                color: Colors.green,
-                size: 24,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Payment Overview',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          // Outstanding Balance
-          _buildPaymentInfoRow(
-            'Outstanding Balance',
-            _currentCard.getFormattedUserBalance(),
-            Icons.account_balance_wallet,
-            valueColor: _currentCard.userBalanceColor,
-          ),
-          const SizedBox(height: 12),
-          
-          // Minimum Payment
-          _buildPaymentInfoRow(
-            'Minimum Payment Due',
-            Formatters.formatCurrency(_currentCard.minimumPaymentAmount),
-            Icons.payment,
-            valueColor: Colors.orange,
-          ),
-          const SizedBox(height: 12),
-          
-          // Due Date Status
-          _buildPaymentInfoRow(
-            'Payment Status',
-            _getPaymentStatusText(),
-            Icons.schedule,
-            valueColor: _getDueDateColor(_currentCard),
-            isUrgent: _currentCard.isDueSoon || _currentCard.isOverdue,
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Build quick payment actions
-  Widget _buildQuickPaymentActions() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Quick Payment Actions',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => _showPaymentDialog(),
-                icon: const Icon(Icons.payment),
-                label: const Text('Make Payment'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _showPaymentDialog(),
-                icon: const Icon(Icons.schedule),
-                label: const Text('Schedule Payment'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  _showAutoPaySetup();
-                },
-                icon: const Icon(Icons.autorenew),
-                label: const Text('Setup Auto-Pay'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  _showPaymentHistoryExport();
-                },
-                icon: const Icon(Icons.download),
-                label: const Text('Export History'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  /// Build payment history section
-  Widget _buildPaymentHistorySection(List<Transaction> paymentTransactions) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Payment History',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            if (paymentTransactions.isNotEmpty)
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => PaymentHistoryScreen(creditCard: _currentCard),
-                    ),
-                  );
-                },
-                child: const Text('View All'),
-              ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        
-        if (paymentTransactions.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-              ),
-            ),
             child: Column(
               children: [
-                Icon(
-                  Icons.payment,
-                  size: 48,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
-                ),
-                const SizedBox(height: 12),
+          Icon(icon, size: 16, color: Theme.of(context).primaryColor),
+          const SizedBox(height: 4),
                 Text(
-                  'No Payment History',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'No payments have been made to this credit card yet.',
+            value,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              fontWeight: FontWeight.bold,
                   ),
-                  textAlign: TextAlign.center,
+            textAlign: TextAlign.center,
+                ),
+                Text(
+            label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+            textAlign: TextAlign.center,
                 ),
               ],
             ),
-          )
-        else
-          ...paymentTransactions.take(5).map((transaction) => 
-            _buildPaymentTransactionItem(transaction)
-          ).toList(),
-      ],
     );
   }
 
-  // Helper Methods for Enhanced Sections
 
+  // REMOVED: Payment tab functionality - methods removed to simplify the app
+
+  // Helper methods that are still needed
   Widget _buildStatementInfoRow(String label, String value, IconData icon, {Color? valueColor, bool isUrgent = false}) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: isUrgent ? Colors.red : Theme.of(context).colorScheme.primary,
-        ),
+        Icon(icon, size: 20, color: Colors.grey[600]),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: valueColor ?? (isUrgent ? Colors.red : Theme.of(context).colorScheme.onSurface),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 14, color: Colors.grey[700]),
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildPaymentInfoRow(String label, String value, IconData icon, {Color? valueColor, bool isUrgent = false}) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 20,
-          color: isUrgent ? Colors.red : Colors.green,
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: valueColor ?? (isUrgent ? Colors.red : Theme.of(context).colorScheme.onSurface),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPaymentTransactionItem(Transaction transaction) {
-    final sourceAccount = context.read<AppProvider>().getAccountForTransaction(transaction.accountId);
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Row(
-        children: [
-          // Payment icon
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.payment,
-              color: Colors.green,
-              size: 16,
-            ),
-          ),
-          const SizedBox(width: 12),
-          
-          // Payment details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Payment from ${sourceAccount?.name ?? 'Unknown Account'}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  Formatters.formatDate(transaction.date),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Amount
           Text(
-            '+${Formatters.formatCurrency(transaction.amount.abs())}',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.green,
-              fontWeight: FontWeight.w600,
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: valueColor ?? Colors.grey[800],
             ),
           ),
         ],
-      ),
     );
   }
 
@@ -2093,27 +2199,16 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
     final now = DateTime.now();
     final billingDay = _currentCard.billingCycleDay;
     
-    // Calculate current statement period
     DateTime periodStart;
-    DateTime periodEnd;
-    
     if (now.day < billingDay) {
-      // Current period started last month
       periodStart = DateTime(now.year, now.month - 1, billingDay);
-      periodEnd = DateTime(now.year, now.month, billingDay - 1);
     } else {
-      // Current period started this month
       periodStart = DateTime(now.year, now.month, billingDay);
-      periodEnd = DateTime(now.year, now.month + 1, billingDay - 1);
     }
     
+    final periodEnd = DateTime(periodStart.year, periodStart.month + 1, billingDay).subtract(const Duration(days: 1));
+    
     return '${Formatters.formatDate(periodStart)} - ${Formatters.formatDate(periodEnd)}';
-  }
-
-  String _getPaymentStatusText() {
-    if (_currentCard.isOverdue) return 'Overdue';
-    if (_currentCard.isDueSoon) return 'Due Soon';
-    return 'On Time';
   }
 
   Color _getDueDateColor(CreditCard card) {
@@ -2416,21 +2511,57 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
               'Auto-pay will automatically pay your credit card bill 4 days before the due date.',
             ),
             const SizedBox(height: 16),
+            // Financial wellness message
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.lightbulb_outline, color: Colors.green, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '💡 Paying the full balance helps avoid interest charges',
+                      style: TextStyle(
+                        color: Colors.green.shade700,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
             const Text('Choose payment amount:'),
             const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
+                  child: ElevatedButton.icon(
                     onPressed: () => _confirmAutoPaySetup(true),
-                    child: const Text('Full Balance'),
+                    icon: const Icon(Icons.check_circle, size: 18),
+                    label: const Text('Full Balance'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: OutlinedButton(
+                  child: OutlinedButton.icon(
                     onPressed: () => _confirmAutoPaySetup(false),
-                    child: const Text('Minimum Payment'),
+                    icon: const Icon(Icons.warning_amber, size: 18),
+                    label: const Text('Minimum Only'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.orange,
+                      side: const BorderSide(color: Colors.orange),
+                    ),
                   ),
                 ),
               ],
@@ -2587,7 +2718,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
                           ],
                         ),
                       ),
-                      if (creditCardTransactions.isNotEmpty)
+                      if (creditCardTransactions.isNotEmpty) ...[
                         ElevatedButton.icon(
                           onPressed: _showDetailedAnalytics,
                           icon: const Icon(Icons.analytics, size: 18),
@@ -2598,6 +2729,18 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: _showAnalyticsExportOptions,
+                          icon: const Icon(Icons.download, size: 18),
+                          label: const Text('Export'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade50,
+                            foregroundColor: Colors.green.shade700,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ],
@@ -2774,5 +2917,521 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
         builder: (context) => CreditCardAnalyticsScreen(creditCard: _currentCard),
       ),
     );
+  }
+
+  /// Show analytics export options popup
+  void _showAnalyticsExportOptions() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Export Credit Card Data'),
+        content: const Text('Choose the format you want to export your credit card analytics:'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _exportToJSON();
+            },
+            icon: const Icon(Icons.code, size: 18),
+            label: const Text('JSON'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _exportToPDF();
+            },
+            icon: const Icon(Icons.picture_as_pdf, size: 18),
+            label: const Text('PDF'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Export credit card data to JSON
+  void _exportToJSON() async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Exporting to JSON...'),
+            ],
+          ),
+        ),
+      );
+
+      // Get analytics data
+      final appProvider = Provider.of<AppProvider>(context, listen: false);
+      final transactions = appProvider.transactions
+          .where((transaction) => transaction.accountId == _currentCard.id)
+          .toList();
+
+      // Create export data
+      final exportData = _createExportData(transactions);
+
+      // Export to file
+      final success = await _saveAnalyticsToFile(exportData, 'json');
+
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ JSON exported successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ Failed to export JSON'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (mounted) Navigator.of(context).pop();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Export error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Export credit card data to PDF
+  void _exportToPDF() async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Generating PDF...'),
+            ],
+          ),
+        ),
+      );
+
+      // Get analytics data
+      final appProvider = Provider.of<AppProvider>(context, listen: false);
+      final transactions = appProvider.transactions
+          .where((transaction) => transaction.accountId == _currentCard.id)
+          .toList();
+
+      // Generate PDF
+      final pdf = await _generateAnalyticsPDF(transactions);
+
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+
+      // Save PDF to file
+      final success = await _savePDFToFile(pdf);
+
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ PDF exported successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ Failed to export PDF'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (mounted) Navigator.of(context).pop();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ PDF export error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Create export data structure
+  Map<String, dynamic> _createExportData(List<Transaction> transactions) {
+    final now = DateTime.now();
+    final totalSpent = transactions
+        .where((t) => t.isExpense)
+        .fold(0.0, (sum, t) => sum + t.amount.abs());
+    
+    final totalTransactions = transactions.length;
+    final avgTransaction = totalTransactions > 0 ? totalSpent / totalTransactions : 0.0;
+
+    // Calculate spending by category
+    final categorySpending = <String, double>{};
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
+    
+    for (final transaction in transactions.where((t) => t.isExpense)) {
+      final category = appProvider.categories
+          .where((c) => c.id == transaction.categoryId)
+          .firstOrNull;
+      if (category != null) {
+        categorySpending[category.name] = (categorySpending[category.name] ?? 0) + transaction.amount.abs();
+      }
+    }
+
+    return {
+      'creditCard': {
+        'name': _currentCard.name,
+        'creditLimit': _currentCard.creditLimit,
+        'outstandingBalance': _currentCard.outstandingBalance,
+        'availableCredit': _currentCard.availableCredit,
+      },
+      'analytics': {
+        'exportDate': now.toIso8601String(),
+        'totalSpent': totalSpent,
+        'totalTransactions': totalTransactions,
+        'averageTransaction': avgTransaction,
+        'categorySpending': categorySpending,
+      },
+      'transactions': transactions.map((t) => {
+        'date': t.date.toIso8601String(),
+        'description': t.description,
+        'amount': t.amount,
+        'type': t.type,
+        'category': appProvider.categories
+            .where((c) => c.id == t.categoryId)
+            .firstOrNull?.name ?? 'Unknown',
+      }).toList(),
+    };
+  }
+
+  /// Save analytics data to file
+  Future<bool> _saveAnalyticsToFile(Map<String, dynamic> data, String format) async {
+    try {
+      // Create filename with timestamp
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filename = '${_currentCard.name.replaceAll(' ', '_')}_Analytics_$timestamp.$format';
+      
+      // Convert data to JSON string
+      final jsonString = const JsonEncoder.withIndent('  ').convert(data);
+      
+      // Get external storage directory (Downloads folder for easy access)
+      Directory? directory;
+      if (Platform.isAndroid) {
+        // Use Downloads directory for easy access
+        directory = Directory('/storage/emulated/0/Download');
+        // Fallback to external storage directory if Downloads doesn't work
+        if (!await directory.exists()) {
+          directory = await getExternalStorageDirectory();
+        }
+      } else if (Platform.isIOS) {
+        directory = await getApplicationDocumentsDirectory();
+      } else {
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      if (directory == null) {
+        throw Exception('Could not access storage directory');
+      }
+
+      // Create KoraExpenseTracker subdirectory
+      final koraDirectory = Directory('${directory.path}/KoraExpenseTracker');
+      if (!await koraDirectory.exists()) {
+        await koraDirectory.create(recursive: true);
+      }
+
+      // Create Analytics subdirectory
+      final analyticsDirectory = Directory('${koraDirectory.path}/Analytics');
+      if (!await analyticsDirectory.exists()) {
+        await analyticsDirectory.create(recursive: true);
+      }
+
+      // Create the file
+      final file = File('${analyticsDirectory.path}/$filename');
+      await file.writeAsString(jsonString);
+      
+      print('Analytics exported to: ${file.path}');
+      return true;
+    } catch (e) {
+      print('Error saving analytics file: $e');
+      return false;
+    }
+  }
+
+  /// Generate PDF document with analytics data
+  Future<pw.Document> _generateAnalyticsPDF(List<Transaction> transactions) async {
+    final pdf = pw.Document();
+    final now = DateTime.now();
+    
+    // Calculate analytics data
+    final totalSpent = transactions
+        .where((t) => t.isExpense)
+        .fold(0.0, (sum, t) => sum + t.amount.abs());
+    
+    final totalTransactions = transactions.length;
+    final avgTransaction = totalTransactions > 0 ? totalSpent / totalTransactions : 0.0;
+
+    // Calculate spending by category
+    final categorySpending = <String, double>{};
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
+    
+    for (final transaction in transactions.where((t) => t.isExpense)) {
+      final category = appProvider.categories
+          .where((c) => c.id == transaction.categoryId)
+          .firstOrNull;
+      if (category != null) {
+        categorySpending[category.name] = (categorySpending[category.name] ?? 0) + transaction.amount.abs();
+      }
+    }
+
+    // Sort categories by spending amount
+    final sortedCategories = categorySpending.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (pw.Context context) {
+          return [
+            // Header
+            pw.Header(
+              level: 0,
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        '${_currentCard.name} Analytics Report',
+                        style: pw.TextStyle(
+                          fontSize: 24,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Text(
+                        'Generated on ${DateFormat('MMMM dd, yyyy').format(now)}',
+                        style: pw.TextStyle(
+                          fontSize: 12,
+                          color: PdfColors.grey600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(12),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.blue100,
+                      borderRadius: pw.BorderRadius.circular(8),
+                    ),
+                    child: pw.Text(
+                      'Kora Expense Tracker',
+                      style: pw.TextStyle(
+                        fontSize: 12,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blue800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            pw.SizedBox(height: 32),
+            
+            // Credit Card Information
+            pw.Container(
+              padding: const pw.EdgeInsets.all(16),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.grey100,
+                borderRadius: pw.BorderRadius.circular(8),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Credit Card Information',
+                    style: pw.TextStyle(
+                      fontSize: 16,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 12),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('Credit Limit:', style: pw.TextStyle(fontSize: 12)),
+                          pw.Text('₹${_currentCard.creditLimit.toStringAsFixed(2)}', 
+                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                        ],
+                      ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('Outstanding Balance:', style: pw.TextStyle(fontSize: 12)),
+                          pw.Text('₹${_currentCard.outstandingBalance.toStringAsFixed(2)}', 
+                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.red600)),
+                        ],
+                      ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('Available Credit:', style: pw.TextStyle(fontSize: 12)),
+                          pw.Text('₹${_currentCard.availableCredit.toStringAsFixed(2)}', 
+                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.green600)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            pw.SizedBox(height: 24),
+            
+            // Analytics Summary
+            pw.Container(
+              padding: const pw.EdgeInsets.all(16),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.blue50,
+                borderRadius: pw.BorderRadius.circular(8),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Analytics Summary',
+                    style: pw.TextStyle(
+                      fontSize: 16,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 12),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('Total Spent:', style: pw.TextStyle(fontSize: 12)),
+                          pw.Text('₹${totalSpent.toStringAsFixed(2)}', 
+                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                        ],
+                      ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('Total Transactions:', style: pw.TextStyle(fontSize: 12)),
+                          pw.Text('$totalTransactions', 
+                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                        ],
+                      ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('Average Transaction:', style: pw.TextStyle(fontSize: 12)),
+                          pw.Text('₹${avgTransaction.toStringAsFixed(2)}', 
+                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ];
+        },
+      ),
+    );
+
+    return pdf;
+  }
+
+  /// Save PDF to file
+  Future<bool> _savePDFToFile(pw.Document pdf) async {
+    try {
+      // Create filename with timestamp
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filename = '${_currentCard.name.replaceAll(' ', '_')}_Analytics_$timestamp.pdf';
+      
+      // Get external storage directory (Downloads folder for easy access)
+      Directory? directory;
+      if (Platform.isAndroid) {
+        // Use Downloads directory for easy access
+        directory = Directory('/storage/emulated/0/Download');
+        // Fallback to external storage directory if Downloads doesn't work
+        if (!await directory.exists()) {
+          directory = await getExternalStorageDirectory();
+        }
+      } else if (Platform.isIOS) {
+        directory = await getApplicationDocumentsDirectory();
+      } else {
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      if (directory == null) {
+        throw Exception('Could not access storage directory');
+      }
+
+      // Create KoraExpenseTracker subdirectory
+      final koraDirectory = Directory('${directory.path}/KoraExpenseTracker');
+      if (!await koraDirectory.exists()) {
+        await koraDirectory.create(recursive: true);
+      }
+
+      // Create Analytics subdirectory
+      final analyticsDirectory = Directory('${koraDirectory.path}/Analytics');
+      if (!await analyticsDirectory.exists()) {
+        await analyticsDirectory.create(recursive: true);
+      }
+
+      // Create the file
+      final file = File('${analyticsDirectory.path}/$filename');
+      final pdfBytes = await pdf.save();
+      await file.writeAsBytes(pdfBytes);
+      
+      print('PDF exported to: ${file.path}');
+      return true;
+    } catch (e) {
+      print('Error saving PDF file: $e');
+      return false;
+    }
   }
 }

@@ -706,4 +706,32 @@ class AppProvider extends ChangeNotifier {
     await _loadAllData();
     notifyListeners();
   }
+
+  /// Import accounts from backup
+  Future<void> importAccounts(List<Account> accounts) async {
+    _accounts = accounts;
+    await StorageService.saveAccounts(_accounts);
+    notifyListeners();
+  }
+
+  /// Import transactions from backup
+  Future<void> importTransactions(List<Transaction> transactions) async {
+    _transactions = transactions;
+    await StorageService.saveTransactions(_transactions);
+    notifyListeners();
+  }
+
+  /// Import categories from backup
+  Future<void> importCategories(List<Category> categories) async {
+    _categories = categories;
+    await StorageService.saveCategories(_categories);
+    notifyListeners();
+  }
+
+  /// Import settings from backup
+  Future<void> importSettings(Settings settings) async {
+    _settings = settings;
+    await StorageService.saveSettings(_settings);
+    notifyListeners();
+  }
 }

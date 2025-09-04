@@ -1,9 +1,19 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:intl/intl.dart';
 import '../providers/app_provider.dart';
 import '../models/credit_card.dart';
 import '../models/transaction.dart';
 import '../utils/formatters.dart';
+import '../utils/import_export_service.dart';
 
 /// Credit Card Analytics Screen
 /// 
@@ -51,6 +61,33 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) => _handleMenuAction(value),
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'export',
+                child: Row(
+                  children: [
+                    Icon(Icons.download, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Text('Export JSON'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'export_pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Export PDF'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: Theme.of(context).primaryColor,
@@ -1136,6 +1173,492 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
     
     return iconMap[categoryName] ?? Icons.category;
   }
+
+  /// Handle menu actions
+  void _handleMenuAction(String value) {
+    switch (value) {
+      case 'export':
+        _exportAnalytics();
+        break;
+      case 'export_pdf':
+        _exportAnalyticsPDF();
+        break;
+    }
+  }
+
+  /// Export analytics data
+  void _exportAnalytics() async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Exporting analytics...'),
+            ],
+          ),
+        ),
+      );
+
+      // Get analytics data
+      final appProvider = Provider.of<AppProvider>(context, listen: false);
+      final transactions = appProvider.transactions
+          .where((transaction) => transaction.accountId == widget.creditCard.id)
+          .toList();
+
+      // Create export data
+      final exportData = _createExportData(transactions);
+
+      // Export to file
+      final success = await _saveAnalyticsToFile(exportData);
+
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Analytics exported successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to export analytics'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (mounted) Navigator.of(context).pop();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Export error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Create export data structure
+  Map<String, dynamic> _createExportData(List<Transaction> transactions) {
+    final now = DateTime.now();
+    final totalSpent = transactions
+        .where((t) => t.isExpense)
+        .fold(0.0, (sum, t) => sum + t.amount.abs());
+    
+    final totalTransactions = transactions.length;
+    final avgTransaction = totalTransactions > 0 ? totalSpent / totalTransactions : 0.0;
+
+    // Calculate spending by category
+    final categorySpending = <String, double>{};
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
+    
+    for (final transaction in transactions.where((t) => t.isExpense)) {
+      final category = appProvider.categories
+          .where((c) => c.id == transaction.categoryId)
+          .firstOrNull;
+      if (category != null) {
+        categorySpending[category.name] = (categorySpending[category.name] ?? 0) + transaction.amount.abs();
+      }
+    }
+
+    return {
+      'creditCard': {
+        'name': widget.creditCard.name,
+        'creditLimit': widget.creditCard.creditLimit,
+        'outstandingBalance': widget.creditCard.outstandingBalance,
+        'availableCredit': widget.creditCard.availableCredit,
+      },
+      'analytics': {
+        'exportDate': now.toIso8601String(),
+        'timeRange': _selectedTimeRange,
+        'totalSpent': totalSpent,
+        'totalTransactions': totalTransactions,
+        'averageTransaction': avgTransaction,
+        'categorySpending': categorySpending,
+      },
+      'transactions': transactions.map((t) => {
+        'date': t.date.toIso8601String(),
+        'description': t.description,
+        'amount': t.amount,
+        'type': t.type,
+        'category': appProvider.categories
+            .where((c) => c.id == t.categoryId)
+            .firstOrNull?.name ?? 'Unknown',
+      }).toList(),
+    };
+  }
+
+  /// Save analytics data to file
+  Future<bool> _saveAnalyticsToFile(Map<String, dynamic> data) async {
+    try {
+      // Create filename with timestamp
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filename = '${widget.creditCard.name.replaceAll(' ', '_')}_Analytics_$timestamp.json';
+      
+      // Convert data to JSON string
+      final jsonString = const JsonEncoder.withIndent('  ').convert(data);
+      
+      // Get external storage directory (Downloads folder for easy access)
+      Directory? directory;
+      if (Platform.isAndroid) {
+        // Use Downloads directory for easy access
+        directory = Directory('/storage/emulated/0/Download');
+        // Fallback to external storage directory if Downloads doesn't work
+        if (!await directory.exists()) {
+          directory = await getExternalStorageDirectory();
+        }
+      } else if (Platform.isIOS) {
+        directory = await getApplicationDocumentsDirectory();
+      } else {
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      if (directory == null) {
+        throw Exception('Could not access storage directory');
+      }
+
+      // Create KoraExpenseTracker subdirectory
+      final koraDirectory = Directory('${directory.path}/KoraExpenseTracker');
+      if (!await koraDirectory.exists()) {
+        await koraDirectory.create(recursive: true);
+      }
+
+      // Create Analytics subdirectory
+      final analyticsDirectory = Directory('${koraDirectory.path}/Analytics');
+      if (!await analyticsDirectory.exists()) {
+        await analyticsDirectory.create(recursive: true);
+      }
+
+      // Create the file
+      final file = File('${analyticsDirectory.path}/$filename');
+      await file.writeAsString(jsonString);
+      
+      print('Analytics exported to: ${file.path}');
+      return true;
+    } catch (e) {
+      print('Error saving analytics file: $e');
+      return false;
+    }
+  }
+
+  /// Export analytics data as PDF
+  void _exportAnalyticsPDF() async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Generating PDF...'),
+            ],
+          ),
+        ),
+      );
+
+      // Get analytics data
+      final appProvider = Provider.of<AppProvider>(context, listen: false);
+      final transactions = appProvider.transactions
+          .where((transaction) => transaction.accountId == widget.creditCard.id)
+          .toList();
+
+      // Generate PDF
+      final pdf = await _generateAnalyticsPDF(transactions);
+
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+
+      // Save PDF to file
+      final success = await _savePDFToFile(pdf);
+
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('PDF exported successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to export PDF'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (mounted) Navigator.of(context).pop();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PDF export error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Generate PDF document with analytics data
+  Future<pw.Document> _generateAnalyticsPDF(List<Transaction> transactions) async {
+    final pdf = pw.Document();
+    final now = DateTime.now();
+    
+    // Calculate analytics data
+    final totalSpent = transactions
+        .where((t) => t.isExpense)
+        .fold(0.0, (sum, t) => sum + t.amount.abs());
+    
+    final totalTransactions = transactions.length;
+    final avgTransaction = totalTransactions > 0 ? totalSpent / totalTransactions : 0.0;
+
+    // Calculate spending by category
+    final categorySpending = <String, double>{};
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
+    
+    for (final transaction in transactions.where((t) => t.isExpense)) {
+      final category = appProvider.categories
+          .where((c) => c.id == transaction.categoryId)
+          .firstOrNull;
+      if (category != null) {
+        categorySpending[category.name] = (categorySpending[category.name] ?? 0) + transaction.amount.abs();
+      }
+    }
+
+    // Sort categories by spending amount
+    final sortedCategories = categorySpending.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (pw.Context context) {
+          return [
+            // Header
+            pw.Header(
+              level: 0,
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        '${widget.creditCard.name} Analytics Report',
+                        style: pw.TextStyle(
+                          fontSize: 24,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Text(
+                        'Generated on ${DateFormat('MMMM dd, yyyy').format(now)}',
+                        style: pw.TextStyle(
+                          fontSize: 12,
+                          color: PdfColors.grey600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(12),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.blue100,
+                      borderRadius: pw.BorderRadius.circular(8),
+                    ),
+                    child: pw.Text(
+                      'Kora Expense Tracker',
+                      style: pw.TextStyle(
+                        fontSize: 12,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blue800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            pw.SizedBox(height: 32),
+            
+            // Credit Card Information
+            pw.Container(
+              padding: const pw.EdgeInsets.all(16),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.grey100,
+                borderRadius: pw.BorderRadius.circular(8),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Credit Card Information',
+                    style: pw.TextStyle(
+                      fontSize: 16,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 12),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('Credit Limit:', style: pw.TextStyle(fontSize: 12)),
+                          pw.Text('₹${widget.creditCard.creditLimit.toStringAsFixed(2)}', 
+                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                        ],
+                      ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('Outstanding Balance:', style: pw.TextStyle(fontSize: 12)),
+                          pw.Text('₹${widget.creditCard.outstandingBalance.toStringAsFixed(2)}', 
+                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.red600)),
+                        ],
+                      ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('Available Credit:', style: pw.TextStyle(fontSize: 12)),
+                          pw.Text('₹${widget.creditCard.availableCredit.toStringAsFixed(2)}', 
+                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.green600)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            pw.SizedBox(height: 24),
+            
+            // Analytics Summary
+            pw.Container(
+              padding: const pw.EdgeInsets.all(16),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.blue50,
+                borderRadius: pw.BorderRadius.circular(8),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Analytics Summary',
+                    style: pw.TextStyle(
+                      fontSize: 16,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 12),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('Total Spent:', style: pw.TextStyle(fontSize: 12)),
+                          pw.Text('₹${totalSpent.toStringAsFixed(2)}', 
+                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                        ],
+                      ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('Total Transactions:', style: pw.TextStyle(fontSize: 12)),
+                          pw.Text('$totalTransactions', 
+                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                        ],
+                      ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('Average Transaction:', style: pw.TextStyle(fontSize: 12)),
+                          pw.Text('₹${avgTransaction.toStringAsFixed(2)}', 
+                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ];
+        },
+      ),
+    );
+
+    return pdf;
+  }
+
+  /// Save PDF to file
+  Future<bool> _savePDFToFile(pw.Document pdf) async {
+    try {
+      // Create filename with timestamp
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filename = '${widget.creditCard.name.replaceAll(' ', '_')}_Analytics_$timestamp.pdf';
+      
+      // Get external storage directory (Downloads folder for easy access)
+      Directory? directory;
+      if (Platform.isAndroid) {
+        // Use Downloads directory for easy access
+        directory = Directory('/storage/emulated/0/Download');
+        // Fallback to external storage directory if Downloads doesn't work
+        if (!await directory.exists()) {
+          directory = await getExternalStorageDirectory();
+        }
+      } else if (Platform.isIOS) {
+        directory = await getApplicationDocumentsDirectory();
+      } else {
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      if (directory == null) {
+        throw Exception('Could not access storage directory');
+      }
+
+      // Create KoraExpenseTracker subdirectory
+      final koraDirectory = Directory('${directory.path}/KoraExpenseTracker');
+      if (!await koraDirectory.exists()) {
+        await koraDirectory.create(recursive: true);
+      }
+
+      // Create Analytics subdirectory
+      final analyticsDirectory = Directory('${koraDirectory.path}/Analytics');
+      if (!await analyticsDirectory.exists()) {
+        await analyticsDirectory.create(recursive: true);
+      }
+
+      // Create the file
+      final file = File('${analyticsDirectory.path}/$filename');
+      final pdfBytes = await pdf.save();
+      await file.writeAsBytes(pdfBytes);
+      
+      print('PDF exported to: ${file.path}');
+      return true;
+    } catch (e) {
+      print('Error saving PDF file: $e');
+      return false;
+    }
+  }
 }
 
 // Data classes for insights
@@ -1254,7 +1777,7 @@ class SimpleChartPainter extends CustomPainter {
 
     // Draw month labels
     final textPainter = TextPainter(
-      textDirection: TextDirection.ltr,
+      textDirection: ui.TextDirection.ltr,
     );
     
     for (int i = 0; i < data.length; i++) {

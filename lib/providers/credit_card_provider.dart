@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import '../models/credit_card.dart';
 import '../models/credit_card_statement.dart';
 import '../models/payment_record.dart';
+import '../models/transaction.dart';
 import '../utils/storage_service.dart';
+import 'app_provider.dart';
 
 /// Credit Card Provider for managing credit card state and operations
 class CreditCardProvider extends ChangeNotifier {
@@ -29,7 +31,7 @@ class CreditCardProvider extends ChangeNotifier {
   
   List<CreditCard> get dueSoonCards => _creditCards.where((card) => card.isDueSoon).toList();
   
-  List<CreditCardStatement> get pendingStatements => _statements.where((stmt) => stmt.status == 'Pending').toList();
+  List<CreditCardStatement> get pendingStatements => _statements.where((stmt) => stmt.status == StatementStatus.generated).toList();
   
   List<CreditCardStatement> get overdueStatements => _statements.where((stmt) => stmt.isOverdue).toList();
   
@@ -149,6 +151,12 @@ class CreditCardProvider extends ChangeNotifier {
         );
         _creditCards[index] = updatedCard;
         await StorageService.saveCreditCards(_creditCards);
+        
+        // Mark any generated statements as paid if balance is now 0 or negative
+        if (newOutstandingBalance <= 0) {
+          await _markStatementsAsPaid(creditCardId);
+        }
+        
         notifyListeners();
         return true;
       }
@@ -157,6 +165,32 @@ class CreditCardProvider extends ChangeNotifier {
       _error = 'Failed to update credit card balance: $e';
       notifyListeners();
       return false;
+    }
+  }
+
+  /// Mark generated statements as paid for a credit card
+  Future<void> _markStatementsAsPaid(String creditCardId) async {
+    try {
+      bool updated = false;
+      for (int i = 0; i < _statements.length; i++) {
+        final statement = _statements[i];
+        if (statement.creditCardId == creditCardId && 
+            statement.status == StatementStatus.generated) {
+          _statements[i] = statement.copyWith(
+            status: StatementStatus.paid,
+            paidAmount: statement.newBalance,
+            paidDate: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
+          updated = true;
+        }
+      }
+      
+      if (updated) {
+        await StorageService.saveCreditCardStatements(_statements);
+      }
+    } catch (e) {
+      _error = 'Failed to mark statements as paid: $e';
     }
   }
   
@@ -209,6 +243,62 @@ class CreditCardProvider extends ChangeNotifier {
   List<CreditCardStatement> getStatementsForCard(String creditCardId) {
     return _statements.where((stmt) => stmt.creditCardId == creditCardId).toList();
   }
+
+  /// Check if statement exists for current billing period for a credit card
+  bool hasStatementForCurrentMonth(String creditCardId) {
+    final card = getCreditCardById(creditCardId);
+    if (card == null) return false;
+    
+    final now = DateTime.now();
+    final billingDay = card.billingCycleDay;
+    
+    // Calculate current billing period start date
+    DateTime currentPeriodStart;
+    if (now.day < billingDay) {
+      // Current period started last month
+      currentPeriodStart = DateTime(now.year, now.month - 1, billingDay);
+    } else {
+      // Current period started this month
+      currentPeriodStart = DateTime(now.year, now.month, billingDay);
+    }
+    
+    return _statements.any((stmt) => 
+      stmt.creditCardId == creditCardId && 
+      stmt.periodStart.year == currentPeriodStart.year &&
+      stmt.periodStart.month == currentPeriodStart.month &&
+      stmt.periodStart.day == currentPeriodStart.day
+    );
+  }
+
+  /// Get current billing period statement for a credit card
+  CreditCardStatement? getCurrentMonthStatement(String creditCardId) {
+    final card = getCreditCardById(creditCardId);
+    if (card == null) return null;
+    
+    final now = DateTime.now();
+    final billingDay = card.billingCycleDay;
+    
+    // Calculate current billing period start date
+    DateTime currentPeriodStart;
+    if (now.day < billingDay) {
+      // Current period started last month
+      currentPeriodStart = DateTime(now.year, now.month - 1, billingDay);
+    } else {
+      // Current period started this month
+      currentPeriodStart = DateTime(now.year, now.month, billingDay);
+    }
+    
+    try {
+      return _statements.firstWhere((stmt) => 
+        stmt.creditCardId == creditCardId && 
+        stmt.periodStart.year == currentPeriodStart.year &&
+        stmt.periodStart.month == currentPeriodStart.month &&
+        stmt.periodStart.day == currentPeriodStart.day
+      );
+    } catch (e) {
+      return null;
+    }
+  }
   
   /// Get payments for a specific credit card
   List<PaymentRecord> getPaymentsForCard(String creditCardId) {
@@ -221,7 +311,8 @@ class CreditCardProvider extends ChangeNotifier {
     return _statements.any((stmt) => 
       stmt.creditCardId == creditCardId && 
       stmt.periodStart.year == periodStart.year &&
-      stmt.periodStart.month == periodStart.month
+      stmt.periodStart.month == periodStart.month &&
+      stmt.periodStart.day == periodStart.day
     );
   }
 
@@ -253,19 +344,30 @@ class CreditCardProvider extends ChangeNotifier {
         return null;
       }
       
-      // Calculate statement amounts (simplified for now)
-      final previousBalance = card.outstandingBalance;
-      final paymentsAndCredits = 0.0; // TODO: Calculate from transactions
-      final purchases = 0.0; // TODO: Calculate from transactions
-      final cashAdvances = 0.0; // TODO: Calculate from transactions
-      final interestCharges = 0.0; // TODO: Calculate interest
-      final feesAndCharges = 0.0; // TODO: Calculate fees
+      // Calculate statement amounts from transactions
+      final previousBalance = _getPreviousStatementBalance(creditCardId) ?? 0.0;
+      
+      // Get transactions for this billing period
+      final periodTransactions = _getTransactionsForPeriod(creditCardId, periodStart, periodEnd);
+      
+      // Calculate statement components
+      final paymentsAndCredits = _calculatePaymentsAndCredits(periodTransactions, creditCardId);
+      final purchases = _calculatePurchases(periodTransactions, creditCardId);
+      final cashAdvances = _calculateCashAdvances(periodTransactions, creditCardId);
+      final interestCharges = _calculateInterestCharges(creditCardId, previousBalance, periodStart);
+      final feesAndCharges = _calculateFeesAndCharges(creditCardId, periodStart);
       final minimumPaymentDue = card.minimumPaymentAmount;
       final paymentDueDate = card.nextDueDate ?? now.add(const Duration(days: 21));
       
-      // Create statement
-      final statement = CreditCardStatement.create(
+      // TEMPORARY FIX: Use current outstanding balance as newBalance until proper transaction integration
+      // This ensures statement balance matches current outstanding balance
+      final newBalance = card.outstandingBalance; // Always use current outstanding balance
+      
+      // Create statement with corrected balance
+      final statement = CreditCardStatement(
+        id: 'stmt_${DateTime.now().millisecondsSinceEpoch}_${DateTime.now().microsecond}',
         creditCardId: creditCardId,
+        statementNumber: '${now.year}-${now.month.toString().padLeft(2, '0')}',
         periodStart: periodStart,
         periodEnd: periodEnd,
         previousBalance: previousBalance,
@@ -274,8 +376,13 @@ class CreditCardProvider extends ChangeNotifier {
         cashAdvances: cashAdvances,
         interestCharges: interestCharges,
         feesAndCharges: feesAndCharges,
+        newBalance: newBalance, // Use corrected balance
         minimumPaymentDue: minimumPaymentDue,
         paymentDueDate: paymentDueDate,
+        generatedDate: now,
+        status: StatementStatus.generated,
+        createdAt: now,
+        updatedAt: now,
       );
       
       // Add to statements list
@@ -309,7 +416,8 @@ class CreditCardProvider extends ChangeNotifier {
             final existingStatement = _statements.where((stmt) => 
               stmt.creditCardId == card.id && 
               stmt.periodStart.year == billingDate.year &&
-              stmt.periodStart.month == billingDate.month
+              stmt.periodStart.month == billingDate.month &&
+              stmt.periodStart.day == billingDate.day
             ).isNotEmpty;
             
             if (!existingStatement) {
@@ -600,11 +708,34 @@ class CreditCardProvider extends ChangeNotifier {
     return totalPayments > 0 ? (onTimePayments / totalPayments) * 100 : 0.0;
   }
   
-  /// Delete a statement
-  Future<bool> deleteStatement(String statementId) async {
+  /// Delete a statement and its related payment transactions only
+  Future<bool> deleteStatement(String statementId, {AppProvider? appProvider}) async {
     try {
+      // Find the statement to get its period
+      final statement = _statements.firstWhere((stmt) => stmt.id == statementId);
+      
+      // If AppProvider is provided, delete only payment transactions (transfers TO the credit card)
+      if (appProvider != null) {
+        // Find payment transactions (transfers TO the credit card) for this period
+        final paymentTransactions = appProvider.transactions.where((transaction) {
+          return transaction.type == 'transfer' && 
+                 transaction.toAccountId == statement.creditCardId &&
+                 transaction.date.isAfter(statement.periodStart.subtract(const Duration(days: 1))) &&
+                 transaction.date.isBefore(statement.periodEnd.add(const Duration(days: 1)));
+        }).toList();
+        
+        // Delete only payment transactions (NOT the original credit card expense transactions)
+        for (final transaction in paymentTransactions) {
+          await appProvider.deleteTransaction(transaction.id);
+        }
+        
+        print('Deleted ${paymentTransactions.length} payment transactions (keeping original credit card transactions)');
+      }
+      
+      // Remove the statement
       _statements.removeWhere((stmt) => stmt.id == statementId);
       await StorageService.saveCreditCardStatements(_statements);
+      
       notifyListeners();
       return true;
     } catch (e) {
@@ -731,5 +862,76 @@ class CreditCardProvider extends ChangeNotifier {
   /// Get overdue credit cards
   List<CreditCard> getOverdueCards() {
     return _creditCards.where((card) => card.isOverdue).toList();
+  }
+
+  /// Import credit cards from backup
+  Future<void> importCreditCards(List<CreditCard> creditCards) async {
+    _creditCards = creditCards;
+    await StorageService.saveCreditCards(_creditCards);
+    notifyListeners();
+  }
+
+  /// Import statements from backup
+  Future<void> importStatements(List<CreditCardStatement> statements) async {
+    _statements = statements;
+    await StorageService.saveCreditCardStatements(_statements);
+    notifyListeners();
+  }
+
+  /// Import payments from backup
+  Future<void> importPayments(List<PaymentRecord> payments) async {
+    _payments = payments;
+    await StorageService.savePaymentRecords(_payments);
+    notifyListeners();
+  }
+
+  // ========================================
+  // STATEMENT CALCULATION HELPER METHODS
+  // ========================================
+
+  /// Get transactions for a specific billing period
+  List<Transaction> _getTransactionsForPeriod(String creditCardId, DateTime periodStart, DateTime periodEnd) {
+    // This would need access to AppProvider transactions
+    // For now, return empty list - this should be implemented with proper data access
+    return [];
+  }
+
+  /// Calculate payments and credits for the period
+  double _calculatePaymentsAndCredits(List<Transaction> transactions, String creditCardId) {
+    // Calculate from payment records for this credit card within the statement period
+    // For now, return 0 - this should be implemented with proper period-based calculation
+    return 0.0;
+  }
+
+  /// Calculate purchases for the period
+  double _calculatePurchases(List<Transaction> transactions, String creditCardId) {
+    // This would calculate from transactions where the credit card is the source
+    // For now, return 0 - this should be implemented with proper transaction data
+    return 0.0;
+  }
+
+  /// Calculate cash advances for the period
+  double _calculateCashAdvances(List<Transaction> transactions, String creditCardId) {
+    // This would calculate cash advance transactions
+    // For now, return 0 - this should be implemented with proper transaction data
+    return 0.0;
+  }
+
+  /// Calculate interest charges for the period
+  double _calculateInterestCharges(String creditCardId, double previousBalance, DateTime periodStart) {
+    final card = getCreditCardById(creditCardId);
+    if (card == null) return 0.0;
+    
+    // Simple interest calculation: (balance * rate * days) / 365
+    final daysInPeriod = DateTime.now().difference(periodStart).inDays;
+    final annualRate = card.interestRate / 100.0;
+    return (previousBalance * annualRate * daysInPeriod) / 365.0;
+  }
+
+  /// Calculate fees and charges for the period
+  double _calculateFeesAndCharges(String creditCardId, DateTime periodStart) {
+    // This would calculate various fees like annual fees, late fees, etc.
+    // For now, return 0 - this should be implemented based on card terms
+    return 0.0;
   }
 }

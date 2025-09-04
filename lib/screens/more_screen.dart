@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kora_expense_tracker/constants/app_constants.dart';
+import 'import_export_screen.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
@@ -24,6 +25,22 @@ class MoreScreen extends StatelessWidget {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Settings screen coming soon!'),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          
+          // Import/Export Section
+          _buildSectionCard(
+            context,
+            title: 'Import/Export',
+            subtitle: 'Backup and restore your data',
+            icon: Icons.backup,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const ImportExportScreen(),
                 ),
               );
             },
