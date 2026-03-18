@@ -1,6 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'package:flutter/material.dart';
-import '../utils/json_converters.dart';
 
 part 'payment.g.dart';
 

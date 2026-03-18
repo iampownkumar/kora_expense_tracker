@@ -43,7 +43,7 @@ class TransactionListItem extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: (category?.color ?? AppConstants.primaryColor).withOpacity(0.1),
+                  color: (category?.color ?? AppConstants.primaryColor).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -155,7 +155,7 @@ class TransactionListItem extends StatelessWidget {
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: transaction.typeColor.withOpacity(0.1),
+                      color: transaction.typeColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(

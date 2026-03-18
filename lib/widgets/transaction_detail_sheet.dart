@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:kora_expense_tracker/models/transaction.dart';
-import 'package:kora_expense_tracker/models/account.dart';
-import 'package:kora_expense_tracker/models/account_type.dart';
 import 'package:kora_expense_tracker/models/category.dart';
 import 'package:kora_expense_tracker/providers/app_provider.dart';
 import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
@@ -71,7 +69,7 @@ class TransactionDetailSheet extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: _getTypeColor(context, transaction.type).withOpacity(0.1),
+                        color: _getTypeColor(context, transaction.type).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(

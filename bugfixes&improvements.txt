@@ -1,0 +1,1 @@
+1 whlie addign the transact  if manitory feilds are not filled  and when user click save it needs to show the red color * symbolw showing manitory 

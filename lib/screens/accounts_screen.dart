@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/providers/app_provider.dart';
-import 'package:kora_expense_tracker/providers/credit_card_provider.dart';
 import 'package:kora_expense_tracker/models/account.dart';
 import 'package:kora_expense_tracker/models/account_type.dart';
 import 'package:kora_expense_tracker/widgets/account_card.dart';
@@ -151,7 +150,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
@@ -228,7 +227,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                     ]
                   : [
                       theme.colorScheme.primary,
-                      theme.colorScheme.primary.withOpacity(0.8),
+                      theme.colorScheme.primary.withValues(alpha: 0.8),
                     ],
             ),
           ),
@@ -276,7 +275,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Search accounts...',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
                       prefixIcon: const Icon(Icons.search, color: Colors.white),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
@@ -289,18 +288,18 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                           : null,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(color: Colors.white, width: 2),
                       ),
                       filled: true,
-                      fillColor: Colors.white.withOpacity(0.1),
+                      fillColor: Colors.white.withValues(alpha: 0.1),
                     ),
                   ),
                 ),
@@ -377,8 +376,8 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
         label: Text(label),
         selected: isSelected,
         onSelected: (_) => onTap(),
-        backgroundColor: color?.withOpacity(0.1) ?? theme.colorScheme.surface,
-        selectedColor: color?.withOpacity(0.2) ?? theme.colorScheme.primary.withOpacity(0.2),
+        backgroundColor: color?.withValues(alpha: 0.1) ?? theme.colorScheme.surface,
+        selectedColor: color?.withValues(alpha: 0.2) ?? theme.colorScheme.primary.withValues(alpha: 0.2),
         checkmarkColor: color ?? theme.colorScheme.primary,
         labelStyle: TextStyle(
           color: isSelected ? (color ?? theme.colorScheme.primary) : theme.colorScheme.onSurface,
@@ -615,9 +614,9 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -704,9 +703,9 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
+                color: Colors.blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
               ),
               child: const Row(
                 children: [
@@ -759,9 +758,9 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.withOpacity(0.3)),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
               ),
               child: const Row(
                 children: [
@@ -884,7 +883,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
@@ -999,7 +998,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: color, size: 20),
@@ -1054,8 +1053,8 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              healthColor.withOpacity(0.1),
-              healthColor.withOpacity(0.05),
+              healthColor.withValues(alpha: 0.1),
+              healthColor.withValues(alpha: 0.05),
             ],
           ),
         ),
@@ -1066,7 +1065,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: healthColor.withOpacity(0.2),
+                    color: healthColor.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -1121,7 +1120,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                 Container(
                   width: 1,
                   height: 40,
-                  color: theme.colorScheme.outline.withOpacity(0.3),
+                  color: theme.colorScheme.outline.withValues(alpha: 0.3),
                 ),
                 Column(
                   children: [
@@ -1163,7 +1162,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -1219,8 +1218,9 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     int score = 50; // Base score
     
     // Net worth factor
-    if (netWorth > 100000) score += 30;
-    else if (netWorth > 50000) score += 20;
+    if (netWorth > 100000) {
+      score += 30;
+    } else if (netWorth > 50000) score += 20;
     else if (netWorth > 0) score += 10;
     else if (netWorth > -50000) score -= 10;
     else score -= 20;
@@ -1228,8 +1228,9 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     // Asset-to-liability ratio
     if (liabilities > 0) {
       final ratio = assets / liabilities;
-      if (ratio > 3) score += 20;
-      else if (ratio > 2) score += 10;
+      if (ratio > 3) {
+        score += 20;
+      } else if (ratio > 2) score += 10;
       else if (ratio > 1) score += 5;
       else score -= 10;
     } else if (assets > 0) {

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:kora_expense_tracker/constants/app_constants.dart';
 import 'import_export_screen.dart';
 
 class MoreScreen extends StatelessWidget {

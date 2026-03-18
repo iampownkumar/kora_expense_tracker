@@ -416,7 +416,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<Account>(
-          value: _selectedSourceAccount,
+          initialValue: _selectedSourceAccount,
           isExpanded: true,
           isDense: true,
           decoration: InputDecoration(
@@ -734,7 +734,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
           )
         else
-          ...recentPayments.take(10).map((transaction) => _buildPaymentItem(transaction)).toList(),
+          ...recentPayments.take(10).map((transaction) => _buildPaymentItem(transaction)),
       ],
     );
   }

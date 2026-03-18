@@ -41,8 +41,8 @@ class FinancialSummaryCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                theme.colorScheme.primary.withOpacity(0.1),
-                theme.colorScheme.secondary.withOpacity(0.05),
+                theme.colorScheme.primary.withValues(alpha: 0.1),
+                theme.colorScheme.secondary.withValues(alpha: 0.05),
               ],
             ),
           ),
@@ -55,7 +55,7 @@ class FinancialSummaryCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.1),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -89,7 +89,7 @@ class FinancialSummaryCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _getNetWorthColor(netWorth, theme).withOpacity(0.1),
+                      color: _getNetWorthColor(netWorth, theme).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -120,10 +120,10 @@ class FinancialSummaryCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: _getNetWorthColor(netWorth, theme).withOpacity(0.05),
+                  color: _getNetWorthColor(netWorth, theme).withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: _getNetWorthColor(netWorth, theme).withOpacity(0.2),
+                    color: _getNetWorthColor(netWorth, theme).withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
@@ -159,7 +159,7 @@ class FinancialSummaryCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: _getNetWorthColor(netWorth, theme).withOpacity(0.1),
+                        color: _getNetWorthColor(netWorth, theme).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
@@ -235,10 +235,10 @@ class FinancialSummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: color.withOpacity(0.2),
+          color: color.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -306,10 +306,10 @@ class FinancialSummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: type.color.withOpacity(0.1),
+        color: type.color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: type.color.withOpacity(0.3),
+          color: type.color.withValues(alpha: 0.3),
           width: 1,
         ),
       ),

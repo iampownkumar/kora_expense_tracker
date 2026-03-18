@@ -1,19 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 import '../providers/app_provider.dart';
 import '../models/credit_card.dart';
 import '../models/transaction.dart';
 import '../utils/formatters.dart';
-import '../utils/import_export_service.dart';
 
 /// Credit Card Analytics Screen
 /// 
@@ -399,7 +396,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
     final maxValue = data.values.fold(0.0, (max, value) => value > max ? value : max);
     final entries = data.entries.toList();
     
-    return Container(
+    return SizedBox(
       height: 200,
       child: Stack(
         children: [
@@ -408,7 +405,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
             left: 0,
             top: 0,
             bottom: 0,
-            child: Container(
+            child: SizedBox(
               width: 50,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -441,7 +438,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
       final formattedValue = _formatYAxisValue(value);
       
       labels.add(
-        Container(
+        SizedBox(
           height: 20,
           child: Center(
             child: Text(
@@ -466,9 +463,9 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
     } else if (value >= 1000) {
       return '${(value / 1000).toStringAsFixed(1)}K';
     } else if (value >= 100) {
-      return '${value.toStringAsFixed(0)}';
+      return value.toStringAsFixed(0);
     } else {
-      return '${value.toStringAsFixed(0)}';
+      return value.toStringAsFixed(0);
     }
   }
 
@@ -566,7 +563,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
                   ],
                 ),
               );
-            }).toList(),
+            }),
         ],
       ),
     );
@@ -629,7 +626,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
                 ),
               ],
             ),
-          )).toList(),
+          )),
         ],
       ),
     );
@@ -732,7 +729,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
                   ],
                 ),
               );
-            }).toList(),
+            }),
         ],
       ),
     );
@@ -839,7 +836,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
                   ],
                 ),
               );
-            }).toList(),
+            }),
         ],
       ),
     );
@@ -937,7 +934,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
                 ],
               ],
             ),
-          )).toList(),
+          )),
         ],
       ),
     );

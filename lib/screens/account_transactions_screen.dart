@@ -166,7 +166,7 @@ class _AccountTransactionsScreenState extends State<AccountTransactionsScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: widget.account.type.color.withOpacity(0.1),
+                  color: widget.account.type.color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(

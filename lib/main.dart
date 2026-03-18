@@ -7,6 +7,7 @@ import 'package:kora_expense_tracker/providers/app_provider.dart';
 import 'package:kora_expense_tracker/providers/credit_card_provider.dart';
 import 'package:kora_expense_tracker/providers/payment_provider.dart';
 import 'package:kora_expense_tracker/screens/home_screen.dart';
+import 'package:kora_expense_tracker/screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,8 +49,8 @@ class KoraExpenseTrackerApp extends StatelessWidget {
         ],
         supportedLocales: const [
           Locale('en', ''), // English
-          Locale('hi', ''), // Hindi
           Locale('ta', ''), // Tamil
+          Locale('hi', ''), // Hindi
         ],
         locale: const Locale('en', ''),
         
@@ -111,7 +112,7 @@ class KoraExpenseTrackerApp extends StatelessWidget {
         themeMode: ThemeMode.system,
         
         // Home screen
-        home: const HomeScreen(),
+        home: const SplashScreen(),
       ),
     );
   }

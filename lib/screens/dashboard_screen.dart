@@ -7,7 +7,6 @@ import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
 import 'package:kora_expense_tracker/widgets/transaction_list_item.dart';
 import 'package:kora_expense_tracker/models/category.dart';
 import 'package:kora_expense_tracker/models/account.dart';
-import 'package:kora_expense_tracker/models/account_type.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -51,14 +50,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {
-              // TODO: Show notifications
-            },
-          ),
-        ],
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -115,7 +106,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   Text(
                                     'Total Balance',
                                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                                      color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
                                     ),
                                   ),
                                 ],
@@ -125,13 +116,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   Icon(
                                     Icons.account_balance_wallet,
                                     size: 32,
-                                    color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                                    color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
                                   ),
                                   const SizedBox(width: 8),
                                   Icon(
                                     Icons.arrow_forward_ios,
                                     size: 16,
-                                    color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.6),
+                                    color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.6),
                                   ),
                                 ],
                               ),
@@ -152,13 +143,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               Icon(
                                 Icons.trending_up,
                                 size: 16,
-                                color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                                color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 'Net Worth: ',
                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                                  color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
                                 ),
                               ),
                               Text(
@@ -422,7 +413,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),
@@ -452,7 +443,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 end: Alignment.bottomRight,
                 colors: [
                   Theme.of(context).colorScheme.primary,
-                  Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
                 ],
               ),
             ),
@@ -507,11 +498,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) {
-      return 'Good Morning, Pown';
+      return 'Good Morning';
     } else if (hour < 17) {
-      return 'Good Afternoon, Pown';
+      return 'Good Afternoon';
     } else {
-      return 'Good Evening, Pown';
+      return 'Good Evening';
     }
   }
 }

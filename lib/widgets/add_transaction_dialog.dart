@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:kora_expense_tracker/constants/app_constants.dart';
 import 'package:kora_expense_tracker/models/transaction.dart';
 import 'package:kora_expense_tracker/models/account_type.dart';
@@ -32,6 +31,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   String? _selectedToAccountId;
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
+  bool _hasAttemptedSave = false;
 
   // Focus nodes for auto-navigation
   final FocusNode _descriptionFocus = FocusNode();
@@ -216,7 +216,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceVariant,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -297,16 +297,20 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   }
 
   Widget _buildTransactionTitleCard() {
+    final hasError = _hasAttemptedSave && _description.trim().isEmpty;
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: hasError ? const BorderSide(color: Colors.red, width: 1) : BorderSide.none,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             Icon(
               Icons.edit,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: hasError ? Colors.red : Theme.of(context).colorScheme.onSurfaceVariant,
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -322,6 +326,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                   hintText: _selectedType == AppConstants.transactionTypeTransfer 
                       ? 'e.g., Moving money to savings' 
                       : 'Enter transaction title',
+                  errorText: hasError ? 'Required field' : null,
                 ),
                 onChanged: (value) => _description = value,
                 textInputAction: TextInputAction.next,
@@ -346,16 +351,20 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   }
 
   Widget _buildAmountCard() {
+    final hasError = _hasAttemptedSave && _amount.trim().isEmpty;
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: hasError ? const BorderSide(color: Colors.red, width: 1) : BorderSide.none,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             Icon(
               Icons.payments, // Icons.attach_money here you can change the icon for the amount feild 
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: hasError ? Colors.red : Theme.of(context).colorScheme.onSurfaceVariant,
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -368,6 +377,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                   border: InputBorder.none,
                   hintText: '0.00',
                   prefixText: '${Formatters.getCurrencySymbol()} (${AppConstants.defaultCurrency})  ',
+                  errorText: hasError ? 'Required field' : null,
                 ),
                 keyboardType: TextInputType.number,
                 onChanged: (value) => _amount = value,
@@ -397,12 +407,16 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     final selectedAccount = widget.appProvider.accounts
         .where((account) => account.id == _selectedAccountId)
         .firstOrNull;
+    final hasError = _hasAttemptedSave && _selectedAccountId == null;
 
     return GestureDetector(
       onTap: () => _showFromAccountPicker(),
       child: Card(
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: hasError ? const BorderSide(color: Colors.red, width: 1) : BorderSide.none,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -420,14 +434,15 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                     Text(
                       'From Account',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        color: hasError ? Colors.red : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      selectedAccount?.name ?? 'Select Source Account',
+                      selectedAccount?.name ?? 'Select Source Account${hasError ? " *" : ""}',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w500,
+                        color: hasError ? Colors.red : null,
                       ),
                     ),
                     if (selectedAccount != null) ...[
@@ -460,12 +475,16 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     final selectedAccount = widget.appProvider.accounts
         .where((account) => account.id == _selectedToAccountId)
         .firstOrNull;
+    final hasError = _hasAttemptedSave && _selectedToAccountId == null;
 
     return GestureDetector(
       onTap: () => _showToAccountPicker(),
       child: Card(
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: hasError ? const BorderSide(color: Colors.red, width: 1) : BorderSide.none,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -483,14 +502,15 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                     Text(
                       'To Account',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        color: hasError ? Colors.red : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      selectedAccount?.name ?? 'Select Destination Account',
+                      selectedAccount?.name ?? 'Select Destination Account${hasError ? " *" : ""}',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w500,
+                        color: hasError ? Colors.red : null,
                       ),
                     ),
                     if (selectedAccount != null) ...[
@@ -523,12 +543,16 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     final selectedAccount = widget.appProvider.accounts
         .where((account) => account.id == _selectedAccountId)
         .firstOrNull;
+    final hasError = _hasAttemptedSave && _selectedAccountId == null;
 
     return GestureDetector(
       onTap: () => _showAccountPicker(),
       child: Card(
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: hasError ? const BorderSide(color: Colors.red, width: 1) : BorderSide.none,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -546,14 +570,15 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                     Text(
                       'Account',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        color: hasError ? Colors.red : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      selectedAccount?.name ?? 'Select Account',
+                      selectedAccount?.name ?? 'Select Account${hasError ? " *" : ""}',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w500,
+                        color: hasError ? Colors.red : null,
                       ),
                     ),
                     if (selectedAccount != null) ...[
@@ -586,12 +611,16 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     final selectedCategory = widget.appProvider.categories
         .where((category) => category.id == _selectedCategoryId)
         .firstOrNull;
+    final hasError = _hasAttemptedSave && _selectedCategoryId == null;
 
     return GestureDetector(
       onTap: () => _showCategoryPicker(),
       child: Card(
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: hasError ? const BorderSide(color: Colors.red, width: 1) : BorderSide.none,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -609,14 +638,15 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                     Text(
                       'Category',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        color: hasError ? Colors.red : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      selectedCategory?.name ?? 'Select Category',
+                      selectedCategory?.name ?? 'Select Category${hasError ? " *" : ""}',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w500,
+                        color: hasError ? Colors.red : null,
                       ),
                     ),
                   ],
@@ -788,18 +818,27 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   }
 
   Widget _buildUpdateButton() {
-    final isValid = _amount.isNotEmpty && 
-                   _selectedAccountId != null &&
-                   (_selectedType != AppConstants.transactionTypeTransfer || 
-                    _selectedToAccountId != null) &&
-                   (_selectedType == AppConstants.transactionTypeTransfer || 
-                    _selectedCategoryId != null);
-
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton.icon(
-        onPressed: isValid ? _saveTransaction : null,
+        onPressed: () {
+          setState(() {
+            _hasAttemptedSave = true;
+          });
+          
+          final isValid = _amount.trim().isNotEmpty && 
+                         _description.trim().isNotEmpty &&
+                         _selectedAccountId != null &&
+                         (_selectedType != AppConstants.transactionTypeTransfer || 
+                          _selectedToAccountId != null) &&
+                         (_selectedType == AppConstants.transactionTypeTransfer || 
+                          _selectedCategoryId != null);
+                          
+          if (isValid) {
+            _saveTransaction();
+          }
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: _getTypeColor(_selectedType),
           foregroundColor: Colors.white,

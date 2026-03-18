@@ -310,7 +310,7 @@ class _EditCreditCardScreenState extends State<EditCreditCardScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Your credit card statement will be generated on the ${_billingCycleDay}${_getDaySuffix(_billingCycleDay)} of each month.',
+          'Your credit card statement will be generated on the $_billingCycleDay${_getDaySuffix(_billingCycleDay)} of each month.',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
           ),

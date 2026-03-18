@@ -845,7 +845,7 @@ class _AddCreditCardScreenState extends State<AddCreditCardScreen> {
           type: AccountType.creditCard,
           icon: _selectedIcon,
           color: _selectedColor,
-          description: 'Credit Card - ${_selectedNetwork} ${_lastFourDigitsController.text.trim()}',
+          description: 'Credit Card - $_selectedNetwork ${_lastFourDigitsController.text.trim()}',
           isActive: true,
           createdAt: creditCard.createdAt,
           updatedAt: creditCard.updatedAt,

@@ -551,7 +551,7 @@ class _AddBankAccountDialogState extends State<AddBankAccountDialog> {
                   
                   // Account Type
                   DropdownButtonFormField<String>(
-                    value: _selectedAccountType,
+                    initialValue: _selectedAccountType,
                     decoration: InputDecoration(
                       labelText: 'Account Type',
                       border: OutlineInputBorder(

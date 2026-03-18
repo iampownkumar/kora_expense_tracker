@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/account.dart';
 import '../models/transaction.dart';
 import '../models/credit_card.dart';
@@ -28,18 +27,7 @@ class ImportExportService {
     required Settings settings,
   }) async {
     try {
-      // Request storage permissions
-      if (Platform.isAndroid) {
-        // For Android 11+ (API 30+), we need manage external storage permission
-        final managePermission = await Permission.manageExternalStorage.request();
-        if (!managePermission.isGranted) {
-          // Fallback to regular storage permission for older Android versions
-          final storagePermission = await Permission.storage.request();
-          if (!storagePermission.isGranted) {
-            throw Exception('Storage permission denied. Please grant storage access in app settings.');
-          }
-        }
-      }
+      // Request storage permissions removed for Android 11+ compliance. All operations use app-scoped storage.
 
       // Create export data structure
       final exportData = {
@@ -60,15 +48,10 @@ class ImportExportService {
       // Convert to JSON string
       final jsonString = const JsonEncoder.withIndent('  ').convert(exportData);
 
-      // Get external storage directory (Downloads folder for easy access)
+      // Get external storage directory (App-scoped, avoids permission issues on Android 11+)
       Directory? directory;
       if (Platform.isAndroid) {
-        // Use Downloads directory for easy access
-        directory = Directory('/storage/emulated/0/Download');
-        // Fallback to external storage directory if Downloads doesn't work
-        if (!await directory.exists()) {
-          directory = await getExternalStorageDirectory();
-        }
+        directory = await getExternalStorageDirectory();
       } else if (Platform.isIOS) {
         directory = await getApplicationDocumentsDirectory();
       } else {
@@ -203,18 +186,7 @@ class ImportExportService {
     String? fileName,
   }) async {
     try {
-      // Request storage permissions
-      if (Platform.isAndroid) {
-        // For Android 11+ (API 30+), we need manage external storage permission
-        final managePermission = await Permission.manageExternalStorage.request();
-        if (!managePermission.isGranted) {
-          // Fallback to regular storage permission for older Android versions
-          final storagePermission = await Permission.storage.request();
-          if (!storagePermission.isGranted) {
-            throw Exception('Storage permission denied. Please grant storage access in app settings.');
-          }
-        }
-      }
+      // Request storage permissions removed for Android 11+ compliance. All operations use app-scoped storage.
 
       // Create CSV content
       final csvContent = StringBuffer();
@@ -409,13 +381,13 @@ class ImportExportService {
 
   /// Check if storage permission is granted
   static Future<bool> hasStoragePermission() async {
-    final permission = await Permission.storage.status;
-    return permission.isGranted;
+    // App-scoped directories don't require external storage permissions on Android 11+
+    return true;
   }
 
   /// Request storage permission
   static Future<bool> requestStoragePermission() async {
-    final permission = await Permission.storage.request();
-    return permission.isGranted;
+    // App-scoped directories don't require external storage permissions on Android 11+
+    return true;
   }
 }

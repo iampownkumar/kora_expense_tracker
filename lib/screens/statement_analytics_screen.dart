@@ -22,7 +22,7 @@ class StatementAnalyticsScreen extends StatefulWidget {
 
 class _StatementAnalyticsScreenState extends State<StatementAnalyticsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  String _selectedPeriod = 'Statement Period';
+  final String _selectedPeriod = 'Statement Period';
 
   @override
   void initState() {
@@ -307,7 +307,7 @@ class _StatementAnalyticsScreenState extends State<StatementAnalyticsScreen> wit
           ),
           const SizedBox(height: 20),
           if (dailySpending.isEmpty)
-            Container(
+            SizedBox(
               height: 200,
               child: Center(
                 child: Column(
@@ -338,7 +338,7 @@ class _StatementAnalyticsScreenState extends State<StatementAnalyticsScreen> wit
               ),
             )
           else
-            Container(
+            SizedBox(
               height: 200,
               child: Column(
                 children: [

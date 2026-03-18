@@ -133,9 +133,13 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: _isExporting ? null : _exportTransactionsCSV,
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('CSV Export is coming soon!')),
+                      );
+                    },
                     icon: const Icon(Icons.table_chart),
-                    label: const Text('Export CSV'),
+                    label: const Text('Export CSV (Coming Soon)'),
                   ),
                 ),
               ],
@@ -379,7 +383,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                 ),
               )
             else
-              ..._backupFiles.map((file) => _buildBackupFileItem(file)).toList(),
+              ..._backupFiles.map((file) => _buildBackupFileItem(file)),
           ],
         ),
       ),

@@ -5,7 +5,6 @@ import '../models/credit_card.dart';
 import '../utils/formatters.dart';
 import '../constants/app_constants.dart';
 import 'payment_screen.dart';
-import 'bank_accounts_screen.dart';
 import 'credit_card_detail_screen.dart';
 import 'add_credit_card_screen.dart';
 

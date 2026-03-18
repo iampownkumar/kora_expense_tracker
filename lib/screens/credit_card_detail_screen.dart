@@ -18,7 +18,6 @@ import 'credit_card_analytics_screen.dart';
 import 'edit_credit_card_screen.dart';
 import '../widgets/transaction_detail_sheet.dart';
 import '../widgets/add_transaction_dialog.dart';
-import 'payment_history_screen.dart';
 
 /// Credit Card Detail Screen - Comprehensive view of a single credit card
 class CreditCardDetailScreen extends StatefulWidget {
@@ -505,7 +504,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
             else
               ...creditCardTransactions.take(5).map((transaction) => 
                 _buildTransactionItem(transaction)
-              ).toList(),
+              ),
           ],
         );
       },
@@ -831,22 +830,22 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
       // Transactions tab - Add Transaction
       return FloatingActionButton(
         onPressed: _showAddTransactionDialog,
-        child: const Icon(Icons.add),
         tooltip: 'Add Transaction',
+        child: const Icon(Icons.add),
       );
     } else if (_tabController.index == 1) {
       // Statements tab - Generate Statement
       return FloatingActionButton(
         onPressed: _generateStatement,
-        child: const Icon(Icons.add),
         tooltip: 'Generate Statement',
+        child: const Icon(Icons.add),
       );
     } else if (_tabController.index == 2) {
       // Overview tab - Add Transaction
       return FloatingActionButton(
         onPressed: _showAddTransactionDialog,
-        child: const Icon(Icons.add),
         tooltip: 'Add Transaction',
+        child: const Icon(Icons.add),
       );
     }
     return const SizedBox.shrink();
@@ -1376,7 +1375,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Statement #${statement.statementNumber} Transactions'),
-        content: Container(
+        content: SizedBox(
           width: double.maxFinite,
           height: 400,
           child: Column(
@@ -1846,7 +1845,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
               ),
             ] else ...[
               // Show past statements
-              ...pastStatements.map((statement) => _buildPastStatementCard(statement)).toList(),
+              ...pastStatements.map((statement) => _buildPastStatementCard(statement)),
             ],
           ],
         );
@@ -1980,7 +1979,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
           ],
         ),
         const SizedBox(height: 16),
-        ...statements.map((statement) => _buildStatementCard(statement)).toList(),
+        ...statements.map((statement) => _buildStatementCard(statement)),
       ],
     );
   }

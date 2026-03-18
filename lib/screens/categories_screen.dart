@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:kora_expense_tracker/constants/app_constants.dart';
 
 class CategoriesScreen extends StatelessWidget {
   const CategoriesScreen({super.key});

@@ -107,7 +107,7 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
             Container(
               padding: const EdgeInsets.all(AppConstants.defaultPadding),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.1),
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(AppConstants.borderRadius),
                   topRight: Radius.circular(AppConstants.borderRadius),
@@ -286,7 +286,7 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: type.color.withOpacity(0.1),
+                  color: type.color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
@@ -518,7 +518,7 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: isSelected ? _selectedColor.withOpacity(0.2) : Colors.grey.withOpacity(0.1),
+          color: isSelected ? _selectedColor.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? _selectedColor : Colors.transparent,
@@ -551,7 +551,7 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: color.withOpacity(0.5),
+                    color: color.withValues(alpha: 0.5),
                     blurRadius: 8,
                     spreadRadius: 2,
                   ),
