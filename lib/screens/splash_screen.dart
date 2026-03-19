@@ -54,10 +54,18 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.account_balance_wallet,
-                  size: 100,
-                  color: Colors.white,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Image.asset(
+                    'assets/icon/app_icon.png',
+                    width: 100,
+                    height: 100,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.account_balance_wallet,
+                      size: 100,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 const Text(
@@ -71,10 +79,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Welcome to financial control, where you are the owner of your life',
+                  'Your simple yet powerful companion for financial health and tracking expenses.',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     height: 1.5,
                   ),
                   textAlign: TextAlign.center,

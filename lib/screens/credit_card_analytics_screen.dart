@@ -13,7 +13,7 @@ import '../models/transaction.dart';
 import '../utils/formatters.dart';
 
 /// Credit Card Analytics Screen
-/// 
+///
 /// Displays comprehensive analytics for a specific credit card including:
 /// - Spending trends over time
 /// - Category-wise spending breakdown
@@ -23,13 +23,11 @@ import '../utils/formatters.dart';
 class CreditCardAnalyticsScreen extends StatefulWidget {
   final CreditCard creditCard;
 
-  const CreditCardAnalyticsScreen({
-    super.key,
-    required this.creditCard,
-  });
+  const CreditCardAnalyticsScreen({super.key, required this.creditCard});
 
   @override
-  State<CreditCardAnalyticsScreen> createState() => _CreditCardAnalyticsScreenState();
+  State<CreditCardAnalyticsScreen> createState() =>
+      _CreditCardAnalyticsScreenState();
 }
 
 class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
@@ -115,8 +113,11 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
       builder: (context, appProvider, child) {
         final transactions = _getCreditCardTransactions(appProvider);
         final monthlySpending = _calculateMonthlySpending(transactions);
-        final categorySpending = _calculateCategorySpending(transactions, appProvider);
-        
+        final categorySpending = _calculateCategorySpending(
+          transactions,
+          appProvider,
+        );
+
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -125,19 +126,19 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
               // Time Range Selector
               _buildTimeRangeSelector(),
               const SizedBox(height: 24),
-              
+
               // Key Metrics Cards
               _buildKeyMetricsCards(monthlySpending),
               const SizedBox(height: 24),
-              
+
               // Spending Trend Chart
               _buildSpendingTrendChart(monthlySpending),
               const SizedBox(height: 24),
-              
+
               // Category Breakdown
               _buildCategoryBreakdown(categorySpending),
               const SizedBox(height: 24),
-              
+
               // Quick Insights
               _buildQuickInsights(transactions, monthlySpending),
             ],
@@ -152,7 +153,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
       builder: (context, appProvider, child) {
         final transactions = _getCreditCardTransactions(appProvider);
         final monthlySpending = _calculateMonthlySpending(transactions);
-        
+
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -174,8 +175,11 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
     return Consumer<AppProvider>(
       builder: (context, appProvider, child) {
         final transactions = _getCreditCardTransactions(appProvider);
-        final categorySpending = _calculateCategorySpending(transactions, appProvider);
-        
+        final categorySpending = _calculateCategorySpending(
+          transactions,
+          appProvider,
+        );
+
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -198,7 +202,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
       builder: (context, appProvider, child) {
         final transactions = _getCreditCardTransactions(appProvider);
         final monthlySpending = _calculateMonthlySpending(transactions);
-        
+
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -231,7 +235,9 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? Theme.of(context).primaryColor : Colors.transparent,
+                color: isSelected
+                    ? Theme.of(context).primaryColor
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -249,12 +255,19 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
   }
 
   Widget _buildKeyMetricsCards(Map<String, double> monthlySpending) {
-    final totalSpending = monthlySpending.values.fold(0.0, (sum, amount) => sum + amount);
-    final avgMonthlySpending = monthlySpending.isNotEmpty ? totalSpending / monthlySpending.length : 0.0;
-    final utilization = widget.creditCard.creditLimit > 0 
-        ? (widget.creditCard.outstandingBalance / widget.creditCard.creditLimit) * 100 
+    final totalSpending = monthlySpending.values.fold(
+      0.0,
+      (sum, amount) => sum + amount,
+    );
+    final avgMonthlySpending = monthlySpending.isNotEmpty
+        ? totalSpending / monthlySpending.length
         : 0.0;
-    
+    final utilization = widget.creditCard.creditLimit > 0
+        ? (widget.creditCard.outstandingBalance /
+                  widget.creditCard.creditLimit) *
+              100
+        : 0.0;
+
     return Row(
       children: [
         Expanded(
@@ -287,7 +300,12 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
     );
   }
 
-  Widget _buildMetricCard(String title, String value, IconData icon, Color color) {
+  Widget _buildMetricCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -360,10 +378,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
             ),
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            height: 200,
-            child: _buildSimpleChart(monthlySpending),
-          ),
+          SizedBox(height: 200, child: _buildSimpleChart(monthlySpending)),
         ],
       ),
     );
@@ -392,10 +407,13 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
         ),
       );
     }
-    
-    final maxValue = data.values.fold(0.0, (max, value) => value > max ? value : max);
+
+    final maxValue = data.values.fold(
+      0.0,
+      (max, value) => value > max ? value : max,
+    );
     final entries = data.entries.toList();
-    
+
     return SizedBox(
       height: 200,
       child: Stack(
@@ -432,11 +450,11 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
   List<Widget> _buildYAxisLabels(double maxValue) {
     final labels = <Widget>[];
     final steps = 5; // Number of Y-axis labels
-    
+
     for (int i = 0; i <= steps; i++) {
       final value = (maxValue / steps) * (steps - i);
       final formattedValue = _formatYAxisValue(value);
-      
+
       labels.add(
         SizedBox(
           height: 20,
@@ -453,7 +471,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
         ),
       );
     }
-    
+
     return labels;
   }
 
@@ -506,7 +524,11 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.pie_chart, size: 48, color: Colors.grey.shade400),
+                    Icon(
+                      Icons.pie_chart,
+                      size: 48,
+                      color: Colors.grey.shade400,
+                    ),
                     const SizedBox(height: 8),
                     Text(
                       'No category data available',
@@ -518,10 +540,20 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
             )
           else
             ...categorySpending.entries.map((entry) {
-              final percentage = categorySpending.values.fold(0.0, (sum, amount) => sum + amount) > 0
-                  ? (entry.value / categorySpending.values.fold(0.0, (sum, amount) => sum + amount)) * 100
+              final percentage =
+                  categorySpending.values.fold(
+                        0.0,
+                        (sum, amount) => sum + amount,
+                      ) >
+                      0
+                  ? (entry.value /
+                            categorySpending.values.fold(
+                              0.0,
+                              (sum, amount) => sum + amount,
+                            )) *
+                        100
                   : 0.0;
-              
+
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: Row(
@@ -569,9 +601,12 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
     );
   }
 
-  Widget _buildQuickInsights(List<Transaction> transactions, Map<String, double> monthlySpending) {
+  Widget _buildQuickInsights(
+    List<Transaction> transactions,
+    Map<String, double> monthlySpending,
+  ) {
     final insights = _generateInsights(transactions, monthlySpending);
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -603,36 +638,41 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
             ],
           ),
           const SizedBox(height: 16),
-          ...insights.map((insight) => Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: insight.color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: insight.color.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              children: [
-                Icon(insight.icon, color: insight.color, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    insight.message,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade700,
+          ...insights.map(
+            (insight) => Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: insight.color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: insight.color.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(insight.icon, color: insight.color, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      insight.message,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          )),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSpendingDetails(List<Transaction> transactions, AppProvider appProvider) {
+  Widget _buildSpendingDetails(
+    List<Transaction> transactions,
+    AppProvider appProvider,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -677,7 +717,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
               final category = appProvider.categories
                   .where((cat) => cat.id == transaction.categoryId)
                   .firstOrNull;
-              
+
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
@@ -694,7 +734,11 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
                         color: Colors.blue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(Icons.shopping_cart, color: Colors.blue, size: 20),
+                      child: Icon(
+                        Icons.shopping_cart,
+                        color: Colors.blue,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -777,10 +821,20 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
             )
           else
             ...categorySpending.entries.map((entry) {
-              final percentage = categorySpending.values.fold(0.0, (sum, amount) => sum + amount) > 0
-                  ? (entry.value / categorySpending.values.fold(0.0, (sum, amount) => sum + amount)) * 100
+              final percentage =
+                  categorySpending.values.fold(
+                        0.0,
+                        (sum, amount) => sum + amount,
+                      ) >
+                      0
+                  ? (entry.value /
+                            categorySpending.values.fold(
+                              0.0,
+                              (sum, amount) => sum + amount,
+                            )) *
+                        100
                   : 0.0;
-              
+
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(12),
@@ -794,7 +848,9 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: _getCategoryColor(entry.key).withValues(alpha: 0.1),
+                        color: _getCategoryColor(
+                          entry.key,
+                        ).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
@@ -842,9 +898,12 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
     );
   }
 
-  Widget _buildDetailedInsights(List<Transaction> transactions, Map<String, double> monthlySpending) {
+  Widget _buildDetailedInsights(
+    List<Transaction> transactions,
+    Map<String, double> monthlySpending,
+  ) {
     final insights = _generateDetailedInsights(transactions, monthlySpending);
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -870,71 +929,77 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
             ),
           ),
           const SizedBox(height: 16),
-          ...insights.map((insight) => Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: insight.color.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: insight.color.withValues(alpha: 0.2)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(insight.icon, color: insight.color, size: 24),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        insight.title,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: insight.color,
+          ...insights.map(
+            (insight) => Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: insight.color.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: insight.color.withValues(alpha: 0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(insight.icon, color: insight.color, size: 24),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          insight.title,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: insight.color,
+                          ),
                         ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    insight.message,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade700,
+                      height: 1.4,
+                    ),
+                  ),
+                  if (insight.recommendation != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.lightbulb_outline,
+                            color: Colors.blue,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              insight.recommendation!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.blue.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  insight.message,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
-                    height: 1.4,
-                  ),
-                ),
-                if (insight.recommendation != null) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.lightbulb_outline, color: Colors.blue, size: 16),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            insight.recommendation!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.blue.shade700,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
-              ],
+              ),
             ),
-          )),
+          ),
         ],
       ),
     );
@@ -945,41 +1010,47 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
     final now = DateTime.now();
     final monthsToShow = _getMonthsToShow();
     final cutoffDate = DateTime(now.year, now.month - monthsToShow + 1, 1);
-    
+
     return appProvider.transactions
-        .where((transaction) => 
-            (transaction.accountId == widget.creditCard.id ||
-             transaction.toAccountId == widget.creditCard.id) &&
-            transaction.date.isAfter(cutoffDate))
+        .where(
+          (transaction) =>
+              (transaction.accountId == widget.creditCard.id ||
+                  transaction.toAccountId == widget.creditCard.id) &&
+              transaction.date.isAfter(cutoffDate),
+        )
         .toList();
   }
 
-  Map<String, double> _calculateMonthlySpending(List<Transaction> transactions) {
+  Map<String, double> _calculateMonthlySpending(
+    List<Transaction> transactions,
+  ) {
     final Map<String, double> monthlySpending = {};
     final now = DateTime.now();
     final monthsToShow = _getMonthsToShow();
-    
+
     // Initialize with zero values for the time range
     for (int i = 0; i < monthsToShow; i++) {
       final date = DateTime(now.year, now.month - i, 1);
       final monthKey = '${date.year}-${date.month.toString().padLeft(2, '0')}';
       monthlySpending[monthKey] = 0.0;
     }
-    
+
     // Add actual spending data
     for (final transaction in transactions) {
       if (transaction.type == 'expense') {
-        final monthKey = '${transaction.date.year}-${transaction.date.month.toString().padLeft(2, '0')}';
+        final monthKey =
+            '${transaction.date.year}-${transaction.date.month.toString().padLeft(2, '0')}';
         if (monthlySpending.containsKey(monthKey)) {
-          monthlySpending[monthKey] = (monthlySpending[monthKey] ?? 0) + transaction.amount.abs();
+          monthlySpending[monthKey] =
+              (monthlySpending[monthKey] ?? 0) + transaction.amount.abs();
         }
       }
     }
-    
+
     // Sort by date (oldest first)
     final sortedEntries = monthlySpending.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
-    
+
     return Map.fromEntries(sortedEntries);
   }
 
@@ -998,145 +1069,194 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
     }
   }
 
-  Map<String, double> _calculateCategorySpending(List<Transaction> transactions, AppProvider appProvider) {
+  Map<String, double> _calculateCategorySpending(
+    List<Transaction> transactions,
+    AppProvider appProvider,
+  ) {
     final Map<String, double> categorySpending = {};
     final now = DateTime.now();
     final monthsToShow = _getMonthsToShow();
     final cutoffDate = DateTime(now.year, now.month - monthsToShow + 1, 1);
-    
+
     for (final transaction in transactions) {
-      if (transaction.type == 'expense' && transaction.date.isAfter(cutoffDate)) {
+      if (transaction.type == 'expense' &&
+          transaction.date.isAfter(cutoffDate)) {
         final category = appProvider.categories
             .where((cat) => cat.id == transaction.categoryId)
             .firstOrNull;
         if (category != null) {
-          categorySpending[category.name] = (categorySpending[category.name] ?? 0) + transaction.amount.abs();
+          categorySpending[category.name] =
+              (categorySpending[category.name] ?? 0) + transaction.amount.abs();
         }
       }
     }
-    
+
     // Sort by amount (highest first)
     final sortedEntries = categorySpending.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    
+
     return Map.fromEntries(sortedEntries);
   }
 
-  List<Insight> _generateInsights(List<Transaction> transactions, Map<String, double> monthlySpending) {
+  List<Insight> _generateInsights(
+    List<Transaction> transactions,
+    Map<String, double> monthlySpending,
+  ) {
     final insights = <Insight>[];
-    
+
     if (transactions.isEmpty) {
-      insights.add(Insight(
-        message: 'No spending data available yet. Start using your credit card to see insights!',
-        icon: Icons.info_outline,
-        color: Colors.blue,
-      ));
+      insights.add(
+        Insight(
+          message:
+              'No spending data available yet. Start using your credit card to see insights!',
+          icon: Icons.info_outline,
+          color: Colors.blue,
+        ),
+      );
       return insights;
     }
-    
-    final utilization = widget.creditCard.creditLimit > 0 
-        ? (widget.creditCard.outstandingBalance / widget.creditCard.creditLimit) * 100 
+
+    final utilization = widget.creditCard.creditLimit > 0
+        ? (widget.creditCard.outstandingBalance /
+                  widget.creditCard.creditLimit) *
+              100
         : 0.0;
-    
+
     // Utilization insight
     if (utilization > 30) {
-      insights.add(Insight(
-        message: 'Your credit utilization is ${utilization.toStringAsFixed(1)}%, which is above the recommended 30%.',
-        icon: Icons.warning,
-        color: Colors.orange,
-      ));
+      insights.add(
+        Insight(
+          message:
+              'Your credit utilization is ${utilization.toStringAsFixed(1)}%, which is above the recommended 30%.',
+          icon: Icons.warning,
+          color: Colors.orange,
+        ),
+      );
     } else if (utilization > 0) {
-      insights.add(Insight(
-        message: 'Great! Your credit utilization is ${utilization.toStringAsFixed(1)}%, which is within the recommended range.',
-        icon: Icons.check_circle,
-        color: Colors.green,
-      ));
+      insights.add(
+        Insight(
+          message:
+              'Great! Your credit utilization is ${utilization.toStringAsFixed(1)}%, which is within the recommended range.',
+          icon: Icons.check_circle,
+          color: Colors.green,
+        ),
+      );
     }
-    
+
     // Spending trend insight
     if (monthlySpending.length >= 2) {
       final recentMonths = monthlySpending.entries.toList()
         ..sort((a, b) => b.key.compareTo(a.key));
-      
+
       if (recentMonths.length >= 2) {
         final currentMonth = recentMonths[0].value;
         final previousMonth = recentMonths[1].value;
         final change = ((currentMonth - previousMonth) / previousMonth) * 100;
-        
+
         if (change > 20) {
-          insights.add(Insight(
-            message: 'Your spending increased by ${change.toStringAsFixed(1)}% compared to last month.',
-            icon: Icons.trending_up,
-            color: Colors.orange,
-          ));
+          insights.add(
+            Insight(
+              message:
+                  'Your spending increased by ${change.toStringAsFixed(1)}% compared to last month.',
+              icon: Icons.trending_up,
+              color: Colors.orange,
+            ),
+          );
         } else if (change < -20) {
-          insights.add(Insight(
-            message: 'Your spending decreased by ${change.abs().toStringAsFixed(1)}% compared to last month.',
-            icon: Icons.trending_down,
-            color: Colors.green,
-          ));
+          insights.add(
+            Insight(
+              message:
+                  'Your spending decreased by ${change.abs().toStringAsFixed(1)}% compared to last month.',
+              icon: Icons.trending_down,
+              color: Colors.green,
+            ),
+          );
         }
       }
     }
-    
+
     // Payment insight
     if (widget.creditCard.outstandingBalance > 0) {
-      insights.add(Insight(
-        message: 'You have an outstanding balance of ${Formatters.formatCurrency(widget.creditCard.outstandingBalance)}.',
-        icon: Icons.payment,
-        color: Colors.blue,
-      ));
+      insights.add(
+        Insight(
+          message:
+              'You have an outstanding balance of ${Formatters.formatCurrency(widget.creditCard.outstandingBalance)}.',
+          icon: Icons.payment,
+          color: Colors.blue,
+        ),
+      );
     }
-    
+
     return insights;
   }
 
-  List<DetailedInsight> _generateDetailedInsights(List<Transaction> transactions, Map<String, double> monthlySpending) {
+  List<DetailedInsight> _generateDetailedInsights(
+    List<Transaction> transactions,
+    Map<String, double> monthlySpending,
+  ) {
     final insights = <DetailedInsight>[];
-    
+
     if (transactions.isEmpty) {
       return insights;
     }
-    
-    final totalSpending = monthlySpending.values.fold(0.0, (sum, amount) => sum + amount);
-    final avgMonthlySpending = monthlySpending.isNotEmpty ? totalSpending / monthlySpending.length : 0.0;
-    final utilization = widget.creditCard.creditLimit > 0 
-        ? (widget.creditCard.outstandingBalance / widget.creditCard.creditLimit) * 100 
+
+    final totalSpending = monthlySpending.values.fold(
+      0.0,
+      (sum, amount) => sum + amount,
+    );
+    final avgMonthlySpending = monthlySpending.isNotEmpty
+        ? totalSpending / monthlySpending.length
         : 0.0;
-    
+    final utilization = widget.creditCard.creditLimit > 0
+        ? (widget.creditCard.outstandingBalance /
+                  widget.creditCard.creditLimit) *
+              100
+        : 0.0;
+
     // Credit Health Analysis
-    insights.add(DetailedInsight(
-      title: 'Credit Health Analysis',
-      message: 'Your current credit utilization is ${utilization.toStringAsFixed(1)}%. This affects your credit score and borrowing capacity.',
-      icon: Icons.health_and_safety,
-      color: utilization > 30 ? Colors.orange : Colors.green,
-      recommendation: utilization > 30 
-          ? 'Consider paying down your balance to improve your credit utilization ratio.'
-          : 'Keep up the good work! Your utilization is within the healthy range.',
-    ));
-    
+    insights.add(
+      DetailedInsight(
+        title: 'Credit Health Analysis',
+        message:
+            'Your current credit utilization is ${utilization.toStringAsFixed(1)}%. This affects your credit score and borrowing capacity.',
+        icon: Icons.health_and_safety,
+        color: utilization > 30 ? Colors.orange : Colors.green,
+        recommendation: utilization > 30
+            ? 'Consider paying down your balance to improve your credit utilization ratio.'
+            : 'Keep up the good work! Your utilization is within the healthy range.',
+      ),
+    );
+
     // Spending Pattern Analysis
     if (monthlySpending.isNotEmpty) {
-      insights.add(DetailedInsight(
-        title: 'Spending Pattern Analysis',
-        message: 'Your average monthly spending is ${Formatters.formatCurrency(avgMonthlySpending)}. This helps you understand your spending habits and plan better.',
-        icon: Icons.analytics,
-        color: Colors.blue,
-        recommendation: 'Set a monthly budget based on your average spending to better control your expenses.',
-      ));
+      insights.add(
+        DetailedInsight(
+          title: 'Spending Pattern Analysis',
+          message:
+              'Your average monthly spending is ${Formatters.formatCurrency(avgMonthlySpending)}. This helps you understand your spending habits and plan better.',
+          icon: Icons.analytics,
+          color: Colors.blue,
+          recommendation:
+              'Set a monthly budget based on your average spending to better control your expenses.',
+        ),
+      );
     }
-    
+
     // Payment Behavior
     if (widget.creditCard.outstandingBalance > 0) {
-      insights.add(DetailedInsight(
-        title: 'Payment Behavior',
-        message: 'You currently have an outstanding balance. Making timely payments helps maintain a good credit score.',
-        icon: Icons.payment,
-        color: Colors.blue,
-        recommendation: 'Set up automatic payments to ensure you never miss a due date.',
-      ));
+      insights.add(
+        DetailedInsight(
+          title: 'Payment Behavior',
+          message:
+              'You currently have an outstanding balance. Making timely payments helps maintain a good credit score.',
+          icon: Icons.payment,
+          color: Colors.blue,
+          recommendation:
+              'Set up automatic payments to ensure you never miss a due date.',
+        ),
+      );
     }
-    
+
     return insights;
   }
 
@@ -1151,7 +1271,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
       Colors.indigo,
       Colors.pink,
     ];
-    
+
     final index = categoryName.hashCode % colors.length;
     return colors[index.abs()];
   }
@@ -1167,7 +1287,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
       'Travel': Icons.flight,
       'Education': Icons.school,
     };
-    
+
     return iconMap[categoryName] ?? Icons.category;
   }
 
@@ -1234,7 +1354,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
     } catch (e) {
       // Close loading dialog if still open
       if (mounted) Navigator.of(context).pop();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1252,20 +1372,23 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
     final totalSpent = transactions
         .where((t) => t.isExpense)
         .fold(0.0, (sum, t) => sum + t.amount.abs());
-    
+
     final totalTransactions = transactions.length;
-    final avgTransaction = totalTransactions > 0 ? totalSpent / totalTransactions : 0.0;
+    final avgTransaction = totalTransactions > 0
+        ? totalSpent / totalTransactions
+        : 0.0;
 
     // Calculate spending by category
     final categorySpending = <String, double>{};
     final appProvider = Provider.of<AppProvider>(context, listen: false);
-    
+
     for (final transaction in transactions.where((t) => t.isExpense)) {
       final category = appProvider.categories
           .where((c) => c.id == transaction.categoryId)
           .firstOrNull;
       if (category != null) {
-        categorySpending[category.name] = (categorySpending[category.name] ?? 0) + transaction.amount.abs();
+        categorySpending[category.name] =
+            (categorySpending[category.name] ?? 0) + transaction.amount.abs();
       }
     }
 
@@ -1284,15 +1407,22 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
         'averageTransaction': avgTransaction,
         'categorySpending': categorySpending,
       },
-      'transactions': transactions.map((t) => {
-        'date': t.date.toIso8601String(),
-        'description': t.description,
-        'amount': t.amount,
-        'type': t.type,
-        'category': appProvider.categories
-            .where((c) => c.id == t.categoryId)
-            .firstOrNull?.name ?? 'Unknown',
-      }).toList(),
+      'transactions': transactions
+          .map(
+            (t) => {
+              'date': t.date.toIso8601String(),
+              'description': t.description,
+              'amount': t.amount,
+              'type': t.type,
+              'category':
+                  appProvider.categories
+                      .where((c) => c.id == t.categoryId)
+                      .firstOrNull
+                      ?.name ??
+                  'Unknown',
+            },
+          )
+          .toList(),
     };
   }
 
@@ -1301,11 +1431,12 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
     try {
       // Create filename with timestamp
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filename = '${widget.creditCard.name.replaceAll(' ', '_')}_Analytics_$timestamp.json';
-      
+      final filename =
+          '${widget.creditCard.name.replaceAll(' ', '_')}_Analytics_$timestamp.json';
+
       // Convert data to JSON string
       final jsonString = const JsonEncoder.withIndent('  ').convert(data);
-      
+
       // Get external storage directory (Downloads folder for easy access)
       Directory? directory;
       if (Platform.isAndroid) {
@@ -1340,7 +1471,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
       // Create the file
       final file = File('${analyticsDirectory.path}/$filename');
       await file.writeAsString(jsonString);
-      
+
       print('Analytics exported to: ${file.path}');
       return true;
     } catch (e) {
@@ -1400,7 +1531,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
     } catch (e) {
       // Close loading dialog if still open
       if (mounted) Navigator.of(context).pop();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1413,28 +1544,33 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
   }
 
   /// Generate PDF document with analytics data
-  Future<pw.Document> _generateAnalyticsPDF(List<Transaction> transactions) async {
+  Future<pw.Document> _generateAnalyticsPDF(
+    List<Transaction> transactions,
+  ) async {
     final pdf = pw.Document();
     final now = DateTime.now();
-    
+
     // Calculate analytics data
     final totalSpent = transactions
         .where((t) => t.isExpense)
         .fold(0.0, (sum, t) => sum + t.amount.abs());
-    
+
     final totalTransactions = transactions.length;
-    final avgTransaction = totalTransactions > 0 ? totalSpent / totalTransactions : 0.0;
+    final avgTransaction = totalTransactions > 0
+        ? totalSpent / totalTransactions
+        : 0.0;
 
     // Calculate spending by category
     final categorySpending = <String, double>{};
     final appProvider = Provider.of<AppProvider>(context, listen: false);
-    
+
     for (final transaction in transactions.where((t) => t.isExpense)) {
       final category = appProvider.categories
           .where((c) => c.id == transaction.categoryId)
           .firstOrNull;
       if (category != null) {
-        categorySpending[category.name] = (categorySpending[category.name] ?? 0) + transaction.amount.abs();
+        categorySpending[category.name] =
+            (categorySpending[category.name] ?? 0) + transaction.amount.abs();
       }
     }
 
@@ -1492,9 +1628,9 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
                 ],
               ),
             ),
-            
+
             pw.SizedBox(height: 32),
-            
+
             // Credit Card Information
             pw.Container(
               padding: const pw.EdgeInsets.all(16),
@@ -1519,25 +1655,51 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
                       pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
-                          pw.Text('Credit Limit:', style: pw.TextStyle(fontSize: 12)),
-                          pw.Text('₹${widget.creditCard.creditLimit.toStringAsFixed(2)}', 
-                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                          pw.Text(
+                            'Credit Limit:',
+                            style: pw.TextStyle(fontSize: 12),
+                          ),
+                          pw.Text(
+                            '₹${widget.creditCard.creditLimit.toStringAsFixed(2)}',
+                            style: pw.TextStyle(
+                              fontSize: 14,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                       pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
-                          pw.Text('Outstanding Balance:', style: pw.TextStyle(fontSize: 12)),
-                          pw.Text('₹${widget.creditCard.outstandingBalance.toStringAsFixed(2)}', 
-                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.red600)),
+                          pw.Text(
+                            'Outstanding Balance:',
+                            style: pw.TextStyle(fontSize: 12),
+                          ),
+                          pw.Text(
+                            '₹${widget.creditCard.outstandingBalance.toStringAsFixed(2)}',
+                            style: pw.TextStyle(
+                              fontSize: 14,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.red600,
+                            ),
+                          ),
                         ],
                       ),
                       pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
-                          pw.Text('Available Credit:', style: pw.TextStyle(fontSize: 12)),
-                          pw.Text('₹${widget.creditCard.availableCredit.toStringAsFixed(2)}', 
-                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.green600)),
+                          pw.Text(
+                            'Available Credit:',
+                            style: pw.TextStyle(fontSize: 12),
+                          ),
+                          pw.Text(
+                            '₹${widget.creditCard.availableCredit.toStringAsFixed(2)}',
+                            style: pw.TextStyle(
+                              fontSize: 14,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.green600,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -1545,9 +1707,9 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
                 ],
               ),
             ),
-            
+
             pw.SizedBox(height: 24),
-            
+
             // Analytics Summary
             pw.Container(
               padding: const pw.EdgeInsets.all(16),
@@ -1572,25 +1734,49 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
                       pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
-                          pw.Text('Total Spent:', style: pw.TextStyle(fontSize: 12)),
-                          pw.Text('₹${totalSpent.toStringAsFixed(2)}', 
-                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                          pw.Text(
+                            'Total Spent:',
+                            style: pw.TextStyle(fontSize: 12),
+                          ),
+                          pw.Text(
+                            '₹${totalSpent.toStringAsFixed(2)}',
+                            style: pw.TextStyle(
+                              fontSize: 14,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                       pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
-                          pw.Text('Total Transactions:', style: pw.TextStyle(fontSize: 12)),
-                          pw.Text('$totalTransactions', 
-                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                          pw.Text(
+                            'Total Transactions:',
+                            style: pw.TextStyle(fontSize: 12),
+                          ),
+                          pw.Text(
+                            '$totalTransactions',
+                            style: pw.TextStyle(
+                              fontSize: 14,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                       pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
-                          pw.Text('Average Transaction:', style: pw.TextStyle(fontSize: 12)),
-                          pw.Text('₹${avgTransaction.toStringAsFixed(2)}', 
-                            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                          pw.Text(
+                            'Average Transaction:',
+                            style: pw.TextStyle(fontSize: 12),
+                          ),
+                          pw.Text(
+                            '₹${avgTransaction.toStringAsFixed(2)}',
+                            style: pw.TextStyle(
+                              fontSize: 14,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -1611,8 +1797,9 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
     try {
       // Create filename with timestamp
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filename = '${widget.creditCard.name.replaceAll(' ', '_')}_Analytics_$timestamp.pdf';
-      
+      final filename =
+          '${widget.creditCard.name.replaceAll(' ', '_')}_Analytics_$timestamp.pdf';
+
       // Get external storage directory (Downloads folder for easy access)
       Directory? directory;
       if (Platform.isAndroid) {
@@ -1648,7 +1835,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
       final file = File('${analyticsDirectory.path}/$filename');
       final pdfBytes = await pdf.save();
       await file.writeAsBytes(pdfBytes);
-      
+
       print('PDF exported to: ${file.path}');
       return true;
     } catch (e) {
@@ -1664,11 +1851,7 @@ class Insight {
   final IconData icon;
   final Color color;
 
-  Insight({
-    required this.message,
-    required this.icon,
-    required this.color,
-  });
+  Insight({required this.message, required this.icon, required this.color});
 }
 
 class DetailedInsight {
@@ -1718,18 +1901,19 @@ class SimpleChartPainter extends CustomPainter {
     // Handle single data point
     if (data.length == 1) {
       final x = padding + chartWidth / 2;
-      final y = padding + chartHeight - (data[0].value / maxValue) * chartHeight;
-      
+      final y =
+          padding + chartHeight - (data[0].value / maxValue) * chartHeight;
+
       path.moveTo(x, y);
       fillPath.moveTo(x, padding + chartHeight);
       fillPath.lineTo(x, y);
       fillPath.lineTo(padding + chartWidth, y);
       fillPath.lineTo(padding + chartWidth, padding + chartHeight);
       fillPath.close();
-      
+
       canvas.drawPath(fillPath, fillPaint);
       canvas.drawPath(path, paint);
-      
+
       // Draw single point
       final pointPaint = Paint()
         ..color = Colors.blue
@@ -1773,20 +1957,15 @@ class SimpleChartPainter extends CustomPainter {
     }
 
     // Draw month labels
-    final textPainter = TextPainter(
-      textDirection: ui.TextDirection.ltr,
-    );
-    
+    final textPainter = TextPainter(textDirection: ui.TextDirection.ltr);
+
     for (int i = 0; i < data.length; i++) {
       final x = padding + i * stepX;
       final monthLabel = _formatMonthLabel(data[i].key);
-      
+
       textPainter.text = TextSpan(
         text: monthLabel,
-        style: TextStyle(
-          color: Colors.grey.shade600,
-          fontSize: 10,
-        ),
+        style: TextStyle(color: Colors.grey.shade600, fontSize: 10),
       );
       textPainter.layout();
       textPainter.paint(
@@ -1801,8 +1980,20 @@ class SimpleChartPainter extends CustomPainter {
       final parts = monthKey.split('-');
       if (parts.length == 2) {
         final month = int.parse(parts[1]);
-        final monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        final monthNames = [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ];
         return monthNames[month - 1];
       }
     } catch (e) {

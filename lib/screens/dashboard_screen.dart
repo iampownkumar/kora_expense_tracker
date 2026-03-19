@@ -7,6 +7,7 @@ import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
 import 'package:kora_expense_tracker/widgets/transaction_list_item.dart';
 import 'package:kora_expense_tracker/models/category.dart';
 import 'package:kora_expense_tracker/models/account.dart';
+import 'package:kora_expense_tracker/screens/categories_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -49,7 +50,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
         
         return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.asset(
+                'assets/icon/app_icon.png',
+                width: 28,
+                height: 28,
+                errorBuilder: (context, error, stackTrace) => const Icon(Icons.wallet, size: 28),
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text('Kora Expense Tracker'),
+          ],
+        ),
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -374,29 +389,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(width: AppConstants.defaultPadding),
                     Expanded(
                       child: Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppConstants.defaultPadding),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.category,
-                                color: AppConstants.infoColor,
-                                size: 32,
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CategoriesScreen(),
                               ),
-                              const SizedBox(height: AppConstants.smallPadding),
-                              Text(
-                                '${appProvider.categories.length}',
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppConstants.defaultPadding),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.category,
+                                  color: AppConstants.infoColor,
+                                  size: 32,
                                 ),
-                              ),
-                              Text(
-                                'Categories',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                const SizedBox(height: AppConstants.smallPadding),
+                                Text(
+                                  '${appProvider.categories.length}',
+                                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                            ],
+                                Text(
+                                  'Categories',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),

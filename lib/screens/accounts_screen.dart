@@ -8,6 +8,7 @@ import 'package:kora_expense_tracker/widgets/financial_summary_card.dart';
 import 'package:kora_expense_tracker/widgets/add_account_dialog.dart';
 import 'package:kora_expense_tracker/screens/account_transactions_screen.dart';
 import 'package:kora_expense_tracker/constants/app_constants.dart';
+import 'package:kora_expense_tracker/models/transaction.dart';
 
 class AccountsScreen extends StatefulWidget {
   const AccountsScreen({super.key});
@@ -131,8 +132,11 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
               
               // Filter chips
               if (provider.accounts.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: _buildFilterChips(context),
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _StickyTabBarDelegate(
+                    child: _buildFilterChips(context),
+                  ),
                 ),
               
               // Accounts list or empty state
@@ -206,7 +210,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     final theme = Theme.of(context);
     
     return SliverAppBar(
-      expandedHeight: 140,
+      expandedHeight: 110,
       floating: false,
       pinned: true,
       backgroundColor: theme.brightness == Brightness.dark 
@@ -300,6 +304,8 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                       ),
                       filled: true,
                       fillColor: Colors.white.withValues(alpha: 0.1),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
                   ),
                 ),
@@ -314,24 +320,6 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
   Widget _buildFilterChips(BuildContext context) {
     final theme = Theme.of(context);
     final ScrollController filterScrollController = ScrollController();
-    
-    // Auto-scroll to selected filter when it changes
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (filterScrollController.hasClients) {
-        final selectedIndex = _selectedFilter == null ? 0 : AccountType.values.indexOf(_selectedFilter!) + 1;
-        final chipWidth = 120.0; // Approximate width of each chip
-        final screenWidth = MediaQuery.of(context).size.width;
-        final scrollPosition = (selectedIndex * chipWidth) - (screenWidth / 2) + (chipWidth / 2);
-        // Ensure we don't scroll beyond bounds
-        final maxScroll = filterScrollController.position.maxScrollExtent;
-        final finalPosition = scrollPosition.clamp(0.0, maxScroll);
-        filterScrollController.animateTo(
-          finalPosition,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      }
-    });
     
     return Container(
       height: 40, // changed from 50 to 40 for reduce the height
@@ -584,8 +572,37 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
       builder: (dialogContext) => AddAccountDialog(
         existingAccount: account,
         onSave: (updatedAccount) {
-          // Use the original context that has access to the provider
-          context.read<AppProvider>().updateAccount(updatedAccount);
+          final provider = context.read<AppProvider>();
+          
+          if (account.balance != updatedAccount.balance) {
+            // Update account details first but with the old balance
+            // so the transaction can correctly apply the difference to it.
+            final accountWithOldBalance = updatedAccount.copyWith(balance: account.balance);
+            provider.updateAccount(accountWithOldBalance);
+            
+            final difference = updatedAccount.balance - account.balance;
+            final isIncome = difference > 0;
+            
+            // Generate a balance adjustment transaction
+            final categoryId = isIncome 
+                ? (provider.incomeCategories.isNotEmpty ? provider.incomeCategories.first.id : 'income')
+                : (provider.expenseCategories.isNotEmpty ? provider.expenseCategories.first.id : 'expense');
+            
+            final transaction = Transaction.create(
+              type: isIncome ? AppConstants.transactionTypeIncome : AppConstants.transactionTypeExpense,
+              amount: difference.abs(),
+              description: 'Balance Adjustment',
+              categoryId: categoryId,
+              accountId: account.id,
+              notes: 'Manual balance adjustment',
+              date: DateTime.now(),
+            );
+            
+            // Adding this transaction modifies the balance to reflect the user's manual change
+            provider.addTransaction(transaction);
+          } else {
+            provider.updateAccount(updatedAccount);
+          }
         },
       ),
     ).then((_) {
@@ -1343,5 +1360,30 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
         ),
       ),
     );
+  }
+}
+
+class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  final double height;
+
+  _StickyTabBarDelegate({required this.child, this.height = 40.0});
+
+  @override
+  double get minExtent => height;
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: child,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _StickyTabBarDelegate oldDelegate) {
+    return oldDelegate.child != child || oldDelegate.height != height;
   }
 }

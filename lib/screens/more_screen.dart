@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'import_export_screen.dart';
+import 'release_notes_screen.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
@@ -7,9 +8,7 @@ class MoreScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('More'),
-      ),
+      appBar: AppBar(title: const Text('More')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -22,14 +21,28 @@ class MoreScreen extends StatelessWidget {
             onTap: () {
               // TODO: Navigate to settings screen
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Settings screen coming soon!'),
+                const SnackBar(content: Text('Settings screen coming soon!')),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Release Notes Section
+          _buildSectionCard(
+            context,
+            title: 'Release Notes & Updates',
+            subtitle: 'View recent updates and bug fixes',
+            icon: Icons.update,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const ReleaseNotesScreen(),
                 ),
               );
             },
           ),
           const SizedBox(height: 16),
-          
+
           // Import/Export Section
           _buildSectionCard(
             context,
@@ -45,7 +58,7 @@ class MoreScreen extends StatelessWidget {
             },
           ),
           const SizedBox(height: 16),
-          
+
           // About Section
           _buildSectionCard(
             context,
@@ -56,7 +69,7 @@ class MoreScreen extends StatelessWidget {
               showAboutDialog(
                 context: context,
                 applicationName: 'Kora Expense Tracker',
-                applicationVersion: '1.0.0 Beta',
+                applicationVersion: '1.0.0+2 Beta',
                 applicationIcon: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.asset(
@@ -68,7 +81,12 @@ class MoreScreen extends StatelessWidget {
                 applicationLegalese: '© 2026 Kora. All rights reserved.',
                 children: const [
                   SizedBox(height: 16),
-                  Text('Kora Expense Tracker helps you take financial control and maintain ownership of your life.'),
+                  Text(
+                    'Kora Expense Tracker is designed to help you take full financial control of your life.\n\n'
+                    'By simply logging your transactions and tracking your accounts, you gain deep insights into your spending habits. '
+                    'Our goal is to make personal finance management accessible, insightful, and empowering for everyone.',
+                    style: TextStyle(fontSize: 14, height: 1.5),
+                  ),
                 ],
               );
             },
@@ -102,9 +120,9 @@ class MoreScreen extends StatelessWidget {
         ),
         title: Text(
           title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),

@@ -34,7 +34,7 @@ class FinancialSummaryCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppConstants.borderRadius),
             gradient: LinearGradient(
@@ -71,7 +71,7 @@ class FinancialSummaryCard extends StatelessWidget {
                       children: [
                         Text(
                           'Financial Health',
-                          style: theme.textTheme.titleLarge?.copyWith(
+                          style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: theme.colorScheme.primary,
                           ),
@@ -114,11 +114,11 @@ class FinancialSummaryCard extends StatelessWidget {
                 ],
               ),
               
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               
               // Net Worth (main metric)
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: _getNetWorthColor(netWorth, theme).withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
@@ -135,19 +135,19 @@ class FinancialSummaryCard extends StatelessWidget {
                         Icon(
                           Icons.account_balance_wallet,
                           color: _getNetWorthColor(netWorth, theme),
-                          size: 20,
+                          size: 16,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'Net Worth',
-                          style: theme.textTheme.titleMedium?.copyWith(
+                          style: theme.textTheme.titleSmall?.copyWith(
                             color: _getNetWorthColor(netWorth, theme),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Text(
                       _formatCurrency(netWorth),
                       style: theme.textTheme.titleLarge?.copyWith(

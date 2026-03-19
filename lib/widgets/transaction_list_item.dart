@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kora_expense_tracker/models/transaction.dart';
 import 'package:kora_expense_tracker/models/category.dart';
@@ -118,6 +119,7 @@ class TransactionListItem extends StatelessWidget {
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
+
                         if (transaction.notes != null && transaction.notes!.isNotEmpty) ...[
                           const SizedBox(width: 8),
                           const Icon(Icons.note, size: 12, color: Colors.grey),
@@ -139,6 +141,61 @@ class TransactionListItem extends StatelessWidget {
                   ],
                 ),
               ),
+
+              // Thumbnail (if available)
+              if (transaction.imagePath != null && transaction.imagePath!.isNotEmpty) ...[
+                GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => Dialog(
+                        backgroundColor: Colors.transparent,
+                        insetPadding: EdgeInsets.zero,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            GestureDetector(
+                              onTap: () => Navigator.of(context).pop(),
+                              child: Container(color: Colors.black87),
+                            ),
+                            InteractiveViewer(
+                              panEnabled: true,
+                              minScale: 0.5,
+                              maxScale: 4.0,
+                              child: Image.file(
+                                File(transaction.imagePath!),
+                                fit: BoxFit.contain,
+                                width: MediaQuery.of(context).size.width,
+                                height: MediaQuery.of(context).size.height,
+                              ),
+                            ),
+                            Positioned(
+                              top: 40,
+                              right: 20,
+                              child: IconButton(
+                                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                                padding: const EdgeInsets.all(8),
+                                style: IconButton.styleFrom(backgroundColor: Colors.black54),
+                                onPressed: () => Navigator.of(context).pop(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.file(
+                      File(transaction.imagePath!),
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
 
               // Amount
               Column(

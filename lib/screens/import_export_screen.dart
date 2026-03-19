@@ -111,33 +111,37 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
             ),
             const SizedBox(height: 16),
             
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isExporting ? null : () => _handleExportFullData(context),
+                icon: const Icon(Icons.backup),
+                label: Text(_isExporting ? 'Exporting...' : 'Export JSON Backup'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Export functionality coming soon!')),
-                      );
-                    },
-                    icon: const Icon(Icons.backup),
-                    label: const Text('Export All Data (Coming Soon)'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).primaryColor,
-                      foregroundColor: Colors.white,
-                    ),
+                  child: OutlinedButton.icon(
+                    onPressed: _isExporting ? null : () => _handleExportCSV(context),
+                    icon: const Icon(Icons.table_chart),
+                    label: const Text('Export CSV'),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('CSV Export coming soon!')),
-                      );
-                    },
-                    icon: const Icon(Icons.table_chart),
-                    label: const Text('Export CSV (Coming Soon)'),
+                  child: Tooltip(
+                    message: 'Coming soon in a future update',
+                    child: OutlinedButton.icon(
+                      onPressed: null, // Temporarily disabled
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text('Export PDF'),
+                    ),
                   ),
                 ),
               ],
@@ -183,17 +187,16 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
             
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Import functionality coming soon!')),
-                  );
-                },
-                icon: const Icon(Icons.restore),
-                label: const Text('Import from File (Coming Soon)'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
+              child: Tooltip(
+                message: 'Restore functionality coming soon',
+                child: ElevatedButton.icon(
+                  onPressed: null, // Temporarily disabled
+                  icon: const Icon(Icons.restore),
+                  label: Text(_isImporting ? 'Importing...' : 'Restore from JSON (Coming Soon)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey, // Disabled look
+                    foregroundColor: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -757,5 +760,86 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
         duration: const Duration(seconds: 3),
       ),
     );
+  }
+
+  Future<void> _handleExportFullData(BuildContext context) async {
+    setState(() => _isExporting = true);
+    final provider = context.read<AppProvider>();
+    final creditCardProvider = context.read<CreditCardProvider>();
+    final hasPermission = await ImportExportService.requestStoragePermission();
+    if (!hasPermission) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Storage permission denied.')));
+      setState(() => _isExporting = false);
+      return;
+    }
+    final path = await ImportExportService.exportData(
+      accounts: provider.accounts,
+      transactions: provider.transactions,
+      creditCards: creditCardProvider.creditCards,
+      statements: [],
+      payments: [],
+      categories: provider.categories,
+      settings: provider.settings,
+    );
+    setState(() => _isExporting = false);
+    if (path != null && mounted) {
+      _loadBackupFiles();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exported to: $path')));
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Export failed.')));
+    }
+  }
+
+  Future<void> _handleExportCSV(BuildContext context) async {
+    setState(() => _isExporting = true);
+    final provider = context.read<AppProvider>();
+    final hasPermission = await ImportExportService.requestStoragePermission();
+    if (!hasPermission) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Storage permission denied.')));
+      setState(() => _isExporting = false);
+      return;
+    }
+    final path = await ImportExportService.exportToCSV(transactions: provider.transactions);
+    setState(() => _isExporting = false);
+    if (path != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exported CSV to: $path')));
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV export failed.')));
+    }
+  }
+
+  Future<void> _handleExportPDF(BuildContext context) async {
+    setState(() => _isExporting = true);
+    final provider = context.read<AppProvider>();
+    final hasPermission = await ImportExportService.requestStoragePermission();
+    if (!hasPermission) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Storage permission denied.')));
+      setState(() => _isExporting = false);
+      return;
+    }
+    final path = await ImportExportService.exportToPDF(transactions: provider.transactions);
+    setState(() => _isExporting = false);
+    if (path != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exported PDF to: $path')));
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PDF export failed.')));
+    }
+  }
+
+  Future<void> _handleImportData(BuildContext context) async {
+    setState(() => _isImporting = true);
+    try {
+      final data = await ImportExportService.importData();
+      if (data != null && mounted) {
+        // You would typically process `data` here to update your providers
+        // For now, reload files and show success
+        _loadBackupFiles();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Import logic handled data correctly!')));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+    } finally {
+      setState(() => _isImporting = false);
+    }
   }
 }

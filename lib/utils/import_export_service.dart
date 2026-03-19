@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import '../models/account.dart';
 import '../models/transaction.dart';
 import '../models/credit_card.dart';
@@ -15,7 +17,7 @@ import '../models/settings.dart';
 /// Service for handling data import and export operations
 class ImportExportService {
   static const String _exportFileName = 'kora_expense_tracker_backup';
-  
+
   /// Export all app data to a JSON file
   static Future<String?> exportData({
     required List<Account> accounts,
@@ -36,11 +38,17 @@ class ImportExportService {
         'appName': 'Kora Expense Tracker',
         'data': {
           'accounts': accounts.map((account) => account.toJson()).toList(),
-          'transactions': transactions.map((transaction) => transaction.toJson()).toList(),
+          'transactions': transactions
+              .map((transaction) => transaction.toJson())
+              .toList(),
           'creditCards': creditCards.map((card) => card.toJson()).toList(),
-          'statements': statements.map((statement) => statement.toJson()).toList(),
+          'statements': statements
+              .map((statement) => statement.toJson())
+              .toList(),
           'payments': payments.map((payment) => payment.toJson()).toList(),
-          'categories': categories.map((category) => category.toJson()).toList(),
+          'categories': categories
+              .map((category) => category.toJson())
+              .toList(),
           'settings': settings.toJson(),
         },
       };
@@ -67,7 +75,7 @@ class ImportExportService {
       // Create main KoraExpenseTracker directory
       final mainDir = Directory('${directory.path}/KoraExpenseTracker');
       debugPrint('Creating main directory: ${mainDir.path}');
-      
+
       if (!await mainDir.exists()) {
         await mainDir.create(recursive: true);
         debugPrint('Main directory created successfully');
@@ -78,7 +86,7 @@ class ImportExportService {
       // Create backup subdirectory
       final backupDir = Directory('${mainDir.path}/Backups');
       debugPrint('Creating backup directory: ${backupDir.path}');
-      
+
       if (!await backupDir.exists()) {
         await backupDir.create(recursive: true);
         debugPrint('Backup directory created successfully');
@@ -96,7 +104,7 @@ class ImportExportService {
 
       // Write file
       await file.writeAsString(jsonString);
-      
+
       // Verify file was created
       if (await file.exists()) {
         final fileSize = await file.length();
@@ -154,18 +162,23 @@ class ImportExportService {
   static bool validateImportData(Map<String, dynamic> data) {
     try {
       // Check required fields
-      if (!data.containsKey('version') || 
-          !data.containsKey('exportDate') || 
+      if (!data.containsKey('version') ||
+          !data.containsKey('exportDate') ||
           !data.containsKey('data')) {
         return false;
       }
 
       final appData = data['data'] as Map<String, dynamic>;
-      
+
       // Check required data sections
       final requiredSections = [
-        'accounts', 'transactions', 'creditCards', 
-        'statements', 'payments', 'categories', 'settings'
+        'accounts',
+        'transactions',
+        'creditCards',
+        'statements',
+        'payments',
+        'categories',
+        'settings',
       ];
 
       for (final section in requiredSections) {
@@ -190,21 +203,23 @@ class ImportExportService {
 
       // Create CSV content
       final csvContent = StringBuffer();
-      
+
       // Add header
       csvContent.writeln('Date,Description,Amount,Type,Category,Account,Notes');
-      
+
       // Add transaction data
       for (final transaction in transactions) {
-        csvContent.writeln([
-          transaction.date.toIso8601String().split('T')[0], // Date only
-          '"${transaction.description.replaceAll('"', '""')}"', // Escape quotes
-          transaction.amount.toStringAsFixed(2),
-          transaction.type,
-          transaction.categoryId, // Use categoryId instead of categoryName
-          transaction.accountId, // Use accountId instead of accountName
-          '"${(transaction.notes ?? '').replaceAll('"', '""')}"',
-        ].join(','));
+        csvContent.writeln(
+          [
+            transaction.date.toIso8601String().split('T')[0], // Date only
+            '"${transaction.description.replaceAll('"', '""')}"', // Escape quotes
+            transaction.amount.toStringAsFixed(2),
+            transaction.type,
+            transaction.categoryId, // Use categoryId instead of categoryName
+            transaction.accountId, // Use accountId instead of accountName
+            '"${(transaction.notes ?? '').replaceAll('"', '""')}"',
+          ].join(','),
+        );
       }
 
       // Get external storage directory (Downloads folder for easy access)
@@ -231,7 +246,7 @@ class ImportExportService {
       // Create main KoraExpenseTracker directory
       final mainDir = Directory('${directory.path}/KoraExpenseTracker');
       debugPrint('Creating main directory for CSV: ${mainDir.path}');
-      
+
       if (!await mainDir.exists()) {
         await mainDir.create(recursive: true);
         debugPrint('Main directory created successfully for CSV');
@@ -242,7 +257,7 @@ class ImportExportService {
       // Create exports subdirectory
       final exportsDir = Directory('${mainDir.path}/Exports');
       debugPrint('Creating exports directory: ${exportsDir.path}');
-      
+
       if (!await exportsDir.exists()) {
         await exportsDir.create(recursive: true);
         debugPrint('Exports directory created successfully');
@@ -260,7 +275,7 @@ class ImportExportService {
 
       // Write file
       await file.writeAsString(csvContent.toString());
-      
+
       // Verify file was created
       if (await file.exists()) {
         final fileSize = await file.length();
@@ -275,19 +290,89 @@ class ImportExportService {
     }
   }
 
+  /// Export data to PDF format
+  static Future<String?> exportToPDF({
+    required List<Transaction> transactions,
+    String? fileName,
+  }) async {
+    try {
+      final pdf = pw.Document();
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          build: (context) {
+            return [
+              pw.Header(
+                level: 0,
+                child: pw.Text(
+                  'Transactions Report',
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 20),
+              pw.TableHelper.fromTextArray(
+                context: context,
+                headers: ['Date', 'Description', 'Amount', 'Type', 'Category'],
+                border: pw.TableBorder.all(width: 1, color: PdfColors.grey300),
+                headerStyle: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.white,
+                ),
+                headerDecoration: const pw.BoxDecoration(
+                  color: PdfColors.blue800,
+                ),
+                cellAlignment: pw.Alignment.centerLeft,
+                data: transactions
+                    .map(
+                      (t) => [
+                        t.date.toIso8601String().split('T')[0],
+                        t.description,
+                        t.amount.toStringAsFixed(2),
+                        t.type,
+                        t.categoryId,
+                      ],
+                    )
+                    .toList(),
+              ),
+            ];
+          },
+        ),
+      );
+
+      Directory? directory;
+      if (Platform.isAndroid) {
+        directory = await getExternalStorageDirectory();
+      } else {
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      final mainDir = Directory(
+        '${directory?.path}/KoraExpenseTracker/Exports',
+      );
+      if (!await mainDir.exists()) await mainDir.create(recursive: true);
+
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final pdfFileName = fileName ?? 'transactions_$timestamp.pdf';
+      final file = File('${mainDir.path}/$pdfFileName');
+
+      await file.writeAsBytes(await pdf.save());
+      return file.path;
+    } catch (e) {
+      debugPrint('PDF Export error: $e');
+      return null;
+    }
+  }
+
   /// Get list of available backup files
   static Future<List<FileSystemEntity>> getBackupFiles() async {
     try {
       Directory? directory;
       if (Platform.isAndroid) {
-        // Use Downloads directory for easy access
-        directory = Directory('/storage/emulated/0/Download');
-        // Fallback to external storage directory if Downloads doesn't work
-        if (!await directory.exists()) {
-          directory = await getExternalStorageDirectory();
-        }
-      } else if (Platform.isIOS) {
-        directory = await getApplicationDocumentsDirectory();
+        directory = await getExternalStorageDirectory();
       } else {
         directory = await getApplicationDocumentsDirectory();
       }
@@ -296,13 +381,13 @@ class ImportExportService {
 
       final mainDir = Directory('${directory.path}/KoraExpenseTracker');
       if (!await mainDir.exists()) return [];
-      
+
       final backupDir = Directory('${mainDir.path}/Backups');
       if (!await backupDir.exists()) return [];
 
       final files = await backupDir.list().toList();
       files.sort((a, b) => b.path.compareTo(a.path)); // Sort by newest first
-      
+
       return files.where((file) => file.path.endsWith('.json')).toList();
     } catch (e) {
       debugPrint('Get backup files error: $e');
@@ -330,14 +415,7 @@ class ImportExportService {
     try {
       Directory? directory;
       if (Platform.isAndroid) {
-        // Use Downloads directory for easy access
-        directory = Directory('/storage/emulated/0/Download');
-        // Fallback to external storage directory if Downloads doesn't work
-        if (!await directory.exists()) {
-          directory = await getExternalStorageDirectory();
-        }
-      } else if (Platform.isIOS) {
-        directory = await getApplicationDocumentsDirectory();
+        directory = await getExternalStorageDirectory();
       } else {
         directory = await getApplicationDocumentsDirectory();
       }
@@ -357,8 +435,10 @@ class ImportExportService {
       if (file is File) {
         final bytes = file.lengthSync();
         if (bytes < 1024) return '$bytes B';
-        if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-        if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+        if (bytes < 1024 * 1024)
+          return '${(bytes / 1024).toStringAsFixed(1)} KB';
+        if (bytes < 1024 * 1024 * 1024)
+          return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
         return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
       }
       return 'Unknown';
@@ -387,7 +467,8 @@ class ImportExportService {
 
   /// Request storage permission
   static Future<bool> requestStoragePermission() async {
-    // App-scoped directories don't require external storage permissions on Android 11+
-    return true;
+    // We use app-scoped directories (getExternalStorageDirectory on Android)
+    // which do not require any permissions on Android 11+.
+    return true; // iOS doesn't need explicit storage permission for documents dir
   }
 }

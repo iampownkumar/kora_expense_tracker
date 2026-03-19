@@ -73,6 +73,31 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
             onRefresh: () => creditCardProvider.refresh(),
             child: CustomScrollView(
               slivers: [
+                // Beta Warning Banner
+                SliverToBoxAdapter(
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber.shade300),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning_amber_rounded, color: Colors.amber.shade800),
+                        // const SizedBox(width: 5),
+                        const Expanded(
+                          child: Text(
+                            'Credit cards feature is under development (Beta).',
+                            style: TextStyle(color: Colors.black87),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
                 // Credit Overview Card
                 _buildCreditOverviewCard(context, creditCardProvider),
                 
@@ -89,17 +114,21 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                   _buildCreditCardsList(context, filteredCards),
                 
                 // Bottom padding
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: 100),
-                ),
+                if (filteredCards.isNotEmpty)
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: 180),
+                  ),
               ],
             ),
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _navigateToAddCreditCard(context),
-        child: const Icon(Icons.add),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 15.0),
+        child: FloatingActionButton(
+          onPressed: () => _navigateToAddCreditCard(context),
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }
@@ -336,13 +365,13 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 1),
             ElevatedButton.icon(
               onPressed: () => _navigateToAddCreditCard(context),
               icon: const Icon(Icons.add),
               label: const Text('Add Credit Card'),
             ),
-          ],
+          ]
         ),
       ),
     );

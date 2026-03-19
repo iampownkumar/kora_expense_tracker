@@ -31,6 +31,9 @@ class Transaction {
   /// Transaction notes (optional)
   final String? notes;
   
+  /// Path or base64 string of the receipt image (optional)
+  final String? imagePath;
+  
   /// Transaction date
   final DateTime date;
   
@@ -50,6 +53,7 @@ class Transaction {
     required this.accountId,
     this.toAccountId,
     this.notes,
+    this.imagePath,
     required this.date,
     required this.createdAt,
     required this.updatedAt,
@@ -64,6 +68,7 @@ class Transaction {
     required String accountId,
     String? toAccountId,
     String? notes,
+    String? imagePath,
     DateTime? date,
   }) {
     final now = DateTime.now();
@@ -76,6 +81,7 @@ class Transaction {
       accountId: accountId,
       toAccountId: toAccountId,
       notes: notes,
+      imagePath: imagePath,
       date: date ?? now,
       createdAt: now,
       updatedAt: now,
@@ -92,6 +98,7 @@ class Transaction {
     String? accountId,
     String? toAccountId,
     String? notes,
+    String? imagePath,
     DateTime? date,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -105,6 +112,7 @@ class Transaction {
       accountId: accountId ?? this.accountId,
       toAccountId: toAccountId ?? this.toAccountId,
       notes: notes ?? this.notes,
+      imagePath: imagePath ?? this.imagePath,
       date: date ?? this.date,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? DateTime.now(),

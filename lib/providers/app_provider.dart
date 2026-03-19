@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:kora_expense_tracker/models/transaction.dart';
 import 'package:kora_expense_tracker/models/account.dart';
 import 'package:kora_expense_tracker/models/account_type.dart';
@@ -13,7 +15,7 @@ import 'package:kora_expense_tracker/providers/credit_card_provider.dart';
 class TransferValidationResult {
   final bool isValid;
   final String errorMessage;
-  
+
   const TransferValidationResult({
     required this.isValid,
     required this.errorMessage,
@@ -27,20 +29,20 @@ class AppProvider extends ChangeNotifier {
   List<Account> _accounts = [];
   List<Category> _categories = [];
   Settings _settings = Settings.defaults();
-  
+
   // UI State
   bool _isLoading = false;
   String? _error;
   int _selectedTabIndex = 0;
-  
+
   // Credit Card Provider reference for balance sync
   CreditCardProvider? _creditCardProvider;
-  
+
   // Setter for CreditCardProvider reference
   void setCreditCardProvider(CreditCardProvider provider) {
     _creditCardProvider = provider;
   }
-  
+
   // Getters
   List<Transaction> get transactions => _transactions;
   List<Account> get accounts => _accounts;
@@ -49,7 +51,7 @@ class AppProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   int get selectedTabIndex => _selectedTabIndex;
-  
+
   // Computed values for instant feedback
   double get totalBalance {
     // Total balance should only include asset accounts (savings, wallet, cash, investment)
@@ -74,13 +76,14 @@ class AppProvider extends ChangeNotifier {
   /// Get total liabilities (positive balances from liability accounts)
   /// For credit cards: positive balance = debt, negative balance = credit (reduces liabilities)
   double get totalLiabilities {
-    return _accounts
-        .where((account) => account.isLiability)
-        .fold(0.0, (sum, account) {
-          // For liabilities: positive balance = debt, negative balance = credit
-          // Only positive balances count as liabilities
-          return sum + (account.balance > 0 ? account.balance : 0);
-        });
+    return _accounts.where((account) => account.isLiability).fold(0.0, (
+      sum,
+      account,
+    ) {
+      // For liabilities: positive balance = debt, negative balance = credit
+      // Only positive balances count as liabilities
+      return sum + (account.balance > 0 ? account.balance : 0);
+    });
   }
 
   /// Get net worth (assets - liabilities)
@@ -101,33 +104,33 @@ class AppProvider extends ChangeNotifier {
   List<Account> getAccountsByType(AccountType type) {
     return _accounts.where((account) => account.type == type).toList();
   }
-  
+
   double get totalIncome {
     return _transactions
         .where((t) => t.isIncome)
         .fold(0.0, (sum, t) => sum + t.amount.abs());
   }
-  
+
   double get totalExpenses {
     return _transactions
         .where((t) => t.isExpense)
         .fold(0.0, (sum, t) => sum + t.amount.abs());
   }
-  
+
   List<Transaction> get recentTransactions {
     final sorted = List<Transaction>.from(_transactions)
       ..sort((a, b) => b.date.compareTo(a.date));
     return sorted.take(10).toList();
   }
-  
+
   List<Category> get incomeCategories {
     return _categories.where((c) => c.isIncome || c.isBoth).toList();
   }
-  
+
   List<Category> get expenseCategories {
     return _categories.where((c) => c.isExpense || c.isBoth).toList();
   }
-  
+
   // Initialize app data
   Future<void> initialize() async {
     _setLoading(true);
@@ -140,13 +143,13 @@ class AppProvider extends ChangeNotifier {
       _setLoading(false);
     }
   }
-  
+
   // Loading state management
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
   }
-  
+
   // Load all data from storage in parallel for better performance
   Future<void> _loadAllData() async {
     // Load all data in parallel for faster initialization
@@ -156,23 +159,23 @@ class AppProvider extends ChangeNotifier {
       StorageService.loadCategories(),
       StorageService.loadSettings(),
     ]);
-    
+
     _transactions = results[0] as List<Transaction>;
     _accounts = results[1] as List<Account>;
     _categories = results[2] as List<Category>;
     _settings = results[3] as Settings;
-    
+
     // If no categories exist, create default ones
     if (_categories.isEmpty) {
       await _createDefaultCategories();
     }
-    
+
     // If no accounts exist, create default ones
     if (_accounts.isEmpty) {
       await _createDefaultAccounts();
     }
   }
-  
+
   // Create default categories for instant gratification
   Future<void> _createDefaultCategories() async {
     for (final categoryData in AppConstants.defaultCategories) {
@@ -187,12 +190,14 @@ class AppProvider extends ChangeNotifier {
     }
     await StorageService.saveCategories(_categories);
   }
-  
+
   // Create default accounts
   Future<void> _createDefaultAccounts() async {
     print('Creating default accounts...');
     for (final accountData in AppConstants.defaultAccounts) {
-      print('Creating account: ${accountData['name']} with type: ${accountData['type']}');
+      print(
+        'Creating account: ${accountData['name']} with type: ${accountData['type']}',
+      );
       final account = Account.create(
         name: accountData['name'],
         icon: accountData['icon'],
@@ -207,13 +212,13 @@ class AppProvider extends ChangeNotifier {
     await StorageService.saveAccounts(_accounts);
     print('Default accounts creation complete');
   }
-  
+
   // Tab navigation
   void setSelectedTab(int index) {
     _selectedTabIndex = index;
     notifyListeners();
   }
-  
+
   // Transaction management with instant feedback
   Future<bool> addTransaction(Transaction transaction) async {
     try {
@@ -226,7 +231,7 @@ class AppProvider extends ChangeNotifier {
           return false;
         }
       }
-      
+
       // Validate expense balance for asset accounts
       if (transaction.isExpense) {
         final validationResult = _validateExpenseBalance(transaction);
@@ -236,18 +241,24 @@ class AppProvider extends ChangeNotifier {
           return false;
         }
       }
-      
-      _transactions.add(transaction);
+
+      // Persist the image file if present
+      final persistentImagePath = await _persistImage(transaction.imagePath);
+      final finalTransaction = persistentImagePath != transaction.imagePath 
+          ? transaction.copyWith(imagePath: persistentImagePath)
+          : transaction;
+          
+      _transactions.add(finalTransaction);
       try {
         await StorageService.saveTransactions(_transactions);
       } catch (e) {
         // Handle storage errors gracefully
         print('Storage error: $e');
       }
-      
+
       // Update account balances instantly
       await _updateAccountBalances(transaction);
-      
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -256,23 +267,36 @@ class AppProvider extends ChangeNotifier {
       return false;
     }
   }
-  
-  Future<bool> updateTransaction(String transactionId, Transaction updatedTransaction) async {
+
+  Future<bool> updateTransaction(
+    String transactionId,
+    Transaction updatedTransaction,
+  ) async {
     try {
       final index = _transactions.indexWhere((t) => t.id == transactionId);
       if (index != -1) {
         final oldTransaction = _transactions[index];
-        
+
         // First, reverse the old transaction's effect on account balances
         await _updateAccountBalances(oldTransaction, isDelete: true);
+
+        // Persist the new image file if necessary and clean up the old one
+        final persistentImagePath = await _persistImage(updatedTransaction.imagePath);
+        if (oldTransaction.imagePath != null && oldTransaction.imagePath != persistentImagePath) {
+          await _deleteImage(oldTransaction.imagePath);
+        }
         
+        final finalTransaction = persistentImagePath != updatedTransaction.imagePath
+            ? updatedTransaction.copyWith(imagePath: persistentImagePath)
+            : updatedTransaction;
+            
         // Then, apply the new transaction's effect
-        await _updateAccountBalances(updatedTransaction);
+        await _updateAccountBalances(finalTransaction);
         
         // Update the transaction
-        _transactions[index] = updatedTransaction;
+        _transactions[index] = finalTransaction;
         await StorageService.saveTransactions(_transactions);
-        
+
         notifyListeners();
         return true;
       }
@@ -283,16 +307,20 @@ class AppProvider extends ChangeNotifier {
       return false;
     }
   }
-  
+
   Future<bool> deleteTransaction(String transactionId) async {
     try {
       final transaction = _transactions.firstWhere((t) => t.id == transactionId);
+      
+      // Clean up the image file
+      await _deleteImage(transaction.imagePath);
+      
       _transactions.removeWhere((t) => t.id == transactionId);
       await StorageService.saveTransactions(_transactions);
-      
+
       // Update account balances
       await _updateAccountBalances(transaction, isDelete: true);
-      
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -302,24 +330,78 @@ class AppProvider extends ChangeNotifier {
     }
   }
   
+  // Image handling
+  Future<String?> _persistImage(String? currentPath) async {
+    if (currentPath == null || currentPath.isEmpty) return null;
+    
+    final currentFile = File(currentPath);
+    if (!await currentFile.exists()) return currentPath;
+    
+    // Check if it's already in the app's document directory
+    final appDir = await getApplicationDocumentsDirectory();
+    final imagesDirPath = '${appDir.path}/receipts';
+    final imagesDir = Directory(imagesDirPath);
+    
+    if (currentPath.startsWith(imagesDirPath)) {
+      return currentPath; // Already persisted
+    }
+    
+    if (!await imagesDir.exists()) {
+      await imagesDir.create(recursive: true);
+    }
+    
+    // Get extension safely
+    String extension = '.jpg';
+    var lastDot = currentPath.lastIndexOf('.');
+    if (lastDot != -1 && currentPath.length - lastDot <= 5) {
+      extension = currentPath.substring(lastDot);
+    }
+    
+    final fileName = '${DateTime.now().millisecondsSinceEpoch}_${currentFile.hashCode}$extension';
+    final savedImage = await currentFile.copy('$imagesDirPath/$fileName');
+    
+    return savedImage.path;
+  }
+  
+  Future<void> _deleteImage(String? imagePath) async {
+    if (imagePath == null || imagePath.isEmpty) return;
+    
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final imagesDirPath = '${appDir.path}/receipts';
+      
+      // Only delete if it's in our managed directory
+      if (imagePath.startsWith(imagesDirPath)) {
+        final file = File(imagePath);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to delete managed image: $e');
+    }
+  }
+  
   // Account management
   Future<bool> addAccount(Account account) async {
     try {
       print('Adding account: ${account.name} with type: ${account.type}');
       _accounts.add(account);
       print('Account added to local list. Total accounts: ${_accounts.length}');
-      
+
       try {
         final success = await StorageService.saveAccounts(_accounts);
         print('Storage save result: $success');
         if (!success) {
-          print('Warning: Storage save failed, but account added to local state');
+          print(
+            'Warning: Storage save failed, but account added to local state',
+          );
         }
       } catch (e) {
         print('Storage error: $e');
         print('Account remains in local state despite storage error');
       }
-      
+
       notifyListeners();
       print('Notified listeners. Account addition complete.');
       return true;
@@ -330,7 +412,7 @@ class AppProvider extends ChangeNotifier {
       return false;
     }
   }
-  
+
   Future<bool> updateAccount(Account account) async {
     try {
       final index = _accounts.indexWhere((a) => a.id == account.id);
@@ -347,13 +429,13 @@ class AppProvider extends ChangeNotifier {
       return false;
     }
   }
-  
+
   Future<bool> deleteAccount(String accountId) async {
     try {
       // Check if this is a credit card account
       final account = _accounts.firstWhere((a) => a.id == accountId);
       final isCreditCard = account.type == AccountType.creditCard;
-      
+
       // Create a "Deleted Account" placeholder for transactions only
       final deletedAccount = Account.create(
         name: 'Deleted Account',
@@ -362,15 +444,13 @@ class AppProvider extends ChangeNotifier {
         type: account.type,
         description: 'This account has been deleted',
       );
-      
+
       // Update all transactions that reference this account
       for (int i = 0; i < _transactions.length; i++) {
         final transaction = _transactions[i];
         if (transaction.accountId == accountId) {
           // Update the transaction to reference the deleted account
-          _transactions[i] = transaction.copyWith(
-            accountId: deletedAccount.id,
-          );
+          _transactions[i] = transaction.copyWith(accountId: deletedAccount.id);
         }
         if (transaction.toAccountId == accountId) {
           // Update the transaction to reference the deleted account
@@ -379,18 +459,18 @@ class AppProvider extends ChangeNotifier {
           );
         }
       }
-      
+
       // Save updated transactions
       await StorageService.saveTransactions(_transactions);
-      
+
       // If it's a credit card, also delete from CreditCardProvider
       if (isCreditCard && _creditCardProvider != null) {
         await _creditCardProvider!.deleteCreditCard(accountId);
       }
-      
+
       // Remove the account completely from the accounts list
       _accounts.removeWhere((a) => a.id == accountId);
-      
+
       await StorageService.saveAccounts(_accounts);
       notifyListeners();
       return true;
@@ -400,36 +480,42 @@ class AppProvider extends ChangeNotifier {
       return false;
     }
   }
-  
+
   // Delete account and all its transactions
   Future<bool> deleteAccountWithTransactions(String accountId) async {
     try {
       // Check if this is a credit card account
       final account = _accounts.firstWhere((a) => a.id == accountId);
       final isCreditCard = account.type == AccountType.creditCard;
-      
+
       // First, delete all transactions related to this account
-      final transactionsToDelete = _transactions.where((t) => 
-        t.accountId == accountId || t.toAccountId == accountId
-      ).toList();
+      final transactionsToDelete = _transactions
+          .where((t) => t.accountId == accountId || t.toAccountId == accountId)
+          .toList();
+
+      // Remove transactions from the list and delete their localized images
+      for (final t in transactionsToDelete) {
+        if (t.imagePath != null) {
+          await _deleteImage(t.imagePath);
+        }
+      }
       
-      // Remove transactions from the list
-      _transactions.removeWhere((t) => 
-        t.accountId == accountId || t.toAccountId == accountId
+      _transactions.removeWhere(
+        (t) => t.accountId == accountId || t.toAccountId == accountId,
       );
-      
+
       // Save updated transactions
       await StorageService.saveTransactions(_transactions);
-      
+
       // If it's a credit card, also delete from CreditCardProvider
       if (isCreditCard && _creditCardProvider != null) {
         await _creditCardProvider!.deleteCreditCard(accountId);
       }
-      
+
       // Then delete the account
       _accounts.removeWhere((a) => a.id == accountId);
       await StorageService.saveAccounts(_accounts);
-      
+
       notifyListeners();
       return true;
     } catch (e) {
@@ -438,7 +524,7 @@ class AppProvider extends ChangeNotifier {
       return false;
     }
   }
-  
+
   // Category management
   Future<bool> addCategory(Category category) async {
     try {
@@ -457,7 +543,7 @@ class AppProvider extends ChangeNotifier {
       return false;
     }
   }
-  
+
   Future<bool> updateCategory(Category category) async {
     try {
       final index = _categories.indexWhere((c) => c.id == category.id);
@@ -474,7 +560,7 @@ class AppProvider extends ChangeNotifier {
       return false;
     }
   }
-  
+
   Future<bool> deleteCategory(String categoryId) async {
     try {
       _categories.removeWhere((c) => c.id == categoryId);
@@ -487,7 +573,7 @@ class AppProvider extends ChangeNotifier {
       return false;
     }
   }
-  
+
   // Settings management
   Future<bool> updateSettings(Settings settings) async {
     try {
@@ -501,23 +587,30 @@ class AppProvider extends ChangeNotifier {
       return false;
     }
   }
-  
+
   // Update account balances when transactions change
-  Future<void> _updateAccountBalances(Transaction transaction, {bool isDelete = false}) async {
+  Future<void> _updateAccountBalances(
+    Transaction transaction, {
+    bool isDelete = false,
+  }) async {
     final multiplier = isDelete ? -1 : 1;
-    
+
     if (transaction.isTransfer && transaction.toAccountId != null) {
       // Handle transfers with proper credit card logic
-      final fromAccount = _accounts.firstWhere((a) => a.id == transaction.accountId);
-      final toAccount = _accounts.firstWhere((a) => a.id == transaction.toAccountId!);
-      
+      final fromAccount = _accounts.firstWhere(
+        (a) => a.id == transaction.accountId,
+      );
+      final toAccount = _accounts.firstWhere(
+        (a) => a.id == transaction.toAccountId!,
+      );
+
       final transferAmount = transaction.amount.abs() * multiplier;
       Account updatedFromAccount;
       Account updatedToAccount;
-      
+
       // FROM ACCOUNT: Always subtract (debit)
       updatedFromAccount = fromAccount.subtractFromBalance(transferAmount);
-      
+
       // TO ACCOUNT: Handle based on account type
       if (toAccount.type == AccountType.creditCard) {
         // For credit cards: subtract from balance (reduces debt)
@@ -527,7 +620,7 @@ class AppProvider extends ChangeNotifier {
         // For regular accounts: add to balance (increases assets)
         updatedToAccount = toAccount.addToBalance(transferAmount);
       }
-      
+
       try {
         await StorageService.updateAccount(updatedFromAccount);
         await StorageService.updateAccount(updatedToAccount);
@@ -535,88 +628,117 @@ class AppProvider extends ChangeNotifier {
         // Handle storage errors gracefully
         print('Storage error: $e');
       }
-      
+
       // Update local state
-      final fromIndex = _accounts.indexWhere((a) => a.id == transaction.accountId);
-      final toIndex = _accounts.indexWhere((a) => a.id == transaction.toAccountId!);
-      
+      final fromIndex = _accounts.indexWhere(
+        (a) => a.id == transaction.accountId,
+      );
+      final toIndex = _accounts.indexWhere(
+        (a) => a.id == transaction.toAccountId!,
+      );
+
       if (fromIndex != -1) _accounts[fromIndex] = updatedFromAccount;
       if (toIndex != -1) _accounts[toIndex] = updatedToAccount;
-      
+
       // CRITICAL: If the TO account is a credit card, also update the CreditCard entity
-      if (toAccount.type == AccountType.creditCard && _creditCardProvider != null) {
+      if (toAccount.type == AccountType.creditCard &&
+          _creditCardProvider != null) {
         final newOutstandingBalance = updatedToAccount.balance;
-        await _creditCardProvider!.updateCreditCardBalance(toAccount.id, newOutstandingBalance);
+        await _creditCardProvider!.updateCreditCardBalance(
+          toAccount.id,
+          newOutstandingBalance,
+        );
       }
     } else {
       // Handle income/expense
-      final accountIndex = _accounts.indexWhere((a) => a.id == transaction.accountId);
+      final accountIndex = _accounts.indexWhere(
+        (a) => a.id == transaction.accountId,
+      );
       if (accountIndex == -1) return; // Account not found
-      
+
       final account = _accounts[accountIndex];
       Account updatedAccount;
-      
+
       if (transaction.isIncome) {
         // For credit cards (liabilities), income reduces debt (subtract from balance)
         if (account.type == AccountType.creditCard) {
           // For credit cards, income should reduce debt (subtract from balance)
-          updatedAccount = account.subtractFromBalance(transaction.amount.abs() * multiplier);
+          updatedAccount = account.subtractFromBalance(
+            transaction.amount.abs() * multiplier,
+          );
         } else {
           // For regular accounts, income increases balance
-          updatedAccount = account.addToBalance(transaction.amount.abs() * multiplier);
+          updatedAccount = account.addToBalance(
+            transaction.amount.abs() * multiplier,
+          );
         }
       } else {
         // For credit cards (liabilities), expenses increase debt (add to balance)
         if (account.type == AccountType.creditCard) {
           // For credit cards, expenses should increase debt (add to balance)
-          updatedAccount = account.addToBalance(transaction.amount.abs() * multiplier);
+          updatedAccount = account.addToBalance(
+            transaction.amount.abs() * multiplier,
+          );
         } else {
           // For regular accounts, expenses decrease balance
-          updatedAccount = account.subtractFromBalance(transaction.amount.abs() * multiplier);
+          updatedAccount = account.subtractFromBalance(
+            transaction.amount.abs() * multiplier,
+          );
         }
       }
-      
+
       try {
         await StorageService.updateAccount(updatedAccount);
       } catch (e) {
         // Handle storage errors gracefully
         print('Storage error: $e');
       }
-      
+
       // Update local state
       _accounts[accountIndex] = updatedAccount;
-      
+
       // If this is a credit card account, also update the credit card outstanding balance
-      if (account.type == AccountType.creditCard && _creditCardProvider != null) {
+      if (account.type == AccountType.creditCard &&
+          _creditCardProvider != null) {
         // For credit cards, the account balance directly represents the outstanding balance
         final newOutstandingBalance = updatedAccount.balance;
-        await _creditCardProvider!.updateCreditCardBalance(account.id, newOutstandingBalance);
+        await _creditCardProvider!.updateCreditCardBalance(
+          account.id,
+          newOutstandingBalance,
+        );
       }
     }
   }
-  
+
   // Validate transfer logic
   TransferValidationResult _validateTransfer(Transaction transaction) {
     try {
-      final fromAccount = _accounts.firstWhere((a) => a.id == transaction.accountId);
-      final toAccount = _accounts.firstWhere((a) => a.id == transaction.toAccountId!);
-      
+      final fromAccount = _accounts.firstWhere(
+        (a) => a.id == transaction.accountId,
+      );
+      final toAccount = _accounts.firstWhere(
+        (a) => a.id == transaction.toAccountId!,
+      );
+
       // Rule 1: Only Asset → Liability or Asset → Asset
       if (fromAccount.type.isLiability) {
         return const TransferValidationResult(
           isValid: false,
-          errorMessage: 'Cannot transfer from liability accounts (Credit Cards, Loans). Only asset accounts can initiate transfers.',
+          errorMessage:
+              'Cannot transfer from liability accounts (Credit Cards, Loans). Only asset accounts can initiate transfers.',
         );
       }
-      
+
       // Rule 2: Check sufficient balance for asset accounts
-      if (fromAccount.type.isAsset && fromAccount.balance < transaction.amount.abs()) {
+      if (fromAccount.type.isAsset &&
+          fromAccount.balance < transaction.amount.abs()) {
         return TransferValidationResult(
           isValid: false,
-          errorMessage: 'Insufficient balance. Available: ${Formatters.formatCurrency(fromAccount.balance)}, Required: ${Formatters.formatCurrency(transaction.amount.abs())}',
+          errorMessage:
+              'Insufficient balance. Available: ${Formatters.formatCurrency(fromAccount.balance)}, Required: ${Formatters.formatCurrency(transaction.amount.abs())}',
         );
       }
-      
+
       // Rule 3: Prevent transfer to same account
       if (fromAccount.id == toAccount.id) {
         return const TransferValidationResult(
@@ -624,11 +746,8 @@ class AppProvider extends ChangeNotifier {
           errorMessage: 'Cannot transfer to the same account.',
         );
       }
-      
-      return const TransferValidationResult(
-        isValid: true,
-        errorMessage: '',
-      );
+
+      return const TransferValidationResult(isValid: true, errorMessage: '');
     } catch (e) {
       return TransferValidationResult(
         isValid: false,
@@ -636,24 +755,24 @@ class AppProvider extends ChangeNotifier {
       );
     }
   }
-  
+
   // Validate expense balance for asset accounts
   TransferValidationResult _validateExpenseBalance(Transaction transaction) {
     try {
-      final account = _accounts.firstWhere((a) => a.id == transaction.accountId);
-      
+      final account = _accounts.firstWhere(
+        (a) => a.id == transaction.accountId,
+      );
+
       // Only check balance for asset accounts (savings, cash, wallet, etc.)
       if (account.type.isAsset && account.balance < transaction.amount.abs()) {
         return TransferValidationResult(
           isValid: false,
-          errorMessage: 'Insufficient balance for expense. Available: ${Formatters.formatCurrency(account.balance)}, Required: ${Formatters.formatCurrency(transaction.amount.abs())}',
+          errorMessage:
+              'Insufficient balance for expense. Available: ${Formatters.formatCurrency(account.balance)}, Required: ${Formatters.formatCurrency(transaction.amount.abs())}',
         );
       }
-      
-      return const TransferValidationResult(
-        isValid: true,
-        errorMessage: '',
-      );
+
+      return const TransferValidationResult(isValid: true, errorMessage: '');
     } catch (e) {
       return TransferValidationResult(
         isValid: false,
@@ -661,7 +780,7 @@ class AppProvider extends ChangeNotifier {
       );
     }
   }
-  
+
   // Get account for transaction display (handles deleted accounts)
   Account? getAccountForTransaction(String accountId) {
     try {
@@ -673,34 +792,35 @@ class AppProvider extends ChangeNotifier {
       return null;
     }
   }
-  
+
   // Clear error
   void clearError() {
     _error = null;
     notifyListeners();
   }
-  
+
   // Production cleanup: Remove test accounts (Cash, Bank Account)
   Future<void> removeTestAccounts() async {
     try {
       // Remove test accounts by name (case insensitive)
       final testAccountNames = ['cash', 'bank account', 'bank'];
-      _accounts.removeWhere((account) => 
-        testAccountNames.any((testName) => 
-          account.name.toLowerCase().contains(testName.toLowerCase())
-        )
+      _accounts.removeWhere(
+        (account) => testAccountNames.any(
+          (testName) =>
+              account.name.toLowerCase().contains(testName.toLowerCase()),
+        ),
       );
-      
+
       // Save updated accounts
       await StorageService.saveAccounts(_accounts);
       notifyListeners();
-      
+
       print('Test accounts removed successfully');
     } catch (e) {
       print('Error removing test accounts: $e');
     }
   }
-  
+
   // Refresh data
   Future<void> refresh() async {
     await _loadAllData();
