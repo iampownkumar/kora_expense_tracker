@@ -115,15 +115,13 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _isExporting ? null : _exportAllData,
-                    icon: _isExporting 
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.backup),
-                    label: Text(_isExporting ? 'Exporting...' : 'Export All Data'),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Export functionality coming soon!')),
+                      );
+                    },
+                    icon: const Icon(Icons.backup),
+                    label: const Text('Export All Data (Coming Soon)'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).primaryColor,
                       foregroundColor: Colors.white,
@@ -135,7 +133,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('CSV Export is coming soon!')),
+                        const SnackBar(content: Text('CSV Export coming soon!')),
                       );
                     },
                     icon: const Icon(Icons.table_chart),
@@ -186,15 +184,13 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _isImporting ? null : _importData,
-                icon: _isImporting 
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.restore),
-                label: Text(_isImporting ? 'Importing...' : 'Import from File'),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Import functionality coming soon!')),
+                  );
+                },
+                icon: const Icon(Icons.restore),
+                label: const Text('Import from File (Coming Soon)'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,

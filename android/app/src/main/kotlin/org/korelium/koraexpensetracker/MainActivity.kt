@@ -1,4 +1,4 @@
-package com.example.kora_expense_tracker
+package org.korelium.koraexpensetracker
 
 import io.flutter.embedding.android.FlutterActivity
 

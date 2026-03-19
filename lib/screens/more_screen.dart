@@ -53,11 +53,23 @@ class MoreScreen extends StatelessWidget {
             subtitle: 'App information and version',
             icon: Icons.info,
             onTap: () {
-              // TODO: Show about dialog
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('About dialog coming soon!'),
+              showAboutDialog(
+                context: context,
+                applicationName: 'Kora Expense Tracker',
+                applicationVersion: '1.0.0 Beta',
+                applicationIcon: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/icon/app_icon.png',
+                    width: 48,
+                    height: 48,
+                  ),
                 ),
+                applicationLegalese: '© 2026 Kora. All rights reserved.',
+                children: const [
+                  SizedBox(height: 16),
+                  Text('Kora Expense Tracker helps you take financial control and maintain ownership of your life.'),
+                ],
               );
             },
           ),
