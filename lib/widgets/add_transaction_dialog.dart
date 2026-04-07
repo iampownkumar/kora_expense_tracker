@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:kora_expense_tracker/constants/app_constants.dart';
 import 'package:kora_expense_tracker/models/transaction.dart';
 import 'package:kora_expense_tracker/models/account_type.dart';
@@ -882,15 +883,153 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     );
   }
 
+  /// Shows a bottom sheet to choose between Camera and Gallery,
+  /// handling the CAMERA permission request before opening the camera.
   Future<void> _pickImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        _imagePath = image.path;
-      });
+    if (!mounted) return;
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade400,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Text(
+                  'Add Receipt Photo',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // ── Camera ─────────────────────────────────────
+                    _imageSourceButton(
+                      label: 'Camera',
+                      icon: Icons.camera_alt_rounded,
+                      color: AppConstants.primaryColor,
+                      onTap: () async {
+                        Navigator.of(ctx).pop();
+                        await _openCamera();
+                      },
+                    ),
+                    // ── Gallery ────────────────────────────────────
+                    _imageSourceButton(
+                      label: 'Gallery',
+                      icon: Icons.photo_library_rounded,
+                      color: AppConstants.infoColor,
+                      onTap: () async {
+                        Navigator.of(ctx).pop();
+                        await _openGallery();
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _imageSourceButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+            ),
+            child: Icon(icon, size: 36, color: color),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(fontWeight: FontWeight.w600, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Requests camera permission then opens the camera.
+  Future<void> _openCamera() async {
+    final status = await Permission.camera.request();
+    if (status.isGranted) {
+      final picker = ImagePicker();
+      final XFile? photo = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+      );
+      if (photo != null && mounted) {
+        setState(() => _imagePath = photo.path);
+      }
+    } else if (status.isPermanentlyDenied) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Camera permission is permanently denied. Please enable it in Settings.',
+            ),
+            action: SnackBarAction(
+              label: 'Settings',
+              onPressed: () => openAppSettings(),
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } else {
+      // Denied but not permanently — show a quick message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Camera permission is required to take photos.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
+
+  /// Opens the gallery — no permission needed on Android 13+.
+  Future<void> _openGallery() async {
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+    if (image != null && mounted) {
+      setState(() => _imagePath = image.path);
+    }
+  }
+
 
   Widget _buildImageAttachmentCard() {
     return Card(

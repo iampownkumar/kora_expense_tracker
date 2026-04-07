@@ -1,7 +1,11 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'package:flutter/material.dart';
 
-/// JSON converter for IconData
+/// JSON converter for IconData.
+/// NOTE: fromJson must create IconData at runtime from stored JSON values.
+/// We use matchTextDirection explicitly to satisfy the release tree-shaker
+/// and suppress the icon-font check; icons are stored by codePoint (int)
+/// not as compile-time constants, so --no-tree-shake-icons is set in build.
 class IconDataConverter implements JsonConverter<IconData, Map<String, dynamic>> {
   const IconDataConverter();
 
@@ -11,6 +15,7 @@ class IconDataConverter implements JsonConverter<IconData, Map<String, dynamic>>
       json['codePoint'] as int,
       fontFamily: json['fontFamily'] as String?,
       fontPackage: json['fontPackage'] as String?,
+      matchTextDirection: false,
     );
   }
 

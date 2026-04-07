@@ -122,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           NavigationDestination(
             icon: Icon(Icons.receipt_long),
-            label: 'Transactions',
+            label: 'Txns',
           ),
           NavigationDestination(
             icon: Icon(Icons.bar_chart_rounded),
