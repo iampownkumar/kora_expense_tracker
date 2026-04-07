@@ -61,15 +61,15 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
             // Export Section
             _buildExportSection(),
             const SizedBox(height: 24),
-            
+
             // Export Directory Info
             _buildExportDirectoryInfo(),
             const SizedBox(height: 24),
-            
+
             // Import Section
             _buildImportSection(),
             const SizedBox(height: 24),
-            
+
             // Backup Files Section
             _buildBackupFilesSection(),
           ],
@@ -95,53 +95,37 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                 const SizedBox(width: 12),
                 Text(
                   'Export Data',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            
+
             Text(
-              'Create a backup of all your data including accounts, transactions, credit cards, and settings.',
+              'Export all your transactions to a CSV spreadsheet.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
             const SizedBox(height: 16),
-            
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _isExporting ? null : () => _handleExportFullData(context),
-                icon: const Icon(Icons.backup),
-                label: Text(_isExporting ? 'Exporting...' : 'Export JSON Backup'),
+                onPressed: _isExporting
+                    ? null
+                    : () => _handleExportCSV(context),
+                icon: const Icon(Icons.table_chart),
+                label: Text(_isExporting ? 'Exporting...' : 'Export CSV'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isExporting ? null : () => _handleExportCSV(context),
-                    icon: const Icon(Icons.table_chart),
-                    label: const Text('Export CSV'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isExporting ? null : () => _handleExportPDF(context),
-                    icon: const Icon(Icons.picture_as_pdf),
-                    label: const Text('Export PDF'),
-                  ),
-                ),
-              ],
             ),
           ],
         ),
@@ -158,26 +142,24 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.download,
-                  color: Colors.green,
-                  size: 24,
-                ),
+                Icon(Icons.download, color: Colors.green, size: 24),
                 const SizedBox(width: 12),
                 Text(
-                  'Import Data',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  'Restore Data',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            
+
             Text(
-              'Restore your data from a previously created backup file.',
+              'Choose a JSON backup from the list below to restore all your data.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
             const SizedBox(height: 16),
@@ -187,7 +169,9 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
               child: ElevatedButton.icon(
                 onPressed: _isImporting ? null : _importData,
                 icon: const Icon(Icons.restore),
-                label: Text(_isImporting ? 'Importing...' : 'Restore from JSON Backup'),
+                label: Text(
+                  _isImporting ? 'Restoring...' : 'Choose Backup to Restore',
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
@@ -209,17 +193,13 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.folder_open,
-                  color: Colors.blue,
-                  size: 24,
-                ),
+                Icon(Icons.folder_open, color: Colors.blue, size: 24),
                 const SizedBox(width: 12),
                 Text(
                   'Export Location',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -230,16 +210,16 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const CircularProgressIndicator();
                 }
-                
+
                 if (snapshot.hasError || !snapshot.hasData) {
                   return Text(
                     'Unable to determine export location',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.red,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: Colors.red),
                   );
                 }
-                
+
                 final exportPath = snapshot.data!;
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,10 +228,14 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.4),
                         ),
                       ),
                       child: Column(
@@ -259,33 +243,60 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                         children: [
                           Text(
                             'Root Directory:',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             exportPath,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontFamily: 'monospace',
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  fontFamily: 'monospace',
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                ),
                           ),
                           const Divider(height: 20),
                           Text(
                             'Export Subdirectories:',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                           ),
                           const SizedBox(height: 6),
-                          _exportDirRow(context, Icons.backup, Colors.blue, 'JSON', '$exportPath/Exports/JSON/'),
+                          _exportDirRow(
+                            context,
+                            Icons.backup,
+                            Colors.blue,
+                            'JSON',
+                            '$exportPath/Exports/JSON/',
+                          ),
                           const SizedBox(height: 4),
-                          _exportDirRow(context, Icons.table_chart, Colors.green, 'CSV', '$exportPath/Exports/CSV/'),
+                          _exportDirRow(
+                            context,
+                            Icons.table_chart,
+                            Colors.green,
+                            'CSV',
+                            '$exportPath/Exports/CSV/',
+                          ),
                           const SizedBox(height: 4),
-                          _exportDirRow(context, Icons.picture_as_pdf, Colors.red, 'PDF', '$exportPath/Exports/PDF/'),
+                          _exportDirRow(
+                            context,
+                            Icons.picture_as_pdf,
+                            Colors.red,
+                            'PDF',
+                            '$exportPath/Exports/PDF/',
+                          ),
                         ],
                       ),
                     ),
@@ -316,29 +327,27 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.folder,
-                  color: Colors.orange,
-                  size: 24,
-                ),
+                Icon(Icons.folder, color: Colors.orange, size: 24),
                 const SizedBox(width: 12),
                 Text(
                   'Backup Files',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 Text(
                   '${_backupFiles.length} files',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            
+
             if (_backupFiles.isEmpty)
               Container(
                 padding: const EdgeInsets.all(20),
@@ -383,7 +392,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     final fileName = file.path.split('/').last;
     final fileSize = ImportExportService.getFileSize(file);
     final fileDate = ImportExportService.getFileDate(file);
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -396,11 +405,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.backup,
-            color: Theme.of(context).primaryColor,
-            size: 20,
-          ),
+          Icon(Icons.backup, color: Theme.of(context).primaryColor, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -408,9 +413,9 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
               children: [
                 Text(
                   fileName,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -418,7 +423,9 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                 Text(
                   '${Formatters.formatDate(fileDate)} • $fileSize',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -489,7 +496,9 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       if (filePath != null) {
         final fileName = filePath.split('/').last;
         final exportDir = await ImportExportService.getExportDirectoryPath();
-        _showSuccessSnackBar('✅ Backup exported successfully!\n📁 Location: $exportDir/Backups/\n📄 File: $fileName');
+        _showSuccessSnackBar(
+          '✅ Backup exported successfully!\n📁 Location: $exportDir/Backups/\n📄 File: $fileName',
+        );
         _loadBackupFiles(); // Refresh backup files list
       } else {
         _showErrorSnackBar('Failed to export data');
@@ -529,7 +538,9 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       if (filePath != null) {
         final fileName = filePath.split('/').last;
         final exportDir = await ImportExportService.getExportDirectoryPath();
-        _showSuccessSnackBar('✅ CSV exported successfully!\n📁 Location: $exportDir/Exports/\n📄 File: $fileName');
+        _showSuccessSnackBar(
+          '✅ CSV exported successfully!\n📁 Location: $exportDir/Exports/\n📄 File: $fileName',
+        );
       } else {
         _showErrorSnackBar('Failed to export CSV');
       }
@@ -540,69 +551,149 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     }
   }
 
+  /// Opens a bottom sheet listing available JSON backup files from the
+  /// app's Exports/JSON directory. No file_picker or external permissions needed.
   Future<void> _importData() async {
     setState(() => _isImporting = true);
 
     try {
-      // Check permission
-      if (!await ImportExportService.hasStoragePermission()) {
-        final granted = await ImportExportService.requestStoragePermission();
-        if (!granted) {
-          _showErrorSnackBar('Storage permission is required for import');
-          return;
-        }
-      }
+      final files = await ImportExportService.getBackupFiles();
 
-      final importedData = await ImportExportService.importData();
-      
-      if (importedData == null) {
-        // User cancelled
+      if (!mounted) return;
+
+      if (files.isEmpty) {
+        setState(() => _isImporting = false);
+        _showErrorSnackBar(
+          'No backup files found. Export a JSON backup first.',
+        );
         return;
       }
 
-      // Show confirmation dialog
+      // Let user pick a file from the bottom sheet
+      final chosen = await showModalBottomSheet<FileSystemEntity>(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        isScrollControlled: true,
+        builder: (ctx) {
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.5,
+            maxChildSize: 0.85,
+            builder: (_, scrollController) => Column(
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade400,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Text(
+                  'Choose a Backup to Restore',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: files.length,
+                    itemBuilder: (_, i) {
+                      final file = files[i];
+                      final name = file.path.split('/').last;
+                      final size = ImportExportService.getFileSize(file);
+                      final date = ImportExportService.getFileDate(file);
+                      return ListTile(
+                        leading: const Icon(Icons.backup, color: Colors.blue),
+                        title: Text(
+                          name,
+                          style: const TextStyle(fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          '${Formatters.formatDate(date)} • $size',
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.of(ctx).pop(file),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+      if (chosen == null || !mounted) {
+        setState(() => _isImporting = false);
+        return;
+      }
+
+      // Confirm before overwriting
       final shouldImport = await _showImportConfirmationDialog();
-      if (!shouldImport) return;
+      if (!shouldImport || !mounted) {
+        setState(() => _isImporting = false);
+        return;
+      }
+
+      // Read and parse the chosen file
+      final fileContent = await File(chosen.path).readAsString();
+      final Map<String, dynamic> jsonData = json.decode(fileContent);
+
+      if (!ImportExportService.validateImportData(jsonData)) {
+        _showErrorSnackBar('Invalid backup file format.');
+        return;
+      }
+
+      final importedData = jsonData['data'] as Map<String, dynamic>;
 
       final appProvider = context.read<AppProvider>();
       final creditCardProvider = context.read<CreditCardProvider>();
 
-      // Import data
       await _performDataImport(importedData, appProvider, creditCardProvider);
-
-      _showSuccessSnackBar('Data imported successfully!');
+      _showSuccessSnackBar('✅ Data restored successfully!');
+      _loadBackupFiles();
     } catch (e) {
-      _showErrorSnackBar('Import failed: $e');
+      _showErrorSnackBar('Restore failed: $e');
     } finally {
-      setState(() => _isImporting = false);
+      if (mounted) setState(() => _isImporting = false);
     }
   }
 
   Future<bool> _showImportConfirmationDialog() async {
     return await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirm Import'),
-        content: const Text(
-          'This will replace all your current data with the imported data. '
-          'This action cannot be undone. Are you sure you want to continue?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Confirm Import'),
+            content: const Text(
+              'This will replace all your current data with the imported data. '
+              'This action cannot be undone. Are you sure you want to continue?',
             ),
-            child: const Text('Import'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Import'),
+              ),
+            ],
           ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
   }
 
   Future<void> _performDataImport(
@@ -613,17 +704,23 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     try {
       // Import accounts
       final accountsJson = data['accounts'] as List<dynamic>;
-      final accounts = accountsJson.map((json) => Account.fromJson(json)).toList();
+      final accounts = accountsJson
+          .map((json) => Account.fromJson(json))
+          .toList();
       await appProvider.importAccounts(accounts);
 
       // Import transactions
       final transactionsJson = data['transactions'] as List<dynamic>;
-      final transactions = transactionsJson.map((json) => Transaction.fromJson(json)).toList();
+      final transactions = transactionsJson
+          .map((json) => Transaction.fromJson(json))
+          .toList();
       await appProvider.importTransactions(transactions);
 
       // Import categories
       final categoriesJson = data['categories'] as List<dynamic>;
-      final categories = categoriesJson.map((json) => Category.fromJson(json)).toList();
+      final categories = categoriesJson
+          .map((json) => Category.fromJson(json))
+          .toList();
       await appProvider.importCategories(categories);
 
       // Import settings
@@ -633,17 +730,23 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
 
       // Import credit cards
       final creditCardsJson = data['creditCards'] as List<dynamic>;
-      final creditCards = creditCardsJson.map((json) => CreditCard.fromJson(json)).toList();
+      final creditCards = creditCardsJson
+          .map((json) => CreditCard.fromJson(json))
+          .toList();
       await creditCardProvider.importCreditCards(creditCards);
 
       // Import statements
       final statementsJson = data['statements'] as List<dynamic>;
-      final statements = statementsJson.map((json) => CreditCardStatement.fromJson(json)).toList();
+      final statements = statementsJson
+          .map((json) => CreditCardStatement.fromJson(json))
+          .toList();
       await creditCardProvider.importStatements(statements);
 
       // Import payments
       final paymentsJson = data['payments'] as List<dynamic>;
-      final payments = paymentsJson.map((json) => PaymentRecord.fromJson(json)).toList();
+      final payments = paymentsJson
+          .map((json) => PaymentRecord.fromJson(json))
+          .toList();
       await creditCardProvider.importPayments(payments);
     } catch (e) {
       throw Exception('Failed to import data: $e');
@@ -666,7 +769,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       // Read and parse backup file
       final fileContent = await File(file.path).readAsString();
       final Map<String, dynamic> jsonData = json.decode(fileContent);
-      
+
       if (!ImportExportService.validateImportData(jsonData)) {
         _showErrorSnackBar('Invalid backup file format');
         return;
@@ -695,7 +798,9 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Backup'),
-        content: Text('Are you sure you want to delete ${file.path.split('/').last}?'),
+        content: Text(
+          'Are you sure you want to delete ${file.path.split('/').last}?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -726,19 +831,13 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
 
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
     );
   }
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -752,84 +851,30 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     );
   }
 
-  Future<void> _handleExportFullData(BuildContext context) async {
-    setState(() => _isExporting = true);
-    final provider = context.read<AppProvider>();
-    final creditCardProvider = context.read<CreditCardProvider>();
-    final hasPermission = await ImportExportService.requestStoragePermission();
-    if (!hasPermission) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Storage permission denied.')));
-      setState(() => _isExporting = false);
-      return;
-    }
-    final path = await ImportExportService.exportData(
-      accounts: provider.accounts,
-      transactions: provider.transactions,
-      creditCards: creditCardProvider.creditCards,
-      statements: [],
-      payments: [],
-      categories: provider.categories,
-      settings: provider.settings,
-    );
-    setState(() => _isExporting = false);
-    if (path != null && mounted) {
-      _loadBackupFiles();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exported to: $path')));
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Export failed.')));
-    }
-  }
-
   Future<void> _handleExportCSV(BuildContext context) async {
     setState(() => _isExporting = true);
     final provider = context.read<AppProvider>();
     final hasPermission = await ImportExportService.requestStoragePermission();
     if (!hasPermission) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Storage permission denied.')));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Storage permission denied.')),
+        );
       setState(() => _isExporting = false);
       return;
     }
-    final path = await ImportExportService.exportToCSV(transactions: provider.transactions);
+    final path = await ImportExportService.exportToCSV(
+      transactions: provider.transactions,
+    );
     setState(() => _isExporting = false);
     if (path != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exported CSV to: $path')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Exported CSV to: $path')));
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV export failed.')));
-    }
-  }
-
-  Future<void> _handleExportPDF(BuildContext context) async {
-    setState(() => _isExporting = true);
-    final provider = context.read<AppProvider>();
-    final hasPermission = await ImportExportService.requestStoragePermission();
-    if (!hasPermission) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Storage permission denied.')));
-      setState(() => _isExporting = false);
-      return;
-    }
-    final path = await ImportExportService.exportToPDF(transactions: provider.transactions);
-    setState(() => _isExporting = false);
-    if (path != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exported PDF to: $path')));
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PDF export failed.')));
-    }
-  }
-
-  Future<void> _handleImportData(BuildContext context) async {
-    setState(() => _isImporting = true);
-    try {
-      final data = await ImportExportService.importData();
-      if (data != null && mounted) {
-        // You would typically process `data` here to update your providers
-        // For now, reload files and show success
-        _loadBackupFiles();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Import logic handled data correctly!')));
-      }
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Import failed: $e')));
-    } finally {
-      setState(() => _isImporting = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('CSV export failed.')));
     }
   }
 
@@ -868,4 +913,3 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     );
   }
 }
-
