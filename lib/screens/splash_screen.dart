@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:kora_expense_tracker/screens/home_screen.dart';
-import 'package:kora_expense_tracker/constants/app_constants.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

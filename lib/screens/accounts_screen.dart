@@ -1367,7 +1367,7 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
   final double height;
 
-  _StickyTabBarDelegate({required this.child, this.height = 40.0});
+  _StickyTabBarDelegate({required this.child}) : height = 40.0;
 
   @override
   double get minExtent => height;

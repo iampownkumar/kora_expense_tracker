@@ -6,15 +6,14 @@ import 'package:kora_expense_tracker/utils/storage_service.dart';
 import 'package:kora_expense_tracker/providers/app_provider.dart';
 import 'package:kora_expense_tracker/providers/credit_card_provider.dart';
 import 'package:kora_expense_tracker/providers/payment_provider.dart';
-import 'package:kora_expense_tracker/screens/home_screen.dart';
 import 'package:kora_expense_tracker/screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize storage service
   await StorageService.initialize();
-  
+
   runApp(const KoraExpenseTrackerApp());
 }
 
@@ -25,8 +24,12 @@ class KoraExpenseTrackerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => AppProvider()..initialize()),
-        ChangeNotifierProvider(create: (context) => CreditCardProvider()..initialize()),
+        ChangeNotifierProvider(
+          create: (context) => AppProvider()..initialize(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => CreditCardProvider()..initialize(),
+        ),
         ChangeNotifierProvider(create: (context) => PaymentProvider()),
       ],
       builder: (context, child) {
@@ -34,13 +37,13 @@ class KoraExpenseTrackerApp extends StatelessWidget {
         final appProvider = context.read<AppProvider>();
         final creditCardProvider = context.read<CreditCardProvider>();
         appProvider.setCreditCardProvider(creditCardProvider);
-        
+
         return child!;
       },
       child: MaterialApp(
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
-        
+
         // Internationalization
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
@@ -53,7 +56,7 @@ class KoraExpenseTrackerApp extends StatelessWidget {
           Locale('hi', ''), // Hindi
         ],
         locale: const Locale('en', ''),
-        
+
         // Material 3 Theme
         theme: ThemeData(
           useMaterial3: true,
@@ -62,10 +65,7 @@ class KoraExpenseTrackerApp extends StatelessWidget {
             brightness: Brightness.light,
           ),
           fontFamily: 'Inter',
-          appBarTheme: const AppBarTheme(
-            centerTitle: true,
-            elevation: 0,
-          ),
+          appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
           cardTheme: CardThemeData(
             elevation: AppConstants.cardElevation,
             shape: RoundedRectangleBorder(
@@ -80,7 +80,7 @@ class KoraExpenseTrackerApp extends StatelessWidget {
             ),
           ),
         ),
-        
+
         // Dark Theme
         darkTheme: ThemeData(
           useMaterial3: true,
@@ -89,10 +89,7 @@ class KoraExpenseTrackerApp extends StatelessWidget {
             brightness: Brightness.dark,
           ),
           fontFamily: 'Inter',
-          appBarTheme: const AppBarTheme(
-            centerTitle: true,
-            elevation: 0,
-          ),
+          appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
           cardTheme: CardThemeData(
             elevation: AppConstants.cardElevation,
             shape: RoundedRectangleBorder(
@@ -107,10 +104,10 @@ class KoraExpenseTrackerApp extends StatelessWidget {
             ),
           ),
         ),
-        
+
         // Theme mode
         themeMode: ThemeMode.system,
-        
+
         // Home screen
         home: const SplashScreen(),
       ),

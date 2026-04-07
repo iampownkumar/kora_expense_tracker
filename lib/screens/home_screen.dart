@@ -5,7 +5,6 @@ import 'package:kora_expense_tracker/screens/dashboard_screen.dart';
 import 'package:kora_expense_tracker/screens/transactions_screen.dart';
 import 'package:kora_expense_tracker/screens/accounts_screen.dart';
 import 'package:kora_expense_tracker/screens/credit_cards_screen.dart';
-import 'package:kora_expense_tracker/screens/categories_screen.dart';
 import 'package:kora_expense_tracker/screens/more_screen.dart';
 import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
 import 'package:kora_expense_tracker/utils/storage_service.dart';
