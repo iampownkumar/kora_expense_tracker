@@ -6,6 +6,7 @@ import 'package:kora_expense_tracker/screens/transactions_screen.dart';
 import 'package:kora_expense_tracker/screens/accounts_screen.dart';
 import 'package:kora_expense_tracker/screens/credit_cards_screen.dart';
 import 'package:kora_expense_tracker/screens/more_screen.dart';
+import 'package:kora_expense_tracker/screens/reports_screen.dart';
 import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
 import 'package:kora_expense_tracker/utils/storage_service.dart';
 import 'package:kora_expense_tracker/constants/app_constants.dart';
@@ -21,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = [
     const DashboardScreen(),
     const TransactionsScreen(),
+    const ReportsScreen(),
     const AccountsScreen(),
     const CreditCardsScreen(),
     const MoreScreen(),
@@ -121,6 +123,10 @@ class _HomeScreenState extends State<HomeScreen> {
           NavigationDestination(
             icon: Icon(Icons.receipt_long),
             label: 'Transactions',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.bar_chart_rounded),
+            label: 'Reports',
           ),
           NavigationDestination(
             icon: Icon(Icons.account_balance),
