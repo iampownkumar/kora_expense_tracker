@@ -135,13 +135,10 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Tooltip(
-                    message: 'Coming soon in a future update',
-                    child: OutlinedButton.icon(
-                      onPressed: null, // Temporarily disabled
-                      icon: const Icon(Icons.picture_as_pdf),
-                      label: const Text('Export PDF'),
-                    ),
+                  child: OutlinedButton.icon(
+                    onPressed: _isExporting ? null : () => _handleExportPDF(context),
+                    icon: const Icon(Icons.picture_as_pdf),
+                    label: const Text('Export PDF'),
                   ),
                 ),
               ],
@@ -184,19 +181,16 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             SizedBox(
               width: double.infinity,
-              child: Tooltip(
-                message: 'Restore functionality coming soon',
-                child: ElevatedButton.icon(
-                  onPressed: null, // Temporarily disabled
-                  icon: const Icon(Icons.restore),
-                  label: Text(_isImporting ? 'Importing...' : 'Restore from JSON (Coming Soon)'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey, // Disabled look
-                    foregroundColor: Colors.white,
-                  ),
+              child: ElevatedButton.icon(
+                onPressed: _isImporting ? null : _importData,
+                icon: const Icon(Icons.restore),
+                label: Text(_isImporting ? 'Importing...' : 'Restore from JSON Backup'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
                 ),
               ),
             ),
@@ -254,54 +248,50 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Main Directory:',
+                            'Root Directory:',
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               fontWeight: FontWeight.w500,
-                              color: Colors.grey.shade600,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             exportPath,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               fontFamily: 'monospace',
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const Divider(height: 20),
                           Text(
-                            'Subdirectories:',
+                            'Export Subdirectories:',
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               fontWeight: FontWeight.w500,
-                              color: Colors.grey.shade600,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
+                          const SizedBox(height: 6),
+                          _exportDirRow(context, Icons.backup, Colors.blue, 'JSON', '$exportPath/Exports/JSON/'),
                           const SizedBox(height: 4),
-                          Text(
-                            '• $exportPath/Backups/ (for JSON backups)',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                          Text(
-                            '• $exportPath/Exports/ (for CSV exports)',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontFamily: 'monospace',
-                            ),
-                          ),
+                          _exportDirRow(context, Icons.table_chart, Colors.green, 'CSV', '$exportPath/Exports/CSV/'),
+                          const SizedBox(height: 4),
+                          _exportDirRow(context, Icons.picture_as_pdf, Colors.red, 'PDF', '$exportPath/Exports/PDF/'),
                         ],
                       ),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      '💡 Tip: Open your file manager and go to "Downloads" folder, then look for "KoraExpenseTracker" folder. It\'s much easier to find now!',
+                      '💡 Open your file manager → Downloads → KoraExpenseTracker → Exports',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Colors.blue.shade700,
                         fontStyle: FontStyle.italic,
@@ -842,4 +832,40 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       setState(() => _isImporting = false);
     }
   }
+
+  /// Helper widget to display an export directory row in the location info box.
+  Widget _exportDirRow(
+    BuildContext context,
+    IconData icon,
+    Color color,
+    String label,
+    String path,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 6),
+        Text(
+          '$label: ',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: color,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            path,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontFamily: 'monospace',
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
+          ),
+        ),
+      ],
+    );
+  }
 }
+

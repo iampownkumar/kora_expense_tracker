@@ -17,7 +17,8 @@ class AccountsScreen extends StatefulWidget {
   State<AccountsScreen> createState() => _AccountsScreenState();
 }
 
-class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStateMixin {
+class _AccountsScreenState extends State<AccountsScreen>
+    with TickerProviderStateMixin {
   AccountType? _selectedFilter;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -39,7 +40,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.forward();
-    
+
     // Listen to scroll events for scroll-to-top button
     _scrollController.addListener(() {
       if (_scrollController.offset >= 200 && !_showScrollToTop) {
@@ -70,91 +71,96 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
           provider.setSelectedTab(0);
           return false; // Don't exit app
         }
-        
+
         // If already on dashboard, check for double back press
         final now = DateTime.now();
-        if (_lastBackPress == null || now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
+        if (_lastBackPress == null ||
+            now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
           _lastBackPress = now;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text('Press back again to exit'),
               duration: const Duration(seconds: 2),
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               margin: const EdgeInsets.all(16),
             ),
           );
           return false; // Don't exit app
         }
-        
+
         // Double back press - exit app
         return true;
       },
       child: Scaffold(
-      body: Consumer<AppProvider>(
-        builder: (context, provider, child) {
-          final accounts = _getFilteredAccounts(provider.accounts);
-          final accountCounts = _getAccountCounts(provider.accounts);
-          
-          return GestureDetector(
-            onHorizontalDragEnd: (details) {
-              // Swipe left/right to cycle through account types
-              if (details.primaryVelocity! > 0) {
-                // Swipe right - go to previous filter
-                _cycleFilter(-1);
-              } else if (details.primaryVelocity! < 0) {
-                // Swipe left - go to next filter
-                _cycleFilter(1);
-              }
-            },
-            child: CustomScrollView(
-              controller: _scrollController,
-              slivers: [
-              // App Bar with search
-              _buildSliverAppBar(context, provider),
-              
-              // Financial Summary
-              SliverToBoxAdapter(
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                    child: FinancialSummaryCard(
-                      totalAssets: provider.totalAssets,
-                      totalLiabilities: provider.totalLiabilities,
-                      netWorth: provider.netWorth,
-                      accountCounts: accountCounts,
-                      onTap: () => _showFinancialDetails(context, provider),
+        body: Consumer<AppProvider>(
+          builder: (context, provider, child) {
+            final accounts = _getFilteredAccounts(provider.accounts);
+            final accountCounts = _getAccountCounts(provider.accounts);
+
+            return GestureDetector(
+              onHorizontalDragEnd: (details) {
+                // Swipe left/right to cycle through account types
+                if (details.primaryVelocity! > 0) {
+                  // Swipe right - go to previous filter
+                  _cycleFilter(-1);
+                } else if (details.primaryVelocity! < 0) {
+                  // Swipe left - go to next filter
+                  _cycleFilter(1);
+                }
+              },
+              child: CustomScrollView(
+                controller: _scrollController,
+                slivers: [
+                  // App Bar with search
+                  _buildSliverAppBar(context, provider),
+
+                  // Financial Summary
+                  SliverToBoxAdapter(
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                        child: FinancialSummaryCard(
+                          totalAssets: provider.totalAssets,
+                          totalLiabilities: provider.totalLiabilities,
+                          netWorth: provider.netWorth,
+                          accountCounts: accountCounts,
+                          onTap: () => _showFinancialDetails(context, provider),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+
+                  // Filter chips
+                  if (provider.accounts.isNotEmpty)
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _StickyTabBarDelegate(
+                        child: _buildFilterChips(context),
+                      ),
+                    ),
+
+                  // Accounts list or empty state
+                  if (accounts.isEmpty)
+                    _buildEmptyState(context, provider)
+                  else
+                    _buildAccountsList(accounts, provider),
+                ],
               ),
-              
-              // Filter chips
-              if (provider.accounts.isNotEmpty)
-                SliverPersistentHeader(
-                  pinned: true,
-                  delegate: _StickyTabBarDelegate(
-                    child: _buildFilterChips(context),
-                  ),
-                ),
-              
-              // Accounts list or empty state
-              if (accounts.isEmpty)
-                _buildEmptyState(context, provider)
-              else
-                _buildAccountsList(accounts, provider),
-              ],
-            ),
-          );
-        },
-      ),
-              floatingActionButton: Container(
+            );
+          },
+        ),
+        floatingActionButton: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.3),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
@@ -173,48 +179,55 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
             ),
           ),
         ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      // Add scroll to top button
-      bottomNavigationBar: _showScrollToTop
-          ? Container(
-              height: 60,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        _scrollController.animateTo(
-                          0,
-                          duration: const Duration(milliseconds: 500),
-                          curve: Curves.easeInOut,
-                        );
-                      },
-                      icon: const Icon(Icons.keyboard_arrow_up),
-                      label: const Text('Scroll to Top'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.surface,
-                        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        // Add scroll to top button
+        bottomNavigationBar: _showScrollToTop
+            ? Container(
+                height: 60,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          _scrollController.animateTo(
+                            0,
+                            duration: const Duration(milliseconds: 500),
+                            curve: Curves.easeInOut,
+                          );
+                        },
+                        icon: const Icon(Icons.keyboard_arrow_up),
+                        label: const Text('Scroll to Top'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.surface,
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onSurface,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            )
-          : null,
+                  ],
+                ),
+              )
+            : null,
       ),
     );
   }
 
   Widget _buildSliverAppBar(BuildContext context, AppProvider provider) {
     final theme = Theme.of(context);
-    
+
     return SliverAppBar(
       expandedHeight: 110,
       floating: false,
       pinned: true,
-      backgroundColor: theme.brightness == Brightness.dark 
-          ? theme.colorScheme.primaryContainer 
+      backgroundColor: theme.brightness == Brightness.dark
+          ? theme.colorScheme.primaryContainer
           : theme.colorScheme.primary,
       foregroundColor: Colors.white,
       flexibleSpace: FlexibleSpaceBar(
@@ -253,7 +266,10 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                       ),
                       const Spacer(),
                       IconButton(
-                        icon: const Icon(Icons.filter_list, color: Colors.white),
+                        icon: const Icon(
+                          Icons.filter_list,
+                          color: Colors.white,
+                        ),
                         onPressed: () => _showFilterOptions(context),
                       ),
                       IconButton(
@@ -265,7 +281,12 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                 ),
                 // Search bar area
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 4), // changed from 16 to 4 for reduce the height
+                  padding: const EdgeInsets.fromLTRB(
+                    16,
+                    0,
+                    16,
+                    4,
+                  ), // changed from 16 to 4 for reduce the height
                   child: TextField(
                     controller: _searchController,
                     focusNode: _searchFocusNode,
@@ -279,11 +300,16 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Search accounts...',
-                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                      hintStyle: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
                       prefixIcon: const Icon(Icons.search, color: Colors.white),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear, color: Colors.white),
+                              icon: const Icon(
+                                Icons.clear,
+                                color: Colors.white,
+                              ),
                               onPressed: () {
                                 _searchController.clear();
                                 setState(() => _searchQuery = '');
@@ -292,20 +318,30 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                           : null,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.3),
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.3),
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.white, width: 2),
+                        borderSide: const BorderSide(
+                          color: Colors.white,
+                          width: 2,
+                        ),
                       ),
                       filled: true,
                       fillColor: Colors.white.withValues(alpha: 0.1),
                       isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                     ),
                   ),
                 ),
@@ -320,10 +356,12 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
   Widget _buildFilterChips(BuildContext context) {
     final theme = Theme.of(context);
     final ScrollController filterScrollController = ScrollController();
-    
+
     return Container(
       height: 40, // changed from 50 to 40 for reduce the height
-      padding: const EdgeInsets.symmetric(horizontal: AppConstants.defaultPadding),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppConstants.defaultPadding,
+      ),
       child: ListView(
         controller: filterScrollController,
         scrollDirection: Axis.horizontal,
@@ -335,15 +373,17 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
             _selectedFilter == null,
             () => setState(() => _selectedFilter = null),
           ),
-          
+
           // Account type chips
-          ...AccountType.values.map((type) => _buildFilterChip(
-            context,
-            type.displayName,
-            _selectedFilter == type,
-            () => setState(() => _selectedFilter = type),
-            type.color,
-          )),
+          ...AccountType.values.map(
+            (type) => _buildFilterChip(
+              context,
+              type.displayName,
+              _selectedFilter == type,
+              () => setState(() => _selectedFilter = type),
+              type.color,
+            ),
+          ),
         ],
       ),
     );
@@ -357,18 +397,23 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     Color? color,
   ]) {
     final theme = Theme.of(context);
-    
+
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: FilterChip(
         label: Text(label),
         selected: isSelected,
         onSelected: (_) => onTap(),
-        backgroundColor: color?.withValues(alpha: 0.1) ?? theme.colorScheme.surface,
-        selectedColor: color?.withValues(alpha: 0.2) ?? theme.colorScheme.primary.withValues(alpha: 0.2),
+        backgroundColor:
+            color?.withValues(alpha: 0.1) ?? theme.colorScheme.surface,
+        selectedColor:
+            color?.withValues(alpha: 0.2) ??
+            theme.colorScheme.primary.withValues(alpha: 0.2),
         checkmarkColor: color ?? theme.colorScheme.primary,
         labelStyle: TextStyle(
-          color: isSelected ? (color ?? theme.colorScheme.primary) : theme.colorScheme.onSurface,
+          color: isSelected
+              ? (color ?? theme.colorScheme.primary)
+              : theme.colorScheme.onSurface,
           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
         ),
       ),
@@ -379,7 +424,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     final theme = Theme.of(context);
     final isSearching = _searchQuery.isNotEmpty;
     final hasFilter = _selectedFilter != null;
-    
+
     return SliverFillRemaining(
       child: Center(
         child: Padding(
@@ -388,13 +433,17 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                isSearching || hasFilter ? Icons.search_off : Icons.account_balance_wallet,
+                isSearching || hasFilter
+                    ? Icons.search_off
+                    : Icons.account_balance_wallet,
                 size: 80,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
               const SizedBox(height: 16),
               Text(
-                isSearching || hasFilter ? 'No accounts found' : 'No accounts yet',
+                isSearching || hasFilter
+                    ? 'No accounts found'
+                    : 'No accounts yet',
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -433,21 +482,19 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     return SliverPadding(
       padding: const EdgeInsets.all(AppConstants.defaultPadding),
       sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final account = accounts[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: AccountCard(
-                account: account,
-                onTap: () => _navigateToAccountTransactions(context, account),
-                onEdit: () => _showEditAccountDialog(context, account),
-                onDelete: () => _showDeleteConfirmation(context, account, provider),
-              ),
-            );
-          },
-          childCount: accounts.length,
-        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final account = accounts[index];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: AccountCard(
+              account: account,
+              onTap: () => _navigateToAccountTransactions(context, account),
+              onEdit: () => _showEditAccountDialog(context, account),
+              onDelete: () =>
+                  _showDeleteConfirmation(context, account, provider),
+            ),
+          );
+        }, childCount: accounts.length),
       ),
     );
   }
@@ -463,10 +510,10 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     // Clear search text
     _searchController.clear();
     setState(() => _searchQuery = '');
-    
+
     // Remove focus from search field specifically
     _searchFocusNode.unfocus();
-    
+
     // Also remove any other focus
     FocusScope.of(context).unfocus();
   }
@@ -484,7 +531,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
       AccountType.loan,
     ];
     final currentIndex = filters.indexOf(_selectedFilter);
-    
+
     int newIndex;
     if (direction > 0) {
       // Swipe left - next filter
@@ -493,11 +540,11 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
       // Swipe right - previous filter
       newIndex = (currentIndex - 1 + filters.length) % filters.length;
     }
-    
+
     setState(() {
       _selectedFilter = filters[newIndex];
     });
-    
+
     // Comment out popup message for production
     // final filterName = _selectedFilter == null ? 'All' : _selectedFilter!.displayName;
     // ScaffoldMessenger.of(context).showSnackBar(
@@ -523,23 +570,25 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     var filtered = accounts.where((account) {
       // Search filter
       if (_searchQuery.isNotEmpty) {
-        final matchesSearch = account.name.toLowerCase().contains(_searchQuery) ||
+        final matchesSearch =
+            account.name.toLowerCase().contains(_searchQuery) ||
             account.type.displayName.toLowerCase().contains(_searchQuery) ||
-            (account.description?.toLowerCase().contains(_searchQuery) ?? false);
+            (account.description?.toLowerCase().contains(_searchQuery) ??
+                false);
         if (!matchesSearch) return false;
       }
-      
+
       // Type filter
       if (_selectedFilter != null) {
         return account.type == _selectedFilter;
       }
-      
+
       return true;
     }).toList();
-    
+
     // Sort by balance (highest first)
     filtered.sort((a, b) => b.balance.compareTo(a.balance));
-    
+
     return filtered;
   }
 
@@ -573,23 +622,31 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
         existingAccount: account,
         onSave: (updatedAccount) {
           final provider = context.read<AppProvider>();
-          
+
           if (account.balance != updatedAccount.balance) {
             // Update account details first but with the old balance
             // so the transaction can correctly apply the difference to it.
-            final accountWithOldBalance = updatedAccount.copyWith(balance: account.balance);
+            final accountWithOldBalance = updatedAccount.copyWith(
+              balance: account.balance,
+            );
             provider.updateAccount(accountWithOldBalance);
-            
+
             final difference = updatedAccount.balance - account.balance;
             final isIncome = difference > 0;
-            
+
             // Generate a balance adjustment transaction
-            final categoryId = isIncome 
-                ? (provider.incomeCategories.isNotEmpty ? provider.incomeCategories.first.id : 'income')
-                : (provider.expenseCategories.isNotEmpty ? provider.expenseCategories.first.id : 'expense');
-            
+            final categoryId = isIncome
+                ? (provider.incomeCategories.isNotEmpty
+                      ? provider.incomeCategories.first.id
+                      : 'income')
+                : (provider.expenseCategories.isNotEmpty
+                      ? provider.expenseCategories.first.id
+                      : 'expense');
+
             final transaction = Transaction.create(
-              type: isIncome ? AppConstants.transactionTypeIncome : AppConstants.transactionTypeExpense,
+              type: isIncome
+                  ? AppConstants.transactionTypeIncome
+                  : AppConstants.transactionTypeExpense,
               amount: difference.abs(),
               description: 'Balance Adjustment',
               categoryId: categoryId,
@@ -597,7 +654,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
               notes: 'Manual balance adjustment',
               date: DateTime.now(),
             );
-            
+
             // Adding this transaction modifies the balance to reflect the user's manual change
             provider.addTransaction(transaction);
           } else {
@@ -611,14 +668,18 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     });
   }
 
-  void _showDeleteConfirmation(BuildContext context, Account account, AppProvider provider) {
+  void _showDeleteConfirmation(
+    BuildContext context,
+    Account account,
+    AppProvider provider,
+  ) {
     final isCreditCard = account.type == AccountType.creditCard;
-    
+
     // Count transactions for this account
-    final transactionCount = provider.transactions.where((t) => 
-      t.accountId == account.id || t.toAccountId == account.id
-    ).length;
-    
+    final transactionCount = provider.transactions
+        .where((t) => t.accountId == account.id || t.toAccountId == account.id)
+        .length;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -633,7 +694,9 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                 decoration: BoxDecoration(
                   color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: Colors.orange.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -654,17 +717,10 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
               const SizedBox(height: 16),
             ],
             Text(
-              isCreditCard 
-                ? 'This will remove the credit card from both the Accounts screen and Credit Cards screen.'
-                : 'This action cannot be undone.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 16),
-            Text(
               'Choose deletion option:',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -675,14 +731,25 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
           ),
           if (transactionCount > 0) ...[
             TextButton(
-              onPressed: () => _deleteAccountWithTransactions(context, account, provider, isCreditCard),
+              onPressed: () => _deleteAccountWithTransactions(
+                context,
+                account,
+                provider,
+                isCreditCard,
+              ),
               child: Text(
                 'Delete Account Only',
                 style: TextStyle(color: Colors.blue.shade600),
               ),
             ),
             TextButton(
-              onPressed: () => _deleteAccountAndTransactions(context, account, provider, isCreditCard, transactionCount),
+              onPressed: () => _deleteAccountAndTransactions(
+                context,
+                account,
+                provider,
+                isCreditCard,
+                transactionCount,
+              ),
               child: Text(
                 'Delete Account + $transactionCount Transaction${transactionCount == 1 ? '' : 's'}',
                 style: const TextStyle(color: Colors.red),
@@ -690,7 +757,12 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
             ),
           ] else ...[
             TextButton(
-              onPressed: () => _deleteAccountWithTransactions(context, account, provider, isCreditCard),
+              onPressed: () => _deleteAccountWithTransactions(
+                context,
+                account,
+                provider,
+                isCreditCard,
+              ),
               child: const Text(
                 'Delete Account',
                 style: TextStyle(color: Colors.red),
@@ -703,9 +775,14 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
   }
 
   // Delete account only (keep transactions but mark account as deleted)
-  void _deleteAccountWithTransactions(BuildContext context, Account account, AppProvider provider, bool isCreditCard) async {
+  void _deleteAccountWithTransactions(
+    BuildContext context,
+    Account account,
+    AppProvider provider,
+    bool isCreditCard,
+  ) async {
     Navigator.of(context).pop(); // Close the dialog
-    
+
     // Show confirmation for account-only deletion
     final confirmed = await showDialog<bool>(
       context: context,
@@ -715,7 +792,9 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('This will delete the account but keep all transactions.'),
+            const Text(
+              'This will delete the account but keep all transactions.',
+            ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
@@ -746,21 +825,36 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete Account', style: TextStyle(color: Colors.blue)),
+            child: const Text(
+              'Delete Account',
+              style: TextStyle(color: Colors.blue),
+            ),
           ),
         ],
       ),
     );
-    
+
     if (confirmed == true) {
-      await _performAccountDeletion(context, account, provider, isCreditCard, false);
+      await _performAccountDeletion(
+        context,
+        account,
+        provider,
+        isCreditCard,
+        false,
+      );
     }
   }
-  
+
   // Delete account and all its transactions
-  void _deleteAccountAndTransactions(BuildContext context, Account account, AppProvider provider, bool isCreditCard, int transactionCount) async {
+  void _deleteAccountAndTransactions(
+    BuildContext context,
+    Account account,
+    AppProvider provider,
+    bool isCreditCard,
+    int transactionCount,
+  ) async {
     Navigator.of(context).pop(); // Close the dialog
-    
+
     // Show confirmation for account + transactions deletion
     final confirmed = await showDialog<bool>(
       context: context,
@@ -770,7 +864,9 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('This will permanently delete the account and all $transactionCount transaction${transactionCount == 1 ? '' : 's'}.'),
+            Text(
+              'This will permanently delete the account and all $transactionCount transaction${transactionCount == 1 ? '' : 's'}.',
+            ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
@@ -801,22 +897,37 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete Everything', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Delete Everything',
+              style: TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
     );
-    
+
     if (confirmed == true) {
-      await _performAccountDeletion(context, account, provider, isCreditCard, true);
+      await _performAccountDeletion(
+        context,
+        account,
+        provider,
+        isCreditCard,
+        true,
+      );
     }
   }
-  
+
   // Perform the actual deletion
-  Future<void> _performAccountDeletion(BuildContext context, Account account, AppProvider provider, bool isCreditCard, bool deleteTransactions) async {
+  Future<void> _performAccountDeletion(
+    BuildContext context,
+    Account account,
+    AppProvider provider,
+    bool isCreditCard,
+    bool deleteTransactions,
+  ) async {
     try {
       bool success = false;
-      
+
       if (deleteTransactions) {
         // Delete account with all transactions (handles credit card sync automatically)
         success = await provider.deleteAccountWithTransactions(account.id);
@@ -824,16 +935,16 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
         // Delete account only (handles credit card sync automatically)
         success = await provider.deleteAccount(account.id);
       }
-      
+
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               deleteTransactions
-                ? '${account.name} and all transactions deleted successfully!'
-                : (isCreditCard 
-                    ? '${account.name} deleted successfully from both screens!'
-                    : '${account.name} deleted successfully')
+                  ? '${account.name} and all transactions deleted successfully!'
+                  : (isCreditCard
+                        ? '${account.name} deleted successfully from both screens!'
+                        : '${account.name} deleted successfully'),
             ),
             backgroundColor: Colors.green,
           ),
@@ -900,7 +1011,9 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
@@ -916,15 +1029,17 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                         children: [
                           Text(
                             'Financial Overview',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           Text(
                             'Detailed financial health analysis',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                           ),
                         ],
                       ),
@@ -946,12 +1061,12 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                 child: SingleChildScrollView(
                   controller: scrollController,
                   padding: const EdgeInsets.all(16),
-        child: Column(
+                  child: Column(
                     children: [
                       // Financial Health Score
                       _buildHealthScoreCard(context, provider),
                       const SizedBox(height: 16),
-                      
+
                       // Main Financial Metrics
                       _buildFinancialDetailCard(
                         context,
@@ -976,11 +1091,13 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
                         'Net Worth',
                         provider.netWorth,
                         provider.netWorth >= 0 ? Colors.green : Colors.red,
-                        provider.netWorth >= 0 ? Icons.trending_up : Icons.trending_down,
+                        provider.netWorth >= 0
+                            ? Icons.trending_up
+                            : Icons.trending_down,
                         'Assets minus liabilities',
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Financial Insights
                       _buildInsightsCard(context, provider),
                     ],
@@ -1006,7 +1123,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     String description,
   ) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1060,7 +1177,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     final healthScore = _calculateHealthScore(provider);
     final healthColor = _getHealthScoreColor(healthScore);
     final healthStatus = _getHealthScoreStatus(healthScore);
-    
+
     return Card(
       child: Container(
         padding: const EdgeInsets.all(20),
@@ -1167,7 +1284,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
   Widget _buildInsightsCard(BuildContext context, AppProvider provider) {
     final theme = Theme.of(context);
     final insights = _generateInsights(provider);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1198,28 +1315,26 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
               ],
             ),
             const SizedBox(height: 12),
-            ...insights.map((insight) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    insight['icon'],
-                    color: insight['color'],
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      insight['text'],
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: insight['color'],
+            ...insights.map(
+              (insight) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(insight['icon'], color: insight['color'], size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        insight['text'],
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: insight['color'],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            )),
+            ),
           ],
         ),
       ),
@@ -1231,29 +1346,36 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     final netWorth = provider.netWorth;
     final assets = provider.totalAssets;
     final liabilities = provider.totalLiabilities;
-    
+
     int score = 50; // Base score
-    
+
     // Net worth factor
     if (netWorth > 100000) {
       score += 30;
-    } else if (netWorth > 50000) score += 20;
-    else if (netWorth > 0) score += 10;
-    else if (netWorth > -50000) score -= 10;
-    else score -= 20;
-    
+    } else if (netWorth > 50000)
+      score += 20;
+    else if (netWorth > 0)
+      score += 10;
+    else if (netWorth > -50000)
+      score -= 10;
+    else
+      score -= 20;
+
     // Asset-to-liability ratio
     if (liabilities > 0) {
       final ratio = assets / liabilities;
       if (ratio > 3) {
         score += 20;
-      } else if (ratio > 2) score += 10;
-      else if (ratio > 1) score += 5;
-      else score -= 10;
+      } else if (ratio > 2)
+        score += 10;
+      else if (ratio > 1)
+        score += 5;
+      else
+        score -= 10;
     } else if (assets > 0) {
       score += 20; // No liabilities is great
     }
-    
+
     return score.clamp(0, 100);
   }
 
@@ -1276,7 +1398,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
     final netWorth = provider.netWorth;
     final assets = provider.totalAssets;
     final liabilities = provider.totalLiabilities;
-    
+
     if (netWorth > 0) {
       insights.add({
         'icon': Icons.check_circle,
@@ -1290,14 +1412,15 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
         'text': 'Consider reducing liabilities to improve net worth.',
       });
     }
-    
+
     if (liabilities > 0 && assets > 0) {
       final ratio = assets / liabilities;
       if (ratio > 2) {
         insights.add({
           'icon': Icons.trending_up,
           'color': Colors.green,
-          'text': 'Strong asset-to-liability ratio of ${ratio.toStringAsFixed(1)}:1.',
+          'text':
+              'Strong asset-to-liability ratio of ${ratio.toStringAsFixed(1)}:1.',
         });
       } else if (ratio < 1) {
         insights.add({
@@ -1307,15 +1430,16 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
         });
       }
     }
-    
+
     if (provider.accounts.length > 3) {
       insights.add({
         'icon': Icons.account_balance,
         'color': Colors.blue,
-        'text': 'Good diversification with ${provider.accounts.length} accounts.',
+        'text':
+            'Good diversification with ${provider.accounts.length} accounts.',
       });
     }
-    
+
     if (insights.isEmpty) {
       insights.add({
         'icon': Icons.info,
@@ -1323,7 +1447,7 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
         'text': 'Add more accounts to get detailed insights.',
       });
     }
-    
+
     return insights;
   }
 
@@ -1341,9 +1465,9 @@ class _AccountsScreenState extends State<AccountsScreen> with TickerProviderStat
           children: [
             Text(
               'Filter Accounts',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             // Add filter options here
@@ -1375,7 +1499,11 @@ class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: child,

@@ -83,15 +83,15 @@ class ImportExportService {
         debugPrint('Main directory already exists');
       }
 
-      // Create backup subdirectory
-      final backupDir = Directory('${mainDir.path}/Backups');
-      debugPrint('Creating backup directory: ${backupDir.path}');
+      // Create organized export subdirectory: Exports/JSON/
+      final backupDir = Directory('${mainDir.path}/Exports/JSON');
+      debugPrint('Creating JSON export directory: ${backupDir.path}');
 
       if (!await backupDir.exists()) {
         await backupDir.create(recursive: true);
-        debugPrint('Backup directory created successfully');
+        debugPrint('JSON export directory created successfully');
       } else {
-        debugPrint('Backup directory already exists');
+        debugPrint('JSON export directory already exists');
       }
 
       // Generate filename with timestamp
@@ -254,15 +254,15 @@ class ImportExportService {
         debugPrint('Main directory already exists for CSV');
       }
 
-      // Create exports subdirectory
-      final exportsDir = Directory('${mainDir.path}/Exports');
-      debugPrint('Creating exports directory: ${exportsDir.path}');
+      // Create organized export subdirectory: Exports/CSV/
+      final exportsDir = Directory('${mainDir.path}/Exports/CSV');
+      debugPrint('Creating CSV exports directory: ${exportsDir.path}');
 
       if (!await exportsDir.exists()) {
         await exportsDir.create(recursive: true);
-        debugPrint('Exports directory created successfully');
+        debugPrint('CSV exports directory created successfully');
       } else {
-        debugPrint('Exports directory already exists');
+        debugPrint('CSV exports directory already exists');
       }
 
       // Generate filename
@@ -351,7 +351,7 @@ class ImportExportService {
       }
 
       final mainDir = Directory(
-        '${directory?.path}/KoraExpenseTracker/Exports',
+        '${directory?.path}/KoraExpenseTracker/Exports/PDF',
       );
       if (!await mainDir.exists()) await mainDir.create(recursive: true);
 
@@ -382,7 +382,7 @@ class ImportExportService {
       final mainDir = Directory('${directory.path}/KoraExpenseTracker');
       if (!await mainDir.exists()) return [];
 
-      final backupDir = Directory('${mainDir.path}/Backups');
+      final backupDir = Directory('${mainDir.path}/Exports/JSON');
       if (!await backupDir.exists()) return [];
 
       final files = await backupDir.list().toList();
