@@ -477,7 +477,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       // Show export path before exporting
       final exportDir = await ImportExportService.getExportDirectoryPath();
       if (exportDir != null) {
-        _showInfoSnackBar('Exporting to: $exportDir/Backups/');
+        _showInfoSnackBar('Exporting to: $exportDir/KoraExpenseTracker/Exports/JSON/');
       }
 
       final appProvider = context.read<AppProvider>();
@@ -497,7 +497,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
         final fileName = filePath.split('/').last;
         final exportDir = await ImportExportService.getExportDirectoryPath();
         _showSuccessSnackBar(
-          '✅ Backup exported successfully!\n📁 Location: $exportDir/Backups/\n📄 File: $fileName',
+          '✅ Backup exported successfully!\n📁 Location: $exportDir/KoraExpenseTracker/Exports/JSON/\n📄 File: $fileName',
         );
         _loadBackupFiles(); // Refresh backup files list
       } else {

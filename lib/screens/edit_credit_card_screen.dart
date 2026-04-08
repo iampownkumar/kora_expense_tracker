@@ -519,17 +519,17 @@ class _EditCreditCardScreenState extends State<EditCreditCardScreen> {
       if (success && mounted) {
         // Also update in AppProvider if it exists as an account
         final appProvider = context.read<AppProvider>();
-        final account = appProvider.accounts.firstWhere(
+        final account = appProvider.accounts.where(
           (acc) => acc.id == widget.creditCard.id,
-          orElse: () => throw Exception('Account not found'),
-        );
-        
-        final updatedAccount = account.copyWith(
-          name: _nameController.text.trim(),
-          balance: -widget.creditCard.outstandingBalance, // Credit cards have negative balance
-        );
-        
-        await appProvider.updateAccount(updatedAccount);
+        ).firstOrNull;
+
+        if (account != null) {
+          final updatedAccount = account.copyWith(
+            name: _nameController.text.trim(),
+            balance: -widget.creditCard.outstandingBalance,
+          );
+          await appProvider.updateAccount(updatedAccount);
+        }
 
         if (mounted) {
           Navigator.of(context).pop(updatedCard);
