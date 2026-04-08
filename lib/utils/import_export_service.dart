@@ -382,13 +382,22 @@ class ImportExportService {
       final mainDir = Directory('${directory.path}/KoraExpenseTracker');
       if (!await mainDir.exists()) return [];
 
-      final backupDir = Directory('${mainDir.path}/Exports/JSON');
-      if (!await backupDir.exists()) return [];
+      final backupDir = Directory('${mainDir.path}/Exports/CSV');
+      if (!await backupDir.exists()) {
+        // Also look in Download directory as backup
+        final downloadDir = Directory('/storage/emulated/0/Download/KoraExpenseTracker/Exports/CSV');
+        if (await downloadDir.exists()) {
+          final files = await downloadDir.list().toList();
+          files.sort((a, b) => b.path.compareTo(a.path));
+          return files.where((file) => file.path.toLowerCase().endsWith('.csv')).toList();
+        }
+        return [];
+      }
 
       final files = await backupDir.list().toList();
       files.sort((a, b) => b.path.compareTo(a.path)); // Sort by newest first
 
-      return files.where((file) => file.path.endsWith('.json')).toList();
+      return files.where((file) => file.path.toLowerCase().endsWith('.csv')).toList();
     } catch (e) {
       debugPrint('Get backup files error: $e');
       return [];

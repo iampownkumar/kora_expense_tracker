@@ -46,8 +46,8 @@ class MoreScreen extends StatelessWidget {
           // Import/Export Section
           _buildSectionCard(
             context,
-            title: 'Import/Export',
-            subtitle: 'Backup and restore your data',
+            title: 'Export Data',
+            subtitle: 'Export your data to a CSV',
             icon: Icons.backup,
             onTap: () {
               Navigator.of(context).push(
