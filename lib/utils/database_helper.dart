@@ -8,7 +8,7 @@ import 'package:path/path.dart';
 /// instead of serializing a massive JSON array every time.
 class DatabaseHelper {
   static const _databaseName = "kora_expense_tracker.db";
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
   static const _tableName = "app_documents";
 
   // Singleton instance
@@ -21,18 +21,18 @@ class DatabaseHelper {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    
+
     // Prevent multiple parallel initializations
     if (_isInitializing && _initFuture != null) {
       await _initFuture;
       return _database!;
     }
-    
+
     _isInitializing = true;
     _initFuture = _initDatabase();
     _database = await _initFuture;
     _isInitializing = false;
-    
+
     return _database!;
   }
 
@@ -48,35 +48,60 @@ class DatabaseHelper {
       path,
       version: _databaseVersion,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
   Future _onCreate(Database db, int version) async {
     await db.execute('''
       CREATE TABLE $_tableName (
-        id TEXT PRIMARY KEY,
+        id TEXT NOT NULL,
         collection TEXT NOT NULL,
-        payload TEXT NOT NULL
+        payload TEXT NOT NULL,
+        PRIMARY KEY (id, collection)
       )
     ''');
-    
+
     // Create an index for faster lookups by collection
     await db.execute('CREATE INDEX idx_collection ON $_tableName(collection)');
   }
 
+  /// Migrate the old single-column primary key to the new composite primary key
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Recreate the table with composite primary key
+      await db.execute('ALTER TABLE $_tableName RENAME TO ${_tableName}_old');
+      await db.execute('''
+        CREATE TABLE $_tableName (
+          id TEXT NOT NULL,
+          collection TEXT NOT NULL,
+          payload TEXT NOT NULL,
+          PRIMARY KEY (id, collection)
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX idx_collection ON $_tableName(collection)',
+      );
+      await db.execute(
+        'INSERT OR IGNORE INTO $_tableName SELECT id, collection, payload FROM ${_tableName}_old',
+      );
+      await db.execute('DROP TABLE ${_tableName}_old');
+    }
+  }
+
   /// Inserts a new document (e.g. Transaction, Account)
-  Future<bool> insertDocument(String collection, String id, Map<String, dynamic> data) async {
+  Future<bool> insertDocument(
+    String collection,
+    String id,
+    Map<String, dynamic> data,
+  ) async {
     try {
       final db = await database;
-      await db.insert(
-        _tableName,
-        {
-          'id': id,
-          'collection': collection,
-          'payload': jsonEncode(data),
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      await db.insert(_tableName, {
+        'id': id,
+        'collection': collection,
+        'payload': jsonEncode(data),
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
       return true;
     } catch (e) {
       debugPrint('Database insert error: $e');
@@ -85,14 +110,18 @@ class DatabaseHelper {
   }
 
   /// Updates an existing document
-  Future<bool> updateDocument(String id, Map<String, dynamic> data) async {
+  Future<bool> updateDocument(
+    String collection,
+    String id,
+    Map<String, dynamic> data,
+  ) async {
     try {
       final db = await database;
       await db.update(
         _tableName,
         {'payload': jsonEncode(data)},
-        where: 'id = ?',
-        whereArgs: [id],
+        where: 'id = ? AND collection = ?',
+        whereArgs: [id, collection],
       );
       return true;
     } catch (e) {
@@ -102,13 +131,13 @@ class DatabaseHelper {
   }
 
   /// Deletes a document
-  Future<bool> deleteDocument(String id) async {
+  Future<bool> deleteDocument(String collection, String id) async {
     try {
       final db = await database;
       await db.delete(
         _tableName,
-        where: 'id = ?',
-        whereArgs: [id],
+        where: 'id = ? AND collection = ?',
+        whereArgs: [id, collection],
       );
       return true;
     } catch (e) {
@@ -126,7 +155,7 @@ class DatabaseHelper {
         where: 'collection = ?',
         whereArgs: [collection],
       );
-      
+
       return maps.map((row) {
         return jsonDecode(row['payload'] as String) as Map<String, dynamic>;
       }).toList();
@@ -140,9 +169,12 @@ class DatabaseHelper {
   Future<bool> hasDocuments(String collection) async {
     try {
       final db = await database;
-      final count = Sqflite.firstIntValue(await db.rawQuery(
-        'SELECT COUNT(*) FROM $_tableName WHERE collection = ?', [collection]
-      ));
+      final count = Sqflite.firstIntValue(
+        await db.rawQuery(
+          'SELECT COUNT(*) FROM $_tableName WHERE collection = ?',
+          [collection],
+        ),
+      );
       return (count ?? 0) > 0;
     } catch (e) {
       return false;

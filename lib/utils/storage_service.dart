@@ -124,9 +124,9 @@ class StorageService {
         item.toJson(),
       );
   static Future<bool> updateTransaction(Transaction item) async =>
-      await DatabaseHelper.instance.updateDocument(item.id, item.toJson());
+      await DatabaseHelper.instance.updateDocument(AppConstants.transactionsKey, item.id, item.toJson());
   static Future<bool> deleteTransaction(String id) async =>
-      await DatabaseHelper.instance.deleteDocument(id);
+      await DatabaseHelper.instance.deleteDocument(AppConstants.transactionsKey, id);
 
   // ================= Accounts ==================
   static Future<bool> saveAccounts(List<Account> items) async {
@@ -148,9 +148,9 @@ class StorageService {
       .instance
       .insertDocument(AppConstants.accountsKey, item.id, item.toJson());
   static Future<bool> updateAccount(Account item) async =>
-      await DatabaseHelper.instance.updateDocument(item.id, item.toJson());
+      await DatabaseHelper.instance.updateDocument(AppConstants.accountsKey, item.id, item.toJson());
   static Future<bool> deleteAccount(String id) async =>
-      await DatabaseHelper.instance.deleteDocument(id);
+      await DatabaseHelper.instance.deleteDocument(AppConstants.accountsKey, id);
 
   // ================= Categories ==================
   static Future<bool> saveCategories(List<Category> items) async {
@@ -172,9 +172,9 @@ class StorageService {
       .instance
       .insertDocument(AppConstants.categoriesKey, item.id, item.toJson());
   static Future<bool> updateCategory(Category item) async =>
-      await DatabaseHelper.instance.updateDocument(item.id, item.toJson());
+      await DatabaseHelper.instance.updateDocument(AppConstants.categoriesKey, item.id, item.toJson());
   static Future<bool> deleteCategory(String id) async =>
-      await DatabaseHelper.instance.deleteDocument(id);
+      await DatabaseHelper.instance.deleteDocument(AppConstants.categoriesKey, id);
 
   // ================= Credit Cards ==================
   static Future<bool> saveCreditCards(List<CreditCard> items) async {
@@ -199,9 +199,9 @@ class StorageService {
         item.toJson(),
       );
   static Future<bool> updateCreditCard(CreditCard item) async =>
-      await DatabaseHelper.instance.updateDocument(item.id, item.toJson());
+      await DatabaseHelper.instance.updateDocument(AppConstants.creditCardsKey, item.id, item.toJson());
   static Future<bool> deleteCreditCard(String id) async =>
-      await DatabaseHelper.instance.deleteDocument(id);
+      await DatabaseHelper.instance.deleteDocument(AppConstants.creditCardsKey, id);
 
   // ================= Statements ==================
   static Future<bool> saveCreditCardStatements(
@@ -232,9 +232,9 @@ class StorageService {
   static Future<bool> updateCreditCardStatement(
     CreditCardStatement item,
   ) async =>
-      await DatabaseHelper.instance.updateDocument(item.id, item.toJson());
+      await DatabaseHelper.instance.updateDocument(AppConstants.creditCardStatementsKey, item.id, item.toJson());
   static Future<bool> deleteCreditCardStatement(String id) async =>
-      await DatabaseHelper.instance.deleteDocument(id);
+      await DatabaseHelper.instance.deleteDocument(AppConstants.creditCardStatementsKey, id);
 
   // ================= Payment Records ==================
   static Future<bool> savePaymentRecords(List<PaymentRecord> items) async {
@@ -261,9 +261,9 @@ class StorageService {
         item.toJson(),
       );
   static Future<bool> updatePaymentRecord(PaymentRecord item) async =>
-      await DatabaseHelper.instance.updateDocument(item.id, item.toJson());
+      await DatabaseHelper.instance.updateDocument(AppConstants.paymentRecordsKey, item.id, item.toJson());
   static Future<bool> deletePaymentRecord(String id) async =>
-      await DatabaseHelper.instance.deleteDocument(id);
+      await DatabaseHelper.instance.deleteDocument(AppConstants.paymentRecordsKey, id);
 
   // ================= Payments ==================
   static Future<bool> savePayments(List<Payment> items) async {
@@ -285,9 +285,9 @@ class StorageService {
       .instance
       .insertDocument(AppConstants.paymentsKey, item.id, item.toJson());
   static Future<bool> updatePayment(Payment item) async =>
-      await DatabaseHelper.instance.updateDocument(item.id, item.toJson());
+      await DatabaseHelper.instance.updateDocument(AppConstants.paymentsKey, item.id, item.toJson());
   static Future<bool> deletePayment(String id) async =>
-      await DatabaseHelper.instance.deleteDocument(id);
+      await DatabaseHelper.instance.deleteDocument(AppConstants.paymentsKey, id);
 
   // ================= Bank Accounts ==================
   static Future<bool> saveBankAccounts(List<BankAccount> items) async {
@@ -312,9 +312,9 @@ class StorageService {
         item.toJson(),
       );
   static Future<bool> updateBankAccount(BankAccount item) async =>
-      await DatabaseHelper.instance.updateDocument(item.id, item.toJson());
+      await DatabaseHelper.instance.updateDocument(AppConstants.bankAccountsKey, item.id, item.toJson());
   static Future<bool> deleteBankAccount(String id) async =>
-      await DatabaseHelper.instance.deleteDocument(id);
+      await DatabaseHelper.instance.deleteDocument(AppConstants.bankAccountsKey, id);
 
   // ================= Settings (Remains strictly in SharedPreferences) ==================
   static Future<bool> saveSettings(Settings settings) async {
