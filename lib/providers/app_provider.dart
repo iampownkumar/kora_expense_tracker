@@ -834,11 +834,116 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Import transactions from backup
+  /// Import transactions from backup (replaces all)
   Future<void> importTransactions(List<Transaction> transactions) async {
     _transactions = transactions;
     await StorageService.saveTransactions(_transactions);
     notifyListeners();
+  }
+
+  /// Merge imported CSV transactions with existing ones (skips duplicates).
+  /// A duplicate is defined as same date+description+amount.
+  /// Returns the number of transactions actually added.
+  Future<int> mergeImportedTransactions(List<Transaction> incoming) async {
+    int added = 0;
+    
+    // Preparation: Get default fallback IDs if needed
+    final defaultCategoryId = _categories.isNotEmpty ? _categories.first.id : 'uncategorized';
+    final defaultAccountId = _accounts.isNotEmpty ? _accounts.first.id : 'unknown';
+
+    for (var t in incoming) {
+      // 1. Check for duplicates
+      final isDupe = _transactions.any(
+        (existing) =>
+            existing.date.toIso8601String().split('T')[0] ==
+                t.date.toIso8601String().split('T')[0] &&
+            existing.description.toLowerCase() == t.description.toLowerCase() &&
+            existing.amount == t.amount,
+      );
+
+      if (!isDupe) {
+        // 2. Validate Category and Account existence
+        String finalCategoryId = t.categoryId;
+        if (!_categories.any((c) => c.id == t.categoryId)) {
+          finalCategoryId = defaultCategoryId;
+        }
+
+        String finalAccountId = t.accountId;
+        if (!_accounts.any((a) => a.id == t.accountId)) {
+          finalAccountId = defaultAccountId;
+        }
+
+        // 3. Create cleaned transaction
+        final cleanedTransaction = t.copyWith(
+          categoryId: finalCategoryId,
+          accountId: finalAccountId,
+        );
+
+        // 4. Add to list
+        _transactions.add(cleanedTransaction);
+
+        // 5. Update account balances
+        await _updateAccountBalances(cleanedTransaction);
+        
+        added++;
+      }
+    }
+
+    if (added > 0) {
+      // 6. Save all transactions (including new ones) to storage
+      await StorageService.saveTransactions(_transactions);
+      notifyListeners();
+    }
+    
+    return added;
+  }
+
+  /// Wipe all existing transactions and reset account balances, then 
+  /// rebuild the entire history from the imported transactions.
+  /// Returns the number of transactions imported.
+  Future<int> restoreFromImportedTransactions(List<Transaction> incoming) async {
+    // 1. Wipe current transactions
+    _transactions.clear();
+
+    // 2. Reset all account balances to 0.0
+    for (int i = 0; i < _accounts.length; i++) {
+      _accounts[i] = _accounts[i].copyWith(balance: 0.0);
+    }
+
+    // 3. Fallback IDs
+    final defaultCategoryId = _categories.isNotEmpty ? _categories.first.id : 'uncategorized';
+    final defaultAccountId = _accounts.isNotEmpty ? _accounts.first.id : 'unknown';
+
+    // 4. Process all transactions
+    for (var t in incoming) {
+      // Validate Category and Account existence
+      String finalCategoryId = t.categoryId;
+      if (!_categories.any((c) => c.id == t.categoryId)) {
+        finalCategoryId = defaultCategoryId;
+      }
+
+      String finalAccountId = t.accountId;
+      if (!_accounts.any((a) => a.id == t.accountId)) {
+        finalAccountId = defaultAccountId;
+      }
+
+      final cleanedTransaction = t.copyWith(
+        categoryId: finalCategoryId,
+        accountId: finalAccountId,
+      );
+
+      _transactions.add(cleanedTransaction);
+      
+      // Since accounts are reset to 0, applying each transaction rebuilt history
+      await _updateAccountBalances(cleanedTransaction);
+    }
+
+    // 5. Save fresh state to storage
+    await StorageService.saveTransactions(_transactions);
+    await StorageService.saveAccounts(_accounts);
+    
+    notifyListeners();
+    return _transactions.length;
   }
 
   /// Import categories from backup

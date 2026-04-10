@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'import_export_screen.dart';
+import 'import_screen.dart';
 import 'release_notes_screen.dart';
 
 class MoreScreen extends StatelessWidget {
@@ -43,7 +44,23 @@ class MoreScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Import/Export Section
+          // Import Section
+          _buildSectionCard(
+            context,
+            title: 'Import Data',
+            subtitle: 'Restore transactions from a CSV backup',
+            icon: Icons.download,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const ImportScreen(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Export Section
           _buildSectionCard(
             context,
             title: 'Export Data',

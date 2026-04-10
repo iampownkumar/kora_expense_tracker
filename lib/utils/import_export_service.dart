@@ -482,4 +482,189 @@ class ImportExportService {
     // which do not require any permissions on Android 11+.
     return true; // iOS doesn't need explicit storage permission for documents dir
   }
+
+  /// Import transactions from a CSV file picked by the user.
+  /// Returns a list of [Transaction] objects or throws on error.
+  /// Columns expected (same as export):
+  ///   Date, Description, Amount, Type, Category, Account, Notes
+  static Future<List<Transaction>> importFromCSV() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+      allowMultiple: false,
+    );
+
+    if (result == null || result.files.isEmpty) {
+      throw Exception('No file selected');
+    }
+
+    return _parseCSVFile(result.files.first.path!);
+  }
+
+  /// Parse a CSV file at [filePath] and return [Transaction] objects.
+  static Future<List<Transaction>> _parseCSVFile(String filePath) async {
+    final file = File(filePath);
+    if (!await file.exists()) throw Exception('File not found: $filePath');
+
+    final csvString = await file.readAsString();
+    final rows = _parseCsvRows(csvString);
+
+    if (rows.isEmpty) throw Exception('CSV file is empty');
+
+    // Remove header row
+    final dataRows = rows.skip(1).toList();
+    final transactions = <Transaction>[];
+    final now = DateTime.now();
+
+    for (int i = 0; i < dataRows.length; i++) {
+      final row = dataRows[i];
+      if (row.length < 6) continue; // Skip malformed rows
+
+      try {
+        final dateStr = row[0].toString().trim();
+        final description = row[1].toString().replaceAll('""', '"').trim();
+        final amount = double.tryParse(row[2].toString().trim()) ?? 0.0;
+        final type = row[3].toString().trim();
+        final categoryId = row[4].toString().trim();
+        final accountId = row[5].toString().trim();
+        final notes = row.length > 6 ? row[6].toString().replaceAll('""', '"').trim() : null;
+
+        final date = DateTime.tryParse(dateStr) ?? now;
+
+        transactions.add(Transaction(
+          id: '${now.millisecondsSinceEpoch}_import_$i',
+          type: type.isEmpty ? 'expense' : type,
+          amount: amount.abs(),
+          description: description.isEmpty ? 'Imported Transaction' : description,
+          categoryId: categoryId.isEmpty ? 'uncategorized' : categoryId,
+          accountId: accountId.isEmpty ? 'unknown' : accountId,
+          notes: (notes == null || notes.isEmpty) ? null : notes,
+          date: date,
+          createdAt: now,
+          updatedAt: now,
+        ));
+      } catch (e) {
+        debugPrint('Skipping row $i due to parse error: $e');
+      }
+    }
+
+    return transactions;
+  }
+
+  /// Minimal CSV row parser that handles quoted fields with embedded commas/newlines.
+  static List<List<dynamic>> _parseCsvRows(String csv) {
+    CsvParserState state = CsvParserState.normal;
+    List<List<dynamic>> rows = [];
+    List<dynamic> currentRow = [];
+    StringBuffer currentField = StringBuffer();
+
+    for (int i = 0; i < csv.length; i++) {
+      final String char = csv[i];
+
+      switch (state) {
+        case CsvParserState.normal:
+          if (char == '"') {
+            state = CsvParserState.quoted;
+          } else if (char == ',') {
+            currentRow.add(currentField.toString());
+            currentField.clear();
+          } else if (char == '\n' || char == '\r') {
+            currentRow.add(currentField.toString());
+            if (currentRow.isNotEmpty) rows.add(currentRow);
+            currentRow = [];
+            currentField.clear();
+            if (char == '\r' && i + 1 < csv.length && csv[i + 1] == '\n') {
+              i++; // Skip \n in \r\n
+            }
+          } else {
+            currentField.write(char);
+          }
+          break;
+
+        case CsvParserState.quoted:
+          if (char == '"') {
+            if (i + 1 < csv.length && csv[i + 1] == '"') {
+              currentField.write('"'); // Escaped quote
+              i++;
+            } else {
+              state = CsvParserState.normal;
+            }
+          } else {
+            currentField.write(char);
+          }
+          break;
+      }
+    }
+
+    if (currentField.isNotEmpty || currentRow.isNotEmpty) {
+      currentRow.add(currentField.toString());
+      rows.add(currentRow);
+    }
+
+    return rows;
+  }
+
+  /// Parse the CSV file at [filePath] without a file picker (for auto-discovered files).
+  static Future<List<Transaction>> importFromFilePath(String filePath) {
+    return _parseCSVFile(filePath);
+  }
+
+  /// Scan both possible export directories and return all available CSV files
+  /// sorted newest-first, with full metadata.
+  static Future<List<Map<String, dynamic>>> getAvailableCSVFiles() async {
+    final List<FileSystemEntity> allFiles = [];
+
+    // Location 1: Downloads-based path (primary for Android)
+    final downloadDir = Directory(
+      '/storage/emulated/0/Download/KoraExpenseTracker/Exports/CSV',
+    );
+    if (await downloadDir.exists()) {
+      final files = await downloadDir.list().toList();
+      allFiles.addAll(files.where((f) => f.path.toLowerCase().endsWith('.csv')));
+    }
+
+    // Location 2: App-scoped external storage (fallback)
+    try {
+      Directory? extDir;
+      if (Platform.isAndroid) {
+        extDir = await getExternalStorageDirectory();
+      } else {
+        extDir = await getApplicationDocumentsDirectory();
+      }
+      if (extDir != null) {
+        final altDir = Directory('${extDir.path}/KoraExpenseTracker/Exports/CSV');
+        if (await altDir.exists()) {
+          final files = await altDir.list().toList();
+          for (final f in files) {
+            if (f.path.toLowerCase().endsWith('.csv') &&
+                !allFiles.any((existing) => existing.path == f.path)) {
+              allFiles.add(f);
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    // Build result list with metadata
+    final result = <Map<String, dynamic>>[];
+    for (final entity in allFiles) {
+      if (entity is File) {
+        try {
+          final stat = await entity.stat();
+          result.add({
+            'path': entity.path,
+            'name': entity.path.split('/').last,
+            'size': getFileSize(entity),
+            'date': stat.modified,
+          });
+        } catch (_) {}
+      }
+    }
+
+    // Sort newest first
+    result.sort((a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime));
+    return result;
+  }
 }
+
+enum CsvParserState { normal, quoted }
