@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Kora Expense Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #0f172a;
+            --accent: #f43f5e;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --glass: rgba(255, 255, 255, 0.7);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Background Decoration */
+        .blob {
+            position: fixed;
+            width: 500px;
+            height: 500px;
+            background: linear-gradient(135deg, var(--primary-light), var(--primary));
+            filter: blur(80px);
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0.15;
+            animation: move 20s infinite alternate;
+        }
+
+        .blob-1 {
+            top: -100px;
+            right: -100px;
+        }
+
+        .blob-2 {
+            bottom: -100px;
+            left: -100px;
+            background: var(--accent);
+            opacity: 0.1;
+        }
+
+        @keyframes move {
+            from {
+                transform: translate(0, 0) scale(1);
+            }
+
+            to {
+                transform: translate(50px, 100px) scale(1.1);
+            }
+        }
+
+        /* Layout */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 80px 24px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .logo-placeholder {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 20px;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 20px 40px rgba(79, 70, 229, 0.2);
+            font-weight: 700;
+            color: white;
+            font-size: 32px;
+        }
+
+        h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(to right, var(--secondary), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .last-updated {
+            color: var(--text-muted);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Glass Cards */
+        .section-card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 24px;
+            padding: 40px;
+            margin-bottom: 32px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeInUp 1s ease-out both;
+        }
+
+        .section-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h2::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        p {
+            margin-bottom: 20px;
+            color: var(--text-main);
+            opacity: 0.9;
+        }
+
+        /* Permission List */
+        .permission-badge {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(79, 70, 229, 0.1);
+            color: var(--primary);
+            padding: 6px 16px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            border: 1px solid rgba(79, 70, 229, 0.2);
+        }
+
+        .permission-item {
+            margin-bottom: 24px;
+        }
+
+        .permission-name {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 6px;
+            color: var(--secondary);
+        }
+
+        .permission-desc {
+            font-size: 15px;
+            color: var(--text-muted);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 40px 20px;
+            }
+
+            h1 {
+                font-size: 32px;
+            }
+
+            .section-card {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div class="container">
+        <header>
+            <div class="logo-placeholder">K</div>
+            <h1>Privacy Policy</h1>
+            <p class="last-updated">Last Updated: April 10, 2026</p>
+        </header>
+
+        <div class="section-card">
+            <h2>Overview</h2>
+            <p> Kora Expense Tracker is built with your privacy as the primary focus. We believe your financial data
+                should be yours alone. This policy outlines how our application treats your data and the specific device
+                permissions required to provide our service.</p>
+        </div>
+
+        <div class="section-card">
+            <h2>Permissions & Usage</h2>
+            <p>For your transparency, here are the system-level permissions our application uses and the specific
+                reasons why:</p>
+
+            <div class="permission-item">
+                <span class="permission-badge">android.permission.CAMERA</span>
+                <span class="permission-name">Camera Access</span>
+                <p class="permission-desc">Required to enable the capture of physical receipt images. These images are
+                    attached to your transactions for better record keeping. We only access the camera when you
+                    explicitly choose to "Take a Photo" within the transaction editor.</p>
+            </div>
+
+            <div class="permission-item">
+                <span class="permission-badge">android.permission.READ_EXTERNAL_STORAGE</span>
+                <span class="permission-name">Read Storage Access</span>
+                <p class="permission-desc">Used to allow you to select existing receipt images or PDF documents from
+                    your gallery and phone storage to attach to transactions.</p>
+            </div>
+
+            <div class="permission-item">
+                <span class="permission-badge">android.permission.WRITE_EXTERNAL_STORAGE</span>
+                <span class="permission-name">Write Storage Access</span>
+                <p class="permission-desc">Required for the Import/Export functionality. This allows the app to save CSV
+                    backups and PDF reports to your device's global Downloads folder for easy access.</p>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h2>Data Collection</h2>
+            <p><strong>Zero Server Storage:</strong> Kora Expense Tracker is a "Local-First" application. All
+                transaction records, account details, and images are stored solely on your device's internal memory.</p>
+            <p><strong>No Tracking:</strong> We do not use third-party tracking scripts, analytics, or advertising IDs.
+                Your spending habits and financial health are never shared with us or any third party.</p>
+        </div>
+
+        <div class="section-card">
+            <h2>Your Choices</h2>
+            <p>You may revoke any of the permissions listed above at any time through your Android System Settings. Note
+                that doing so may limit your ability to use certain features like receipt capture or data backup.</p>
+        </div>
+
+        <footer>
+            <p>© 2026 Kora Expense Tracker. All Rights Reserved.</p>
+            <p>Designed for complete privacy and financial freedom.</p>
+        </footer>
+    </div>
+</body>
+
+</html>

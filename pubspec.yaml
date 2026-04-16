@@ -1,108 +1,96 @@
 name: kora_expense_tracker
 description: "A modern, intuitive expense tracker app with Material 3 design and multi-language support."
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-# The following defines the version and build number for your application.
-# A version number is three numbers separated by dots, like 1.2.43
-# followed by an optional build number separated by a +.
-# Both the version and the builder number may be overridden in flutter
-# build by specifying --build-name and --build-number, respectively.
-# In Android, build-name is used as versionName while build-number used as versionCode.
-# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
-# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
-# Read more about iOS versioning at
-# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-# In Windows, build-name is used as the major, minor, and patch parts
-# of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+2
+# Prevents accidental publishing to pub.dev
+publish_to: 'none'
 
+# Application version and build number
+# Format: [major].[minor].[patch]+[build_number]
+version: 1.0.1+3
+
+# Dart SDK environment constraints
 environment:
   sdk: ^3.9.0
 
-# Dependencies specify other packages that your package needs in order to work.
-# To automatically upgrade your package dependencies to the latest versions
-# consider running `flutter pub upgrade --major-versions`. Alternatively,
-# dependencies can be manually updated by changing the version numbers below to
-# the latest version available on pub.dev. To see which dependencies have newer
-# versions available, run `flutter pub outdated`.
 dependencies:
+  # Core Flutter framework
   flutter:
     sdk: flutter
+    
+  # Localization capabilities for multi-language support
   flutter_localizations:
     sdk: flutter
 
-  # UI & Design
+  # --- UI & Design ---
+  # Standard iOS-style icons
   cupertino_icons: ^1.0.8
   
-  # State Management
+  # --- State Management ---
+  # Core state management solution using the Provider pattern
   provider: ^6.1.2
   
-  # Internationalization
+  # --- Utilities & Data Processing ---
+  # Internationalization and date/number formatting
   intl: ^0.20.2
+  # Handling CSV parsing and generation for data import/export
+  csv: ^8.0.0
+  # Path manipulation utilities
+  path: ^1.9.1
   
-  # Local Storage
+  # --- Storage & Database ---
+  # Lightweight key-value storage for app settings and simple preferences
   shared_preferences: ^2.2.3
+  # SQLite database implementation for robust, persistent data storage
+  sqflite: ^2.4.2
   
-  # File Handling & Storage
+  # --- File Handling & Permissions ---
+  # UI for selecting files from device storage (e.g., CSV imports)
   file_picker: ^8.0.0+1
+  # Locating standard device directories (Documents, Downloads, etc.)
   path_provider: ^2.1.5
+  # Requesting and handling OS-level permissions (storage, camera)
   permission_handler: ^12.0.1
+  # Selecting images from device gallery or camera for transaction receipts
+  image_picker: ^1.2.1
   
-  # PDF Generation
+  # --- Document Generation ---
+  # Generating PDF reports and statements
   pdf: ^3.12.0
+  # Printing capabilities and PDF preview logic
   printing: ^5.14.3
   
-  # JSON Serialization
+  # --- Serialization ---
+  # Annotations for JSON serialization (works with json_serializable in dev_dependencies)
   json_annotation: ^4.9.0
-  image_picker: ^1.2.1
-  sqflite: ^2.4.2
-  path: ^1.9.1
-  csv: ^8.0.0
 
 dev_dependencies:
+  # Core testing framework
   flutter_test:
     sdk: flutter
 
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
+  # --- Linting & Code Quality ---
+  # Standard Flutter lint rules established by the Flutter team
   flutter_lints: ^5.0.0
   
-  # JSON Serialization
+  # --- Code Generation ---
+  # Generates boilerplate JSON serialization code
   json_serializable: ^6.7.1
+  # Core runner for executing code generators
   build_runner: ^2.4.8
+  
+  # --- Asset Generation ---
+  # Tool for automatically generating app icons across platforms based on a source image
   flutter_launcher_icons: ^0.14.4
 
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
-
-# The following section is specific to Flutter packages.
 flutter:
-
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
+  # Ensures Material Design fonts and icons are included
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
+  # Registered app-level assets
   assets:
     - assets/icon/
 
-  # An image asset can refer to one or more resolution-specific "variants", see
-  # https://flutter.dev/to/resolution-aware-images
-
-  # For details regarding adding assets from package dependencies, see
-  # https://flutter.dev/to/asset-from-package
-
-  # To add custom fonts to your application, add a fonts section here,
-  # in this "flutter" section. Each entry in this list should have a
-  # "family" key with the font family name, and a "fonts" key with a
-  # list giving the asset and other descriptors for the font. For
-  # example:
+  # Custom fonts configuration
   # Fonts (commented out until font files are added)
   # fonts:
   #   - family: Inter
@@ -114,10 +102,8 @@ flutter:
   #         weight: 600
   #       - asset: assets/fonts/Inter-Bold.ttf
   #         weight: 700
-  #
-  # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/to/font-from-package
 
+# Configuration for flutter_launcher_icons package
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
