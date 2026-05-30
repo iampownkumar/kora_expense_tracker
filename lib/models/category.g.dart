@@ -18,6 +18,7 @@ Category _$CategoryFromJson(Map<String, dynamic> json) => Category(
   isActive: json['isActive'] as bool,
   createdAt: DateTime.parse(json['createdAt'] as String),
   updatedAt: DateTime.parse(json['updatedAt'] as String),
+  parentCategoryId: json['parentCategoryId'] as String?,
 );
 
 Map<String, dynamic> _$CategoryToJson(Category instance) => <String, dynamic>{
@@ -30,4 +31,5 @@ Map<String, dynamic> _$CategoryToJson(Category instance) => <String, dynamic>{
   'isActive': instance.isActive,
   'createdAt': instance.createdAt.toIso8601String(),
   'updatedAt': instance.updatedAt.toIso8601String(),
+  'parentCategoryId': instance.parentCategoryId,
 };

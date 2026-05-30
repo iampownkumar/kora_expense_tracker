@@ -54,6 +54,11 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
         }
+        debug {
+            // Different applicationId so debug APK can coexist with Play Store release
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
     }
 }
 

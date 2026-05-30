@@ -5,7 +5,8 @@ import '../models/account_type.dart';
 class AppConstants {
   // App Information
   static const String appName = 'Kora Expense Tracker';
-  static const String appVersion = '1.0.0+2';
+  static const String appVersion = '1.0.2';
+
 
   // Default Currency (INR - Indian Rupee)
   static const String defaultCurrency = 'INR';
@@ -166,6 +167,25 @@ class AppConstants {
   static const double largePadding = 24.0;
   static const double borderRadius = 12.0;
   static const double cardElevation = 2.0;
+
+  // Compact UI Constants (for denser layouts)
+  static const double compactPadding = 10.0;
+  static const double compactSmallPadding = 5.0;
+  static const double compactLargePadding = 16.0;
+
+  // Responsive helpers — returns a value scaled to screen height
+  // Screens < 700dp get ~75% of base, >= 700dp get 100%
+  static double responsivePadding(double screenHeight, double base) {
+    if (screenHeight < 600) return base * 0.65;
+    if (screenHeight < 700) return base * 0.80;
+    return base;
+  }
+
+  static double responsiveIconSize(double screenHeight, double base) {
+    if (screenHeight < 600) return base * 0.70;
+    if (screenHeight < 700) return base * 0.85;
+    return base;
+  }
 
   // Date Formats
   static const String dateFormat = 'yyyy-MM-dd';

@@ -34,7 +34,7 @@ class FinancialSummaryCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
         child: Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppConstants.borderRadius),
             gradient: LinearGradient(
@@ -53,7 +53,7 @@ class FinancialSummaryCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
@@ -61,17 +61,17 @@ class FinancialSummaryCard extends StatelessWidget {
                     child: Icon(
                       Icons.trending_up,
                       color: theme.colorScheme.primary,
-                      size: 20,
+                      size: 16,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Financial Health',
-                          style: theme.textTheme.titleMedium?.copyWith(
+                          style: theme.textTheme.bodyLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: theme.colorScheme.primary,
                           ),
@@ -87,10 +87,10 @@ class FinancialSummaryCard extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
                       color: _getNetWorthColor(netWorth, theme).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -98,14 +98,15 @@ class FinancialSummaryCard extends StatelessWidget {
                         Icon(
                           _getNetWorthIcon(netWorth),
                           color: _getNetWorthColor(netWorth, theme),
-                          size: 14,
+                          size: 12,
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 3),
                         Text(
                           'Tap for details',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: _getNetWorthColor(netWorth, theme),
                             fontWeight: FontWeight.w500,
+                            fontSize: 11,
                           ),
                         ),
                       ],
@@ -118,49 +119,47 @@ class FinancialSummaryCard extends StatelessWidget {
               
               // Net Worth (main metric)
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: _getNetWorthColor(netWorth, theme).withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: _getNetWorthColor(netWorth, theme).withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
-                child: Column(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
                           Icons.account_balance_wallet,
                           color: _getNetWorthColor(netWorth, theme),
-                          size: 16,
+                          size: 14,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Text(
                           'Net Worth',
-                          style: theme.textTheme.titleSmall?.copyWith(
+                          style: theme.textTheme.bodySmall?.copyWith(
                             color: _getNetWorthColor(netWorth, theme),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
                     Text(
                       _formatCurrency(netWorth),
-                      style: theme.textTheme.titleLarge?.copyWith(
+                      style: theme.textTheme.titleMedium?.copyWith(
                         color: _getNetWorthColor(netWorth, theme),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: _getNetWorthColor(netWorth, theme).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -168,14 +167,15 @@ class FinancialSummaryCard extends StatelessWidget {
                           Icon(
                             _getNetWorthIcon(netWorth),
                             color: _getNetWorthColor(netWorth, theme),
-                            size: 16,
+                            size: 12,
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 4),
                           Text(
                             _getNetWorthStatus(netWorth),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: _getNetWorthColor(netWorth, theme),
                               fontWeight: FontWeight.w600,
+                              fontSize: 11,
                             ),
                           ),
                         ],
@@ -185,7 +185,7 @@ class FinancialSummaryCard extends StatelessWidget {
                 ),
               ),
               
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               
               // Assets vs Liabilities breakdown
               Row(
@@ -199,7 +199,7 @@ class FinancialSummaryCard extends StatelessWidget {
                       Icons.trending_up,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: _buildMetricCard(
                       context,

@@ -107,30 +107,29 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
     );
   }
 
-  /// Build credit overview card with key metrics
   Widget _buildCreditOverviewCard(
     BuildContext context,
     CreditCardProvider provider,
   ) {
     return SliverToBoxAdapter(
       child: Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(20),
+        margin: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              const Color(0xFF1E3A8A), // Darker blue for better contrast
-              const Color(0xFF1E40AF), // Slightly lighter blue
+              const Color(0xFF1E3A8A),
+              const Color(0xFF1E40AF),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
               color: const Color(0xFF1E40AF).withValues(alpha: 0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -139,18 +138,18 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.credit_card, size: 28, color: Colors.white),
-                const SizedBox(width: 12),
+                Icon(Icons.credit_card, size: 20, color: Colors.white),
+                const SizedBox(width: 8),
                 Text(
                   'Credit Overview',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -159,16 +158,14 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                     'Total Limit',
                     Formatters.formatCurrency(provider.totalCreditLimit),
                     Icons.account_balance,
-                    color: const Color(
-                      0xFF60A5FA,
-                    ), // Bright blue for better visibility
+                    color: const Color(0xFF60A5FA),
                   ),
                 ),
                 Expanded(
                   child: _buildOverviewStat(
                     context,
                     provider.totalOutstandingBalance < 0
-                        ? 'Available Credit'
+                        ? 'Available'
                         : 'Outstanding',
                     Formatters.formatCurrency(
                       provider.totalOutstandingBalance.abs(),
@@ -176,7 +173,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                     Icons.account_balance_wallet,
                     color: provider.totalOutstandingBalance <= 0
                         ? const Color(0xFF34D399)
-                        : const Color(0xFFF87171), // Bright green/red
+                        : const Color(0xFFF87171),
                   ),
                 ),
                 Expanded(
@@ -185,22 +182,22 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                     'Available',
                     Formatters.formatCurrency(provider.totalAvailableCredit),
                     Icons.account_balance_wallet,
-                    color: const Color(0xFF34D399), // Bright green
+                    color: const Color(0xFF34D399),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: _getUtilizationColor(
                   provider.overallUtilization,
                 ).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: _getUtilizationColor(provider.overallUtilization),
-                  width: 2,
+                  width: 1.5,
                 ),
               ),
               child: Row(
@@ -208,42 +205,46 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                   Icon(
                     Icons.trending_up,
                     color: _getUtilizationColor(provider.overallUtilization),
-                    size: 24,
+                    size: 18,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Overall Utilization',
-                          style: Theme.of(context).textTheme.titleSmall
+                          style: Theme.of(context).textTheme.labelMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: Theme.of(context).colorScheme.onPrimary,
                               ),
                         ),
-                        Text(
-                          '${(provider.overallUtilization.abs() * 100).toStringAsFixed(1)}%',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(
-                                color: _getUtilizationColor(
-                                  provider.overallUtilization.abs(),
-                                ),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                              ),
-                        ),
-                        Text(
-                          provider.overallUtilization < 0
-                              ? 'Credit Available'
-                              : provider.overallUtilizationStatus,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onPrimary.withValues(alpha: 0.7),
-                              ),
+                        Row(
+                          children: [
+                            Text(
+                              '${(provider.overallUtilization.abs() * 100).toStringAsFixed(1)}%',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    color: _getUtilizationColor(
+                                      provider.overallUtilization.abs(),
+                                    ),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              provider.overallUtilization < 0
+                                  ? 'Credit Available'
+                                  : provider.overallUtilizationStatus,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary.withValues(alpha: 0.7),
+                                  ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -261,7 +262,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
   Widget _buildQuickStats(BuildContext context, CreditCardProvider provider) {
     return SliverToBoxAdapter(
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: Row(
           children: [
             Expanded(
@@ -273,7 +274,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                 const Color(0xFF3182CE),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
               child: _buildQuickStatCard(
                 context,
@@ -283,7 +284,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                 const Color(0xFFDD6B20),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
               child: _buildQuickStatCard(
                 context,
@@ -388,25 +389,25 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
   /// Build individual credit card item
   Widget _buildCreditCardItem(BuildContext context, CreditCard card) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           onTap: () => _navigateToCreditCardDetail(context, card),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -414,30 +415,30 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                 Row(
                   children: [
                     Container(
-                      width: 40,
-                      height: 40,
+                      width: 34,
+                      height: 34,
                       decoration: BoxDecoration(
                         color: card.color,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(7),
                       ),
-                      child: Icon(card.icon, color: Colors.white, size: 24),
+                      child: Icon(card.icon, color: Colors.white, size: 18),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             card.name,
-                            style: Theme.of(context).textTheme.titleMedium
+                            style: Theme.of(context).textTheme.titleSmall
                                 ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           Text(
                             card.maskedCardNumber,
-                            style: Theme.of(context).textTheme.bodyMedium
+                            style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
                                   color: Theme.of(context).colorScheme.onSurface
-                                      .withValues(alpha: 0.7),
+                                      .withValues(alpha: 0.6),
                                 ),
                           ),
                         ],
@@ -446,7 +447,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                     _buildStatusChip(context, card.utilizationStatus),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 10),
 
                 // Card Stats
                 Row(
@@ -454,7 +455,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                     Expanded(
                       child: _buildCardStat(
                         context,
-                        'Credit Limit',
+                        'Limit',
                         card.getFormattedCreditLimit(),
                         Icons.account_balance,
                         color: AppConstants.creditLimitColor,
@@ -480,7 +481,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 8),
 
                 // Utilization Bar
                 Row(
@@ -492,12 +493,13 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                         valueColor: AlwaysStoppedAnimation<Color>(
                           card.utilizationColor,
                         ),
+                        minHeight: 4,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 10),
                     Text(
                       card.userFriendlyUtilization,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: card.utilizationColor,
                       ),
@@ -506,36 +508,39 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                 ),
 
                 // Bill & Due Date Info
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 _buildBillDueDateInfo(context, card),
 
                 // Statement Status
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
                 _buildStatementStatus(context, card),
 
                 // Quick Actions
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () =>
                             _navigateToCreditCardDetail(context, card),
-                        icon: const Icon(Icons.receipt_long, size: 16),
-                        label: const Text('Statements'),
+                        icon: const Icon(Icons.receipt_long, size: 14),
+                        label: const Text('Statements',
+                            style: TextStyle(fontSize: 12)),
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          padding: const EdgeInsets.symmetric(vertical: 6),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () => _showQuickPaymentDialog(context, card),
-                        icon: const Icon(Icons.payment, size: 16),
-                        label: const Text('Pay'),
+                        onPressed: () =>
+                            _showQuickPaymentDialog(context, card),
+                        icon: const Icon(Icons.payment, size: 14),
+                        label: const Text('Pay',
+                            style: TextStyle(fontSize: 12)),
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          padding: const EdgeInsets.symmetric(vertical: 6),
                         ),
                       ),
                     ),
@@ -628,32 +633,32 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
     Color color,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 5,
+            blurRadius: 4,
             offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
+          Icon(icon, color: color, size: 18),
+          const SizedBox(height: 4),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: color,
             ),
           ),
           Text(
             title,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: Theme.of(
                 context,
               ).colorScheme.onSurface.withValues(alpha: 0.7),

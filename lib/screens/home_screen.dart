@@ -41,7 +41,8 @@ class _HomeScreenState extends State<HomeScreen> {
       final lastVersion = StorageService.prefs.getString('last_version_seen');
       if (lastVersion != AppConstants.appVersion) {
         await _showWhatsNewDialog();
-        await StorageService.prefs.setString('last_version_seen', AppConstants.appVersion);
+        await StorageService.prefs.setString(
+            'last_version_seen', AppConstants.appVersion);
       }
     } catch (e) {
       debugPrint('Error checking version: $e');
@@ -64,22 +65,23 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('• Unlimited custom categories with icons and colors.'),
+              Text('• Sub-categories: select a parent category then optionally refine with a sub-category when adding transactions.'),
               SizedBox(height: 8),
-              Text('• Attach receipt images to your transactions and view them full screen.'),
+              Text('• Swipe up from the nav bar to add a transaction — swipe down anywhere to close, just like an Android launcher.'),
               SizedBox(height: 8),
-              Text('• Enhanced Home screen with vertical swipe transaction creation.'),
+              Text('• Compact navigation bar and refreshed dashboard layout for more breathing room.'),
               SizedBox(height: 8),
-              Text('• Beautiful new app icon and splash screen design.'),
+              Text('• Category hierarchy: create and manage parent → child categories from the Categories screen.'),
               SizedBox(height: 8),
-              Text('• Sticky filter chips for easy navigation on the Accounts page.'),
+              Text('• Bug fixes: double-back press no longer triggers app-exit toast when closing the add transaction screen.'),
             ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Awesome!', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text('Awesome!',
+                style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -97,13 +99,18 @@ class _HomeScreenState extends State<HomeScreen> {
             children: _screens,
           ),
           bottomNavigationBar: GestureDetector(
+            // ── Original swipe-up to add transaction ──────────────────────
+            // Opens AddTransactionDialog as a bottom sheet (swipe DOWN to close)
             onVerticalDragEnd: (details) {
-              if (details.primaryVelocity != null && details.primaryVelocity! < -300) {
-                // Swipe from bottom to up detected
+              if (details.primaryVelocity != null &&
+                  details.primaryVelocity! < -300) {
                 showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
                   useSafeArea: true,
+                  // enableDrag = true → swipe down dismisses the sheet
+                  enableDrag: true,
+                  isDismissible: true,
                   builder: (context) => AddTransactionDialog(
                     appProvider: context.read<AppProvider>(),
                   ),
@@ -115,35 +122,48 @@ class _HomeScreenState extends State<HomeScreen> {
               onDestinationSelected: (index) {
                 appProvider.setSelectedTab(index);
               },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard),
-            label: 'Home',
+              // Compact height
+              height: 58,
+              labelBehavior:
+                  NavigationDestinationLabelBehavior.onlyShowSelected,
+              indicatorShape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.dashboard_outlined),
+                  selectedIcon: Icon(Icons.dashboard),
+                  label: 'Home',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.receipt_long_outlined),
+                  selectedIcon: Icon(Icons.receipt_long),
+                  label: 'Txns',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.bar_chart_outlined),
+                  selectedIcon: Icon(Icons.bar_chart_rounded),
+                  label: 'Reports',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.account_balance_outlined),
+                  selectedIcon: Icon(Icons.account_balance),
+                  label: 'Accounts',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.credit_card_outlined),
+                  selectedIcon: Icon(Icons.credit_card),
+                  label: 'Cards',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.more_horiz_outlined),
+                  selectedIcon: Icon(Icons.more_horiz),
+                  label: 'More',
+                ),
+              ],
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long),
-            label: 'Txns',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.bar_chart_rounded),
-            label: 'Reports',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.account_balance),
-            label: 'Accounts',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.credit_card),
-            label: 'Credit Cards',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.more_horiz),
-            label: 'More',
-          ),
-        ],
-      ),
-    ),
-  );
+        );
       },
     );
   }

@@ -36,7 +36,7 @@ class AccountCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppConstants.borderRadius),
         child: Padding(
-          padding: const EdgeInsets.all(AppConstants.defaultPadding),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -45,7 +45,7 @@ class AccountCard extends StatelessWidget {
                 children: [
                   // Account type icon with background
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: account.type.color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
@@ -53,10 +53,10 @@ class AccountCard extends StatelessWidget {
                     child: Icon(
                       account.icon,
                       color: account.type.color,
-                      size: 24,
+                      size: 20,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   
                   // Account name and type
                   Expanded(
@@ -65,13 +65,13 @@ class AccountCard extends StatelessWidget {
                       children: [
                         Text(
                           account.name,
-                          style: theme.textTheme.titleMedium?.copyWith(
+                          style: theme.textTheme.bodyLarge?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 1),
                         Text(
                           account.type.displayName,
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -89,7 +89,7 @@ class AccountCard extends StatelessWidget {
                       // Balance
                       Text(
                         account.type == AccountType.creditCard ? account.getFormattedUserBalance() : account.getFormattedBalance(),
-                        style: theme.textTheme.titleLarge?.copyWith(
+                        style: theme.textTheme.titleMedium?.copyWith(
                           color: account.balanceColor,
                           fontWeight: FontWeight.bold,
                         ),
@@ -99,14 +99,14 @@ class AccountCard extends StatelessWidget {
                       Icon(
                         account.balanceIcon,
                         color: account.balanceColor,
-                        size: 16,
+                        size: 14,
                       ),
                     ],
                   ),
                   
                   // Actions menu
                   if (showActions) ...[
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 4),
                     PopupMenuButton<String>(
                       onSelected: (value) {
                         switch (value) {
@@ -123,7 +123,7 @@ class AccountCard extends StatelessWidget {
                           value: 'edit',
                           child: Row(
                             children: [
-                              Icon(Icons.edit, size: 20),
+                              Icon(Icons.edit, size: 18),
                               SizedBox(width: 8),
                               Text('Edit'),
                             ],
@@ -133,7 +133,7 @@ class AccountCard extends StatelessWidget {
                           value: 'delete',
                           child: Row(
                             children: [
-                              Icon(Icons.delete, size: 20, color: Colors.red),
+                              Icon(Icons.delete, size: 18, color: Colors.red),
                               SizedBox(width: 8),
                               Text('Delete', style: TextStyle(color: Colors.red)),
                             ],
@@ -143,6 +143,7 @@ class AccountCard extends StatelessWidget {
                       child: Icon(
                         Icons.more_vert,
                         color: theme.colorScheme.onSurfaceVariant,
+                        size: 20,
                       ),
                     ),
                   ],
@@ -151,9 +152,9 @@ class AccountCard extends StatelessWidget {
               
               // Expanded details (if expanded)
               if (isExpanded) ...[
-                const SizedBox(height: 12),
-                const Divider(),
                 const SizedBox(height: 8),
+                const Divider(),
+                const SizedBox(height: 6),
                 
                 // Additional account details
                 Row(
@@ -178,7 +179,7 @@ class AccountCard extends StatelessWidget {
                 ),
                 
                 if (account.description != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   _buildDetailItem(
                     context,
                     'Description',
@@ -187,7 +188,7 @@ class AccountCard extends StatelessWidget {
                   ),
                 ],
                 
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 _buildDetailItem(
                   context,
                   'Last Updated',

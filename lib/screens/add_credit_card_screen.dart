@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../constants/app_constants.dart';
 import '../providers/credit_card_provider.dart';
 import '../providers/app_provider.dart';
 import '../models/credit_card.dart';
@@ -128,6 +129,11 @@ class _AddCreditCardScreenState extends State<AddCreditCardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final sh = MediaQuery.of(context).size.height;
+    final p = AppConstants.responsivePadding(sh, 14.0);
+    final sp = AppConstants.responsivePadding(sh, 12.0);
+    final lp = AppConstants.responsivePadding(sh, 20.0);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add Credit Card'),
@@ -147,65 +153,65 @@ class _AddCreditCardScreenState extends State<AddCreditCardScreen> {
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(p),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Card Preview
-              _buildCardPreview(),
-              const SizedBox(height: 32),
+              _buildCardPreview(sh),
+              SizedBox(height: lp),
               
               // Basic Information
               _buildSectionHeader('Basic Information'),
-              const SizedBox(height: 16),
+              SizedBox(height: sp),
               _buildNameField(),
-              const SizedBox(height: 16),
+              SizedBox(height: sp),
               _buildLastFourDigitsField(),
-              const SizedBox(height: 16),
+              SizedBox(height: sp),
               _buildExpiryDateField(),
-              const SizedBox(height: 16),
+              SizedBox(height: sp),
               _buildNetworkDropdown(),
-              const SizedBox(height: 16),
+              SizedBox(height: sp),
               _buildTypeDropdown(),
-              const SizedBox(height: 16),
+              SizedBox(height: sp),
               _buildBankDropdown(),
-              const SizedBox(height: 24),
+              SizedBox(height: lp),
               
               // Financial Information
               _buildSectionHeader('Financial Information'),
-              const SizedBox(height: 16),
+              SizedBox(height: sp),
               _buildCreditLimitField(),
-              const SizedBox(height: 16),
+              SizedBox(height: sp),
               _buildOutstandingBalanceField(),
-              const SizedBox(height: 16),
+              SizedBox(height: sp),
               _buildInterestRateField(),
-              const SizedBox(height: 16),
+              SizedBox(height: sp),
               _buildMinimumPaymentField(),
-              const SizedBox(height: 24),
+              SizedBox(height: lp),
               
               // Billing Information
               _buildSectionHeader('Billing Information'),
-              const SizedBox(height: 16),
+              SizedBox(height: sp),
               _buildBillingCycleDayField(),
-              const SizedBox(height: 16),
+              SizedBox(height: sp),
               _buildGracePeriodField(),
-              const SizedBox(height: 16),
+              SizedBox(height: sp),
               _buildAutoGenerateStatementsSwitch(),
-              const SizedBox(height: 24),
+              SizedBox(height: lp),
               
               // Appearance
               _buildSectionHeader('Appearance'),
-              const SizedBox(height: 16),
+              SizedBox(height: sp),
               _buildColorSelector(),
-              const SizedBox(height: 16),
+              SizedBox(height: sp),
               _buildIconSelector(),
-              const SizedBox(height: 24),
+              SizedBox(height: lp),
               
               // Notes
               _buildSectionHeader('Notes (Optional)'),
-              const SizedBox(height: 16),
+              SizedBox(height: sp),
               _buildNotesField(),
-              const SizedBox(height: 32),
+              SizedBox(height: lp),
               
               // Save Button
               SizedBox(
@@ -213,7 +219,7 @@ class _AddCreditCardScreenState extends State<AddCreditCardScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _saveCreditCard,
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: EdgeInsets.symmetric(vertical: sp),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -231,13 +237,13 @@ class _AddCreditCardScreenState extends State<AddCreditCardScreen> {
                       : const Text(
                           'Add Credit Card',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                 ),
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: lp),
             ],
           ),
         ),
@@ -245,27 +251,29 @@ class _AddCreditCardScreenState extends State<AddCreditCardScreen> {
     );
   }
 
-  Widget _buildCardPreview() {
+  Widget _buildCardPreview([double? screenHeight]) {
+    final sh = screenHeight ?? 700.0;
+    final previewHeight = AppConstants.responsivePadding(sh, 160.0);
     return Container(
-      height: 200,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      height: previewHeight,
+      margin: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [_selectedColor, _selectedColor.withValues(alpha: 0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
             color: _selectedColor.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -274,14 +282,14 @@ class _AddCreditCardScreenState extends State<AddCreditCardScreen> {
                 Icon(
                   _selectedIcon,
                   color: Colors.white,
-                  size: 32,
+                  size: 26,
                 ),
                 const Spacer(),
                 Text(
                   _selectedNetwork,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -292,29 +300,29 @@ class _AddCreditCardScreenState extends State<AddCreditCardScreen> {
               _nameController.text.isEmpty ? 'Card Name' : _nameController.text,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 20,
+                fontSize: 17,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               _lastFourDigitsController.text.isEmpty 
                   ? '•••• •••• •••• ••••'
                   : '•••• •••• •••• ${_lastFourDigitsController.text}',
               style: const TextStyle(
                 color: Colors.white70,
-                fontSize: 16,
+                fontSize: 13,
                 letterSpacing: 2,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(
               _selectedExpiryDate != null 
                 ? 'Expires ${_selectedExpiryDate!.month.toString().padLeft(2, '0')}/${_selectedExpiryDate!.year.toString().substring(2)}'
                 : 'No expiry date',
               style: const TextStyle(
                 color: Colors.white70,
-                fontSize: 14,
+                fontSize: 12,
               ),
             ),
           ],
@@ -362,21 +370,22 @@ class _AddCreditCardScreenState extends State<AddCreditCardScreen> {
       labelText: labelText,
       hintText: hintText,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(color: Colors.grey.shade300),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
       ),
-      prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
+      prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: 18) : null,
       prefixText: prefixText,
       suffixText: suffixText,
       helperText: helperText,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
     );
   }
 

@@ -10,32 +10,35 @@ part 'category.g.dart';
 class Category {
   /// Unique identifier for the category
   final String id;
-  
+
   /// Category name
   final String name;
-  
+
   /// Category icon
   @IconDataConverter()
   final IconData icon;
-  
+
   /// Category color
   @ColorConverter()
   final Color color;
-  
+
   /// Category type: income, expense, or both
   final String type;
-  
+
   /// Whether this is a default category
   final bool isDefault;
-  
+
   /// Whether the category is active
   final bool isActive;
-  
+
   /// When the category was created
   final DateTime createdAt;
-  
+
   /// When the category was last modified
   final DateTime updatedAt;
+
+  /// Optional parent category ID — if set, this is a sub-category
+  final String? parentCategoryId;
 
   /// Constructor for Category
   const Category({
@@ -48,6 +51,7 @@ class Category {
     required this.isActive,
     required this.createdAt,
     required this.updatedAt,
+    this.parentCategoryId,
   });
 
   /// Create a new Category with current timestamps
@@ -57,6 +61,7 @@ class Category {
     required Color color,
     required String type,
     bool isDefault = false,
+    String? parentCategoryId,
   }) {
     final now = DateTime.now();
     return Category(
@@ -69,6 +74,7 @@ class Category {
       isActive: true,
       createdAt: now,
       updatedAt: now,
+      parentCategoryId: parentCategoryId,
     );
   }
 
@@ -83,6 +89,8 @@ class Category {
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? parentCategoryId,
+    bool clearParent = false,
   }) {
     return Category(
       id: id ?? this.id,
@@ -94,8 +102,13 @@ class Category {
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
+      parentCategoryId:
+          clearParent ? null : (parentCategoryId ?? this.parentCategoryId),
     );
   }
+
+  /// Whether this is a sub-category
+  bool get isSubCategory => parentCategoryId != null;
 
   /// Check if this category is for income transactions
   bool get isIncome => type == AppConstants.transactionTypeIncome;
@@ -130,7 +143,8 @@ class Category {
   Map<String, dynamic> toJson() => _$CategoryToJson(this);
 
   /// Create from JSON
-  factory Category.fromJson(Map<String, dynamic> json) => _$CategoryFromJson(json);
+  factory Category.fromJson(Map<String, dynamic> json) =>
+      _$CategoryFromJson(json);
 
   /// Generate a unique ID for categories
   static String _generateId() {
@@ -148,6 +162,6 @@ class Category {
 
   @override
   String toString() {
-    return 'Category(id: $id, name: $name, type: $type, isDefault: $isDefault)';
+    return 'Category(id: $id, name: $name, type: $type, isDefault: $isDefault, parentCategoryId: $parentCategoryId)';
   }
 }

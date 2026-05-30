@@ -221,9 +221,11 @@ class _AccountsScreenState extends State<AccountsScreen>
 
   Widget _buildSliverAppBar(BuildContext context, AppProvider provider) {
     final theme = Theme.of(context);
+    final sh = MediaQuery.of(context).size.height;
+    final expandedHeight = AppConstants.responsivePadding(sh, 110.0);
 
     return SliverAppBar(
-      expandedHeight: 110,
+      expandedHeight: expandedHeight,
       floating: false,
       pinned: true,
       backgroundColor: theme.brightness == Brightness.dark
@@ -253,7 +255,7 @@ class _AccountsScreenState extends State<AccountsScreen>
               children: [
                 // Title area
                 Container(
-                  height: 56,
+                  height: 50,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
@@ -281,12 +283,7 @@ class _AccountsScreenState extends State<AccountsScreen>
                 ),
                 // Search bar area
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    16,
-                    0,
-                    16,
-                    4,
-                  ), // changed from 16 to 4 for reduce the height
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
                   child: TextField(
                     controller: _searchController,
                     focusNode: _searchFocusNode,
@@ -294,7 +291,6 @@ class _AccountsScreenState extends State<AccountsScreen>
                       setState(() => _searchQuery = value.toLowerCase());
                     },
                     onTap: () {
-                      // Only focus when user explicitly taps
                       _searchFocusNode.requestFocus();
                     },
                     style: const TextStyle(color: Colors.white),
@@ -303,12 +299,13 @@ class _AccountsScreenState extends State<AccountsScreen>
                       hintStyle: TextStyle(
                         color: Colors.white.withValues(alpha: 0.7),
                       ),
-                      prefixIcon: const Icon(Icons.search, color: Colors.white),
+                      prefixIcon: const Icon(Icons.search, color: Colors.white, size: 20),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
                               icon: const Icon(
                                 Icons.clear,
                                 color: Colors.white,
+                                size: 18,
                               ),
                               onPressed: () {
                                 _searchController.clear();
@@ -317,19 +314,19 @@ class _AccountsScreenState extends State<AccountsScreen>
                             )
                           : null,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide(
                           color: Colors.white.withValues(alpha: 0.3),
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide(
                           color: Colors.white.withValues(alpha: 0.3),
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                         borderSide: const BorderSide(
                           color: Colors.white,
                           width: 2,
@@ -339,8 +336,8 @@ class _AccountsScreenState extends State<AccountsScreen>
                       fillColor: Colors.white.withValues(alpha: 0.1),
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                        horizontal: 10,
+                        vertical: 7,
                       ),
                     ),
                   ),
@@ -354,11 +351,12 @@ class _AccountsScreenState extends State<AccountsScreen>
   }
 
   Widget _buildFilterChips(BuildContext context) {
-    final theme = Theme.of(context);
+    final sh = MediaQuery.of(context).size.height;
+    final chipBarHeight = sh < 650 ? 36.0 : 40.0;
     final ScrollController filterScrollController = ScrollController();
 
     return Container(
-      height: 40, // changed from 50 to 40 for reduce the height
+      height: chipBarHeight,
       padding: const EdgeInsets.symmetric(
         horizontal: AppConstants.defaultPadding,
       ),

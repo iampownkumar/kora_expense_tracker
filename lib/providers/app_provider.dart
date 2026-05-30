@@ -131,6 +131,31 @@ class AppProvider extends ChangeNotifier {
     return _categories.where((c) => c.isExpense || c.isBoth).toList();
   }
 
+  /// Top-level categories (no parent)
+  List<Category> get topLevelCategories {
+    return _categories.where((c) => !c.isSubCategory).toList();
+  }
+
+  /// Sub-categories for a given parent id
+  List<Category> getSubCategories(String parentId) {
+    return _categories.where((c) => c.parentCategoryId == parentId).toList();
+  }
+
+  /// Total sub-category count
+  int get subCategoryCount {
+    return _categories.where((c) => c.isSubCategory).length;
+  }
+
+  /// Top-level income categories (no parent)
+  List<Category> get topLevelIncomeCategories {
+    return topLevelCategories.where((c) => c.isIncome || c.isBoth).toList();
+  }
+
+  /// Top-level expense categories (no parent)
+  List<Category> get topLevelExpenseCategories {
+    return topLevelCategories.where((c) => c.isExpense || c.isBoth).toList();
+  }
+
   // Initialize app data
   Future<void> initialize() async {
     _setLoading(true);

@@ -12,12 +12,15 @@ class AddTransactionDialog extends StatefulWidget {
   final AppProvider appProvider;
   final Transaction? transaction; // For editing existing transactions
   final String? defaultAccountId; // Pre-select this account
+  final String?
+  initialType; // Pre-select transaction type (from quick-add drawer)
 
   const AddTransactionDialog({
     super.key,
     required this.appProvider,
     this.transaction,
     this.defaultAccountId,
+    this.initialType,
   });
 
   @override
@@ -29,13 +32,24 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   String _amount = '';
   String _description = '';
   String _notes = '';
+
+  /// The final category id saved in the transaction (could be sub-category)
   String? _selectedCategoryId;
+
+  /// The parent category id selected in step 1 of category picker
+  String? _selectedParentCategoryId;
+
+  /// Optional sub-category selected in step 2 (not mandatory)
+  String? _selectedSubCategoryId;
   String? _selectedAccountId;
   String? _selectedToAccountId;
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
   String? _imagePath;
   bool _hasAttemptedSave = false;
+
+  /// Guard: prevents double-pop from simultaneous gesture+overscroll events
+  bool _popping = false;
 
   // Focus nodes for auto-navigation
   final FocusNode _descriptionFocus = FocusNode();
@@ -64,20 +78,40 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       _amount = transaction.amount.abs().toString();
       _description = transaction.description;
       _notes = transaction.notes ?? '';
-      _selectedCategoryId = transaction.categoryId;
       _selectedAccountId = transaction.accountId;
       _selectedToAccountId = transaction.toAccountId;
       _selectedDate = transaction.date;
       _selectedTime = TimeOfDay.fromDateTime(transaction.date);
       _imagePath = transaction.imagePath;
+      // Detect whether the saved category is a sub-category
+      final savedCat = widget.appProvider.categories
+          .where((c) => c.id == transaction.categoryId)
+          .firstOrNull;
+      if (savedCat != null && savedCat.isSubCategory) {
+        // Sub selected: restore parent + sub
+        _selectedParentCategoryId = savedCat.parentCategoryId;
+        _selectedSubCategoryId = savedCat.id;
+        _selectedCategoryId = savedCat.id;
+      } else {
+        // Parent selected directly
+        _selectedParentCategoryId = savedCat?.id;
+        _selectedSubCategoryId = null;
+        _selectedCategoryId = savedCat?.id;
+      }
 
       // Set controller values
       _descriptionController.text = _description;
       _amountController.text = _amount;
       _notesController.text = _notes;
-    } else if (widget.defaultAccountId != null) {
+    } else {
+      // Apply initialType if provided (from quick-add drawer)
+      if (widget.initialType != null) {
+        _selectedType = widget.initialType!;
+      }
       // Pre-select the default account if provided
-      _selectedAccountId = widget.defaultAccountId;
+      if (widget.defaultAccountId != null) {
+        _selectedAccountId = widget.defaultAccountId;
+      }
     }
 
     // Auto-focus appropriate field when screen opens
@@ -108,61 +142,68 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     super.dispose();
   }
 
+  /// Closes the dialog exactly once, no matter how many gestures fire.
+  void _closeDialog() {
+    if (_popping || !mounted) return;
+    _popping = true;
+    FocusScope.of(context).unfocus();
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: AppBar(
+    return GestureDetector(
+      // ── Swipe DOWN anywhere on the screen → close (Kora Launcher pattern) ──
+      // The scroll view consumes the drag when NOT at top, so scrolling is safe.
+      onVerticalDragEnd: (details) {
+        if (details.primaryVelocity != null && details.primaryVelocity! > 300) {
+          _closeDialog();
+        }
+      },
+      // Horizontal swipe anywhere to cycle transaction type
+      onHorizontalDragEnd: (details) {
+        if (details.primaryVelocity! > 0) {
+          _cycleType(-1);
+        } else if (details.primaryVelocity! < 0) {
+          _cycleType(1);
+        }
+      },
+      child: Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          widget.transaction != null
-              ? 'Edit Transaction'
-              : (_selectedType == AppConstants.transactionTypeTransfer
-                    ? 'Transfer Money'
-                    : 'Add Transaction'),
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _saveTransaction,
-            child: const Text(
-              'Save',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
           ),
-        ],
-      ),
-      body: GestureDetector(
-        onHorizontalDragEnd: (details) {
-          // Swipe left/right anywhere in the app to change type
-          if (details.primaryVelocity! > 0) {
-            // Swipe right
-            _cycleType(-1);
-          } else if (details.primaryVelocity! < 0) {
-            // Swipe left
-            _cycleType(1);
-          }
-        },
-        onVerticalDragEnd: (details) {
-          if (details.primaryVelocity! > 300) {
-            // Swipe down to close
-            Navigator.of(context).pop();
-          }
-        },
-        child: SafeArea(
+          title: Text(
+            widget.transaction != null
+                ? 'Edit Transaction'
+                : (_selectedType == AppConstants.transactionTypeTransfer
+                      ? 'Transfer Money'
+                      : 'Add Transaction'),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          actions: [
+            TextButton(
+              onPressed: _saveTransaction,
+              child: const Text(
+                'Save',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        body: SafeArea(
           child: Column(
             children: [
-              // Drag handle for bottom sheet
+              // Visual drag handle (decorative only — swipe works on entire screen)
               Center(
                 child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  margin: const EdgeInsets.symmetric(vertical: 10),
                   height: 4,
                   width: 40,
                   decoration: BoxDecoration(
@@ -182,47 +223,70 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                 child: _buildTypeSelector(),
               ),
 
-              // Scrollable content
+              // Scrollable content — NotificationListener closes on overscroll
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Transaction Details Cards
-                      _buildTransactionTitleCard(),
-                      const SizedBox(height: 16),
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    // When at top of list and user pulls DOWN past -30px → close
+                    if (notification.metrics.pixels <= -30) {
+                      _closeDialog();
+                      return true;
+                    }
+                    return false;
+                  },
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Transaction Details Cards
+                        _buildTransactionTitleCard(),
+                        const SizedBox(height: 16),
 
-                      _buildAmountCard(),
-                      const SizedBox(height: 16),
+                        _buildAmountCard(),
+                        const SizedBox(height: 16),
 
-                      // Transfer-specific UI
-                      if (_selectedType ==
-                          AppConstants.transactionTypeTransfer) ...[
-                        _buildFromAccountCard(),
+                        // Transfer-specific UI
+                        if (_selectedType ==
+                            AppConstants.transactionTypeTransfer) ...[
+                          _buildFromAccountCard(),
+                          const SizedBox(height: 16),
+                          _buildToAccountCard(),
+                          const SizedBox(height: 16),
+                        ] else ...[
+                          _buildAccountCard(),
+                          const SizedBox(height: 16),
+                          _buildCategoryCard(),
+                          const SizedBox(height: 16),
+                          // Sub-category card — shown automatically when
+                          // the selected parent has sub-categories
+                          if (_selectedParentCategoryId != null &&
+                              widget.appProvider
+                                  .getSubCategories(_selectedParentCategoryId!)
+                                  .isNotEmpty) ...
+                          [
+                            _buildSubCategoryCard(),
+                            const SizedBox(height: 16),
+                          ],
+                        ],
+
+                        _buildDateTimeCard(),
                         const SizedBox(height: 16),
-                        _buildToAccountCard(),
+
+                        _buildImageAttachmentCard(),
                         const SizedBox(height: 16),
-                      ] else ...[
-                        _buildAccountCard(),
-                        const SizedBox(height: 16),
-                        _buildCategoryCard(),
-                        const SizedBox(height: 16),
+
+                        _buildNotesCard(),
+                        const SizedBox(height: 24),
+
+                        // Update Transaction Button
+                        _buildUpdateButton(),
+                        const SizedBox(height: 24), // Extra space for keyboard
                       ],
-
-                      _buildDateTimeCard(),
-                      const SizedBox(height: 16),
-
-                      _buildImageAttachmentCard(),
-                      const SizedBox(height: 16),
-
-                      _buildNotesCard(),
-                      const SizedBox(height: 24),
-
-                      // Update Transaction Button
-                      _buildUpdateButton(),
-                      const SizedBox(height: 24), // Extra space for keyboard
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -660,10 +724,13 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     );
   }
 
+  /// Step 1 — parent category card
   Widget _buildCategoryCard() {
-    final selectedCategory = widget.appProvider.categories
-        .where((category) => category.id == _selectedCategoryId)
-        .firstOrNull;
+    final parentCat = _selectedParentCategoryId != null
+        ? widget.appProvider.categories
+            .where((c) => c.id == _selectedParentCategoryId)
+            .firstOrNull
+        : null;
     final hasError = _hasAttemptedSave && _selectedCategoryId == null;
 
     return GestureDetector(
@@ -681,9 +748,8 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
           child: Row(
             children: [
               Icon(
-                selectedCategory?.icon ?? Icons.category,
-                color:
-                    selectedCategory?.color ??
+                parentCat?.icon ?? Icons.category,
+                color: parentCat?.color ??
                     Theme.of(context).colorScheme.onSurfaceVariant,
                 size: 20,
               ),
@@ -702,7 +768,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      selectedCategory?.name ??
+                      parentCat?.name ??
                           'Select Category${hasError ? " *" : ""}',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w500,
@@ -716,6 +782,99 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                 onPressed: () => _showCategoryPicker(),
                 icon: const Icon(Icons.add),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Step 2 — optional sub-category card (shown only when parent has subs)
+  Widget _buildSubCategoryCard() {
+    final subs = widget.appProvider
+        .getSubCategories(_selectedParentCategoryId!)
+        .where((s) {
+          if (_selectedType == AppConstants.transactionTypeIncome) {
+            return s.type == AppConstants.categoryTypeIncome ||
+                s.type == AppConstants.categoryTypeBoth;
+          } else if (_selectedType == AppConstants.transactionTypeExpense) {
+            return s.type == AppConstants.categoryTypeExpense ||
+                s.type == AppConstants.categoryTypeBoth;
+          }
+          return true;
+        })
+        .toList();
+
+    final selectedSub = _selectedSubCategoryId != null
+        ? widget.appProvider.categories
+            .where((c) => c.id == _selectedSubCategoryId)
+            .firstOrNull
+        : null;
+
+    final parentCat = widget.appProvider.categories
+        .where((c) => c.id == _selectedParentCategoryId)
+        .firstOrNull;
+
+    return GestureDetector(
+      onTap: () => _showSubCategoryPicker(parentCat, subs),
+      child: Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(
+                selectedSub?.icon ?? Icons.subdirectory_arrow_right,
+                color: selectedSub?.color ??
+                    Theme.of(context).colorScheme.onSurfaceVariant,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Sub-category',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      selectedSub?.name ?? 'Optional — tap to select',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: selectedSub != null
+                            ? FontWeight.w500
+                            : FontWeight.w400,
+                        color: selectedSub != null
+                            ? null
+                            : Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant
+                                .withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Clear sub-category button (only if one is selected)
+              if (selectedSub != null)
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedSubCategoryId = null;
+                      _selectedCategoryId = _selectedParentCategoryId;
+                    });
+                  },
+                  icon: const Icon(Icons.close, size: 18),
+                  tooltip: 'Remove sub-category',
+                )
+              else
+                const Icon(Icons.chevron_right),
             ],
           ),
         ),
@@ -964,7 +1123,10 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+              border: Border.all(
+                color: color.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
             ),
             child: Icon(icon, size: 36, color: color),
           ),
@@ -1029,7 +1191,6 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       setState(() => _imagePath = image.path);
     }
   }
-
 
   Widget _buildImageAttachmentCard() {
     return Card(
@@ -1101,9 +1262,15 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                             top: 40,
                             right: 20,
                             child: IconButton(
-                              icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 30,
+                              ),
                               padding: const EdgeInsets.all(8),
-                              style: IconButton.styleFrom(backgroundColor: Colors.black54),
+                              style: IconButton.styleFrom(
+                                backgroundColor: Colors.black54,
+                              ),
                               onPressed: () => Navigator.of(context).pop(),
                             ),
                           ),
@@ -1369,16 +1536,16 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   }
 
   void _showCategoryPicker() {
-    // Filter categories based on transaction type
-    final categories = widget.appProvider.categories.where((category) {
+    // Step 1: show only top-level categories filtered by transaction type
+    final topLevel = widget.appProvider.topLevelCategories.where((c) {
       if (_selectedType == AppConstants.transactionTypeIncome) {
-        return category.type == AppConstants.categoryTypeIncome ||
-            category.type == AppConstants.categoryTypeBoth;
+        return c.type == AppConstants.categoryTypeIncome ||
+            c.type == AppConstants.categoryTypeBoth;
       } else if (_selectedType == AppConstants.transactionTypeExpense) {
-        return category.type == AppConstants.categoryTypeExpense ||
-            category.type == AppConstants.categoryTypeBoth;
+        return c.type == AppConstants.categoryTypeExpense ||
+            c.type == AppConstants.categoryTypeBoth;
       }
-      return true; // Show all for transfers
+      return true;
     }).toList();
 
     showModalBottomSheet(
@@ -1396,34 +1563,149 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               'Select Category',
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+            Text(
+              'Categories with sub-categories will show a refinement step.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
             Flexible(
               child: ListView(
                 shrinkWrap: true,
-                children: categories
-                    .map(
-                      (category) => ListTile(
-                        leading: Icon(category.icon, color: category.color),
-                        title: Text(
-                          category.name,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 2,
-                        ),
+                children: topLevel.map((category) {
+                  final subs = widget.appProvider
+                      .getSubCategories(category.id)
+                      .where((s) {
+                        if (_selectedType ==
+                            AppConstants.transactionTypeIncome) {
+                          return s.type == AppConstants.categoryTypeIncome ||
+                              s.type == AppConstants.categoryTypeBoth;
+                        } else if (_selectedType ==
+                            AppConstants.transactionTypeExpense) {
+                          return s.type == AppConstants.categoryTypeExpense ||
+                              s.type == AppConstants.categoryTypeBoth;
+                        }
+                        return true;
+                      })
+                      .toList();
+
+                  return ListTile(
+                    leading: Icon(category.icon, color: category.color),
+                    title: Text(
+                      category.name,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
+                    trailing: subs.isNotEmpty
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: category.color.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '${subs.length} sub',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: category.color,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right, size: 16),
+                            ],
+                          )
+                        : null,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      // Always set the parent category
+                      setState(() {
+                        _selectedParentCategoryId = category.id;
+                        _selectedSubCategoryId = null; // reset sub on parent change
+                        _selectedCategoryId = category.id; // parent is default
+                      });
+                      // If subs exist: auto-open sub picker (non-mandatory)
+                      if (subs.isNotEmpty) {
+                        Future.delayed(const Duration(milliseconds: 200), () {
+                          if (mounted) _showSubCategoryPicker(category, subs);
+                        });
+                      }
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSubCategoryPicker(dynamic parent, List<dynamic> subs) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.6,
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Icon(parent.icon, color: parent.color, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  parent.name,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                // "Skip" dismisses without selecting a sub — parent stays
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Skip'),
+                ),
+              ],
+            ),
+            const Divider(),
+            Text(
+              'Choose a sub-category (optional):',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: subs
+                    .map<Widget>(
+                      (sub) => ListTile(
+                        leading: Icon(sub.icon, color: sub.color),
+                        title: Text(sub.name),
+                        trailing: _selectedSubCategoryId == sub.id
+                            ? Icon(Icons.check_circle,
+                                color: Theme.of(context).colorScheme.primary)
+                            : null,
                         onTap: () {
-                          setState(() {
-                            _selectedCategoryId = category.id;
-                          });
                           Navigator.of(context).pop();
-                          // Auto-focus notes field after selection
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            // _notesFocus.requestFocus();
-                            // Auto-select all text in notes if editing
-                            if (widget.transaction != null) {
-                              _notesController.selection = TextSelection(
-                                baseOffset: 0,
-                                extentOffset: _notesController.text.length,
-                              );
-                            }
+                          setState(() {
+                            _selectedSubCategoryId = sub.id;
+                            _selectedCategoryId = sub.id; // saved as sub
+                            // _selectedParentCategoryId already set
                           });
                         },
                       ),
@@ -1496,12 +1778,14 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       return;
     }
 
+    // Use sub-category if selected, otherwise parent category
+    final finalCategoryId = _selectedCategoryId ?? 'transfer';
+
     final transaction = Transaction.create(
       type: _selectedType,
       amount: amount,
       description: _description.isEmpty ? 'No description' : _description,
-      categoryId:
-          _selectedCategoryId ?? 'transfer', // Default category for transfers
+      categoryId: finalCategoryId,
       accountId: _selectedAccountId!,
       toAccountId: _selectedToAccountId,
       notes: _notes.isEmpty ? null : _notes,
