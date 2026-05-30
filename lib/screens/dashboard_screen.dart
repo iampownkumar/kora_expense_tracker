@@ -258,19 +258,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Text(
                       'Recent Transactions',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     SizedBox(height: sp),
 
                     if (appProvider.recentTransactions.isNotEmpty) ...[
                       Card(
                         child: Padding(
-                          padding: EdgeInsets.all(p),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: p,
+                            vertical: sp,
+                          ),
                           child: ListView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            itemCount: appProvider.recentTransactions.length,
+                            // Max 4 recent transactions on dashboard
+                            itemCount: appProvider.recentTransactions.length
+                                .clamp(0, 4),
                             itemBuilder: (context, index) {
                               final transaction =
                                   appProvider.recentTransactions[index];
@@ -289,8 +294,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       transaction.accountId);
                               Account? toAccount;
                               if (transaction.toAccountId != null) {
-                                toAccount =
-                                    appProvider.getAccountForTransaction(
+                                toAccount = appProvider
+                                    .getAccountForTransaction(
                                         transaction.toAccountId!);
                               }
                               return TransactionListItem(
@@ -298,6 +303,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 category: category,
                                 account: account,
                                 toAccount: toAccount,
+                                compact: true,
                                 enableSwipeToDelete: true,
                                 onTap: () {
                                   showDialog(
