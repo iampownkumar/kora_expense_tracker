@@ -218,9 +218,9 @@ class AppProvider extends ChangeNotifier {
 
   // Create default accounts
   Future<void> _createDefaultAccounts() async {
-    print('Creating default accounts...');
+    debugPrint('Creating default accounts...');
     for (final accountData in AppConstants.defaultAccounts) {
-      print(
+      debugPrint(
         'Creating account: ${accountData['name']} with type: ${accountData['type']}',
       );
       final account = Account.create(
@@ -230,12 +230,12 @@ class AppProvider extends ChangeNotifier {
         balance: accountData['balance'],
         type: accountData['type'] as AccountType,
       );
-      print('Account created: ${account.id}');
+      debugPrint('Account created: ${account.id}');
       _accounts.add(account);
     }
-    print('Saving ${_accounts.length} default accounts to storage');
+    debugPrint('Saving ${_accounts.length} default accounts to storage');
     await StorageService.saveAccounts(_accounts);
-    print('Default accounts creation complete');
+    debugPrint('Default accounts creation complete');
   }
 
   // Tab navigation
@@ -278,7 +278,7 @@ class AppProvider extends ChangeNotifier {
         await StorageService.saveTransactions(_transactions);
       } catch (e) {
         // Handle storage errors gracefully
-        print('Storage error: $e');
+        debugPrint('Storage error: $e');
       }
 
       // Update account balances instantly
@@ -410,28 +410,28 @@ class AppProvider extends ChangeNotifier {
   // Account management
   Future<bool> addAccount(Account account) async {
     try {
-      print('Adding account: ${account.name} with type: ${account.type}');
+      debugPrint('Adding account: ${account.name} with type: ${account.type}');
       _accounts.add(account);
-      print('Account added to local list. Total accounts: ${_accounts.length}');
+      debugPrint('Account added to local list. Total accounts: ${_accounts.length}');
 
       try {
         final success = await StorageService.saveAccounts(_accounts);
-        print('Storage save result: $success');
+        debugPrint('Storage save result: $success');
         if (!success) {
-          print(
+          debugPrint(
             'Warning: Storage save failed, but account added to local state',
           );
         }
       } catch (e) {
-        print('Storage error: $e');
-        print('Account remains in local state despite storage error');
+        debugPrint('Storage error: $e');
+        debugPrint('Account remains in local state despite storage error');
       }
 
       notifyListeners();
-      print('Notified listeners. Account addition complete.');
+      debugPrint('Notified listeners. Account addition complete.');
       return true;
     } catch (e) {
-      print('Error adding account: $e');
+      debugPrint('Error adding account: $e');
       _error = 'Failed to add account: $e';
       notifyListeners();
       return false;
@@ -558,7 +558,7 @@ class AppProvider extends ChangeNotifier {
         await StorageService.saveCategories(_categories);
       } catch (e) {
         // Handle storage errors gracefully
-        print('Storage error: $e');
+        debugPrint('Storage error: $e');
       }
       notifyListeners();
       return true;
@@ -651,7 +651,7 @@ class AppProvider extends ChangeNotifier {
         await StorageService.updateAccount(updatedToAccount);
       } catch (e) {
         // Handle storage errors gracefully
-        print('Storage error: $e');
+        debugPrint('Storage error: $e');
       }
 
       // Update local state
@@ -716,7 +716,7 @@ class AppProvider extends ChangeNotifier {
         await StorageService.updateAccount(updatedAccount);
       } catch (e) {
         // Handle storage errors gracefully
-        print('Storage error: $e');
+        debugPrint('Storage error: $e');
       }
 
       // Update local state
@@ -840,9 +840,9 @@ class AppProvider extends ChangeNotifier {
       await StorageService.saveAccounts(_accounts);
       notifyListeners();
 
-      print('Test accounts removed successfully');
+      debugPrint('Test accounts removed successfully');
     } catch (e) {
-      print('Error removing test accounts: $e');
+      debugPrint('Error removing test accounts: $e');
     }
   }
 

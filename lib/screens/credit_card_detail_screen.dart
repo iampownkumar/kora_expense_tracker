@@ -3181,10 +3181,10 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
       final file = File('${analyticsDirectory.path}/$filename');
       await file.writeAsString(jsonString);
       
-      print('Analytics exported to: ${file.path}');
+      debugPrint('Analytics exported to: ${file.path}');
       return true;
     } catch (e) {
-      print('Error saving analytics file: $e');
+      debugPrint('Error saving analytics file: $e');
       return false;
     }
   }
@@ -3426,10 +3426,10 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
       final pdfBytes = await pdf.save();
       await file.writeAsBytes(pdfBytes);
       
-      print('PDF exported to: ${file.path}');
+      debugPrint('PDF exported to: ${file.path}');
       return true;
     } catch (e) {
-      print('Error saving PDF file: $e');
+      debugPrint('Error saving PDF file: $e');
       return false;
     }
   }

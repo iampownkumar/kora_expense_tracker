@@ -204,16 +204,6 @@ class TransactionListItem extends StatelessWidget {
                                 color: Colors.grey,
                               ),
                             ),
-                          if (transaction.imagePath != null &&
-                              transaction.imagePath!.isNotEmpty)
-                            const Padding(
-                              padding: EdgeInsets.only(left: 4),
-                              child: Icon(
-                                Icons.attach_file,
-                                size: 10,
-                                color: Colors.grey,
-                              ),
-                            ),
                         ],
                       ),
                     ],
@@ -221,9 +211,8 @@ class TransactionListItem extends StatelessWidget {
                 ),
               ),
 
-              // ── Image thumbnail (full mode only) ────────────────────────
-              if (!compact &&
-                  transaction.imagePath != null &&
+              // ── Image thumbnail (shown in both modes; smaller in compact) ──
+              if (transaction.imagePath != null &&
                   transaction.imagePath!.isNotEmpty) ...[
                 GestureDetector(
                   onTap: () {
@@ -275,8 +264,9 @@ class TransactionListItem extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                     child: Image.file(
                       File(transaction.imagePath!),
-                      width: 44,
-                      height: 44,
+                      // 32px in compact, 44px in full
+                      width: compact ? 32 : 44,
+                      height: compact ? 32 : 44,
                       fit: BoxFit.cover,
                     ),
                   ),

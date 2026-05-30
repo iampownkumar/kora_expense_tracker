@@ -1,114 +1,74 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-import 'package:kora_expense_tracker/constants/app_constants.dart';
-import 'package:kora_expense_tracker/utils/storage_service.dart';
-import 'package:kora_expense_tracker/providers/app_provider.dart';
-import 'package:kora_expense_tracker/providers/credit_card_provider.dart';
-import 'package:kora_expense_tracker/providers/payment_provider.dart';
-import 'package:kora_expense_tracker/screens/splash_screen.dart';
+import 'core/utils/storage_service.dart';
+import 'core/theme/app_theme.dart';
+import 'core/constants/app_constants.dart';
+import 'features/accounts/account_controller.dart';
+import 'features/transactions/transaction_controller.dart';
+import 'features/credit_cards/credit_card_controller.dart';
+import 'features/reports/reports_controller.dart';
+import 'features/settings/settings_controller.dart';
+import 'screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize storage service
   await StorageService.initialize();
-
-  runApp(const KoraExpenseTrackerApp());
+  runApp(const KoraApp());
 }
 
-class KoraExpenseTrackerApp extends StatelessWidget {
-  const KoraExpenseTrackerApp({super.key});
+class KoraApp extends StatelessWidget {
+  const KoraApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // ── Build the AccountController first (no dependencies) ─────────────────
+    final accountController = AccountController();
+
+    // ── TransactionController depends on AccountController ───────────────────
+    final transactionController = TransactionController(
+      accountController: accountController,
+    );
+
+    // ── CreditCardController depends on TransactionController ────────────────
+    final creditCardController = CreditCardController(
+      transactionController: transactionController,
+    );
+
+    // ── ReportsController aggregates Account + Transaction ───────────────────
+    final reportsController = ReportsController(
+      transactionController: transactionController,
+      accountController: accountController,
+    );
+
+    // ── SettingsController: no dependencies ──────────────────────────────────
+    final settingsController = SettingsController();
+
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (context) => AppProvider()..initialize(),
-        ),
-        ChangeNotifierProvider(
-          create: (context) => CreditCardProvider()..initialize(),
-        ),
-        ChangeNotifierProvider(create: (context) => PaymentProvider()),
+        ChangeNotifierProvider.value(value: accountController),
+        ChangeNotifierProvider.value(value: transactionController),
+        ChangeNotifierProvider.value(value: creditCardController),
+        ChangeNotifierProvider.value(value: reportsController),
+        ChangeNotifierProvider.value(value: settingsController),
       ],
-      builder: (context, child) {
-        // Set up the CreditCardProvider reference in AppProvider
-        final appProvider = context.read<AppProvider>();
-        final creditCardProvider = context.read<CreditCardProvider>();
-        appProvider.setCreditCardProvider(creditCardProvider);
-
-        return child!;
-      },
       child: MaterialApp(
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
-
-        // Internationalization
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        themeMode: ThemeMode.system,
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: const [
-          Locale('en', ''), // English
-          Locale('ta', ''), // Tamil
-          Locale('hi', ''), // Hindi
+          Locale('en', ''),
+          Locale('ta', ''),
+          Locale('hi', ''),
         ],
         locale: const Locale('en', ''),
-
-        // Material 3 Theme
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: AppConstants.primaryColor,
-            brightness: Brightness.light,
-          ),
-          fontFamily: 'Inter',
-          appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
-          cardTheme: CardThemeData(
-            elevation: AppConstants.cardElevation,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-            ),
-          ),
-          floatingActionButtonTheme: FloatingActionButtonThemeData(
-            backgroundColor: AppConstants.primaryColor,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-            ),
-          ),
-        ),
-
-        // Dark Theme
-        darkTheme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: AppConstants.primaryColor,
-            brightness: Brightness.dark,
-          ),
-          fontFamily: 'Inter',
-          appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
-          cardTheme: CardThemeData(
-            elevation: AppConstants.cardElevation,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-            ),
-          ),
-          floatingActionButtonTheme: FloatingActionButtonThemeData(
-            backgroundColor: AppConstants.primaryColor,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-            ),
-          ),
-        ),
-
-        // Theme mode
-        themeMode: ThemeMode.system,
-
-        // Home screen
         home: const SplashScreen(),
       ),
     );

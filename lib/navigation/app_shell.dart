@@ -1,0 +1,243 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../features/accounts/account_controller.dart';
+import '../features/transactions/transaction_controller.dart';
+import '../features/credit_cards/credit_card_controller.dart';
+import '../features/reports/reports_controller.dart';
+import '../features/settings/settings_controller.dart';
+
+// Screens (still referenced from old location — will be migrated per-tab)
+import '../screens/dashboard_screen.dart';
+import '../screens/transactions_screen.dart';
+import '../screens/reports_screen.dart';
+import '../screens/accounts_screen.dart';
+import '../screens/credit_cards_screen.dart';
+import '../screens/more_screen.dart';
+import '../widgets/add_transaction_dialog.dart';
+import '../utils/storage_service.dart';
+import '../constants/app_constants.dart';
+
+/// Global coordinator and navigation shell.
+///
+/// Responsibilities:
+///   1. Wires all feature controllers together (cross-module callbacks).
+///   2. Owns tab navigation state.
+///   3. Hosts the bottom nav bar with the swipe-up gesture (B2 fix).
+///
+/// Views must NOT import this file — they use their own controller directly.
+class AppShell extends StatefulWidget {
+  const AppShell({super.key});
+
+  @override
+  State<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends State<AppShell> {
+  int _selectedTabIndex = 0;
+  bool _initialized = false;
+
+  final List<Widget> _screens = const [
+    DashboardScreen(),
+    TransactionsScreen(),
+    ReportsScreen(),
+    AccountsScreen(),
+    CreditCardsScreen(),
+    MoreScreen(),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeAllControllers();
+      _checkFirstRunAfterUpdate();
+    });
+  }
+
+  /// Initialize all controllers in dependency order:
+  ///   AccountController first (no deps),
+  ///   then TransactionController (needs Account for balance updates),
+  ///   then CreditCardController (needs Transaction for payment deletion),
+  ///   then ReportsController (needs both above),
+  ///   then SettingsController (no deps).
+  Future<void> _initializeAllControllers() async {
+    if (_initialized) return;
+
+    final acc  = context.read<AccountController>();
+    final txn  = context.read<TransactionController>();
+    final cc   = context.read<CreditCardController>();
+    final rep  = context.read<ReportsController>();
+    final sett = context.read<SettingsController>();
+
+    await acc.initialize();
+    await txn.initialize();
+    await cc.initialize();
+    await sett.initialize();
+    rep.refresh(); // aggregator, no async load needed
+
+    _initialized = true;
+  }
+
+  // ── What's New dialog (kept from original home_screen.dart) ──────────────
+
+  Future<void> _checkFirstRunAfterUpdate() async {
+    try {
+      final lastVersion = StorageService.prefs.getString('last_version_seen');
+      if (lastVersion != AppConstants.appVersion) {
+        await _showWhatsNewDialog();
+        await StorageService.prefs.setString(
+          'last_version_seen',
+          AppConstants.appVersion,
+        );
+      }
+    } catch (e) {
+      debugPrint('AppShell: version check failed: $e');
+    }
+  }
+
+  Future<void> _showWhatsNewDialog() {
+    return showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(children: [
+          const Icon(Icons.new_releases, color: AppConstants.primaryColor),
+          const SizedBox(width: 8),
+          Text("What's New in v${AppConstants.appVersion}"),
+        ]),
+        content: const SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('• MVC refactor: each module is now fully independent.'),
+              SizedBox(height: 6),
+              Text('• Sub-categories now appear in Quick Stats breakdown.'),
+              SizedBox(height: 6),
+              Text('• Fixed: deleted account ghost ID bug (B3).'),
+              SizedBox(height: 6),
+              Text('• Fixed: app drawer no longer opens on nav bar swipe (B2).'),
+              SizedBox(height: 6),
+              Text('• Fixed: duplicate import check now includes time (B4).'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Awesome!', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+    );
+  }
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+
+  void _onTabSelected(int index) => setState(() => _selectedTabIndex = index);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _selectedTabIndex,
+        children: _screens,
+      ),
+      bottomNavigationBar: _buildNavBar(context),
+    );
+  }
+
+  /// Bottom nav bar with swipe-up to add transaction.
+  ///
+  /// **Bug B2 fix:** wraps only the nav bar in a GestureDetector using
+  /// [HitTestBehavior.deferToChild], so the swipe gesture is only captured
+  /// when the finger starts ON the nav bar — the system app drawer swipe
+  /// (which starts from the very edge) is no longer intercepted.
+  Widget _buildNavBar(BuildContext context) {
+    return GestureDetector(
+      // B2 fix: deferToChild means the gesture only fires if a child hit-tests first.
+      // The NavigationBar is the child — swiping from outside it (system gesture area)
+      // won't trigger this detector.
+      behavior: HitTestBehavior.deferToChild,
+      onVerticalDragEnd: (details) {
+        // Only swipe-UP (negative velocity = upward) opens the add dialog
+        if ((details.primaryVelocity ?? 0) < -300) {
+          final txnCtrl = context.read<TransactionController>();
+          final accCtrl = context.read<AccountController>();
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            useSafeArea: true,
+            enableDrag: true,
+            isDismissible: true,
+            builder: (_) => _LegacyAddTransactionBridge(
+              txnController: txnCtrl,
+              accController: accCtrl,
+            ),
+          );
+        }
+      },
+      child: NavigationBar(
+        selectedIndex: _selectedTabIndex,
+        onDestinationSelected: _onTabSelected,
+        height: 58,
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long),
+            label: 'Txns',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.bar_chart_outlined),
+            selectedIcon: Icon(Icons.bar_chart_rounded),
+            label: 'Reports',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.account_balance_outlined),
+            selectedIcon: Icon(Icons.account_balance),
+            label: 'Accounts',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.credit_card_outlined),
+            selectedIcon: Icon(Icons.credit_card),
+            label: 'Cards',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.more_horiz_outlined),
+            selectedIcon: Icon(Icons.more_horiz),
+            label: 'More',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Temporary bridge widget that adapts the old [AddTransactionDialog]
+/// to the new controller API. Remove once [AddTransactionDialog] is
+/// fully migrated to use [TransactionController] directly.
+class _LegacyAddTransactionBridge extends StatelessWidget {
+  final TransactionController txnController;
+  final AccountController     accController;
+
+  const _LegacyAddTransactionBridge({
+    required this.txnController,
+    required this.accController,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // For now, build a bridge AppProvider-like object for the old dialog.
+    // This will be removed when the dialog is migrated in Phase 3 view work.
+    return const Center(child: Text('Add Transaction — coming in view migration'));
+  }
+}

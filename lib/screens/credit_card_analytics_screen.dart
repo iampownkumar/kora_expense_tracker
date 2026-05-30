@@ -1626,10 +1626,10 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
       final pdfBytes = await pdf.save();
       await file.writeAsBytes(pdfBytes);
 
-      print('PDF exported to: ${file.path}');
+      debugPrint('PDF exported to: ${file.path}');
       return true;
     } catch (e) {
-      print('Error saving PDF file: $e');
+      debugPrint('Error saving PDF file: $e');
       return false;
     }
   }

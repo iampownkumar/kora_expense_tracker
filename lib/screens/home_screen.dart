@@ -42,7 +42,9 @@ class _HomeScreenState extends State<HomeScreen> {
       if (lastVersion != AppConstants.appVersion) {
         await _showWhatsNewDialog();
         await StorageService.prefs.setString(
-            'last_version_seen', AppConstants.appVersion);
+          'last_version_seen',
+          AppConstants.appVersion,
+        );
       }
     } catch (e) {
       debugPrint('Error checking version: $e');
@@ -65,23 +67,35 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('• Sub-categories: select a parent category then optionally refine with a sub-category when adding transactions.'),
+              Text(
+                '• Sub-categories: select a parent category then optionally refine with a sub-category when adding transactions.',
+              ),
               SizedBox(height: 8),
-              Text('• Swipe up from the nav bar to add a transaction — swipe down anywhere to close, just like an Android launcher.'),
+              Text(
+                '• Swipe up from the nav bar to add a transaction — swipe down anywhere to close, just like an Android launcher.',
+              ),
               SizedBox(height: 8),
-              Text('• Compact navigation bar and refreshed dashboard layout for more breathing room.'),
+              Text(
+                '• Compact navigation bar and refreshed dashboard layout for more breathing room.',
+              ),
               SizedBox(height: 8),
-              Text('• Category hierarchy: create and manage parent → child categories from the Categories screen.'),
+              Text(
+                '• Category hierarchy: create and manage parent → child categories from the Categories screen.',
+              ),
               SizedBox(height: 8),
-              Text('• Bug fixes: double-back press no longer triggers app-exit toast when closing the add transaction screen.'),
+              Text(
+                '• Bug fixes: double-back press no longer triggers app-exit toast when closing the add transaction screen.',
+              ),
             ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Awesome!',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Awesome!',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

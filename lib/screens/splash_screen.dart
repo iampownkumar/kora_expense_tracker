@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kora_expense_tracker/screens/home_screen.dart';
+import 'package:kora_expense_tracker/navigation/app_shell.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -25,11 +25,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    // Navigate to Home after 1.5 seconds
+    // Navigate to AppShell after 1.5 seconds
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(builder: (context) => const AppShell()),
         );
       }
     });

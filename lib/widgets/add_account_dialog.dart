@@ -655,10 +655,10 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
     setState(() => _isLoading = true);
     
     try {
-      print('AddAccountDialog: Creating account with name: ${_nameController.text.trim()}');
-      print('AddAccountDialog: Account type: $_selectedType');
-      print('AddAccountDialog: Account icon: $_selectedIcon');
-      print('AddAccountDialog: Account color: $_selectedColor');
+      debugPrint('AddAccountDialog: Creating account with name: ${_nameController.text.trim()}');
+      debugPrint('AddAccountDialog: Account type: $_selectedType');
+      debugPrint('AddAccountDialog: Account icon: $_selectedIcon');
+      debugPrint('AddAccountDialog: Account color: $_selectedColor');
       
       final account = widget.existingAccount?.copyWith(
         name: _nameController.text.trim(),
@@ -680,12 +680,12 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
             : _descriptionController.text.trim(),
       );
       
-      print('AddAccountDialog: Account created successfully: ${account.id}');
-      print('AddAccountDialog: Calling onSave callback');
+      debugPrint('AddAccountDialog: Account created successfully: ${account.id}');
+      debugPrint('AddAccountDialog: Calling onSave callback');
       
       widget.onSave(account);
       
-      print('AddAccountDialog: onSave callback completed');
+      debugPrint('AddAccountDialog: onSave callback completed');
       
       if (mounted) {
         Navigator.of(context).pop();
@@ -701,8 +701,8 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
         );
       }
     } catch (e) {
-      print('AddAccountDialog: Error creating account: $e');
-      print('AddAccountDialog: Error stack trace: ${StackTrace.current}');
+      debugPrint('AddAccountDialog: Error creating account: $e');
+      debugPrint('AddAccountDialog: Error stack trace: ${StackTrace.current}');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

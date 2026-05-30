@@ -224,9 +224,9 @@ class CreditCardProvider extends ChangeNotifier {
     try {
       // Import AppProvider to access account deletion
       // This will be handled by the calling context
-      print('Credit card $creditCardId deleted - corresponding account should also be deleted');
+      debugPrint('Credit card $creditCardId deleted - corresponding account should also be deleted');
     } catch (e) {
-      print('Error deleting corresponding account: $e');
+      debugPrint('Error deleting corresponding account: $e');
     }
   }
   
@@ -729,7 +729,7 @@ class CreditCardProvider extends ChangeNotifier {
           await appProvider.deleteTransaction(transaction.id);
         }
         
-        print('Deleted ${paymentTransactions.length} payment transactions (keeping original credit card transactions)');
+        debugPrint('Deleted ${paymentTransactions.length} payment transactions (keeping original credit card transactions)');
       }
       
       // Remove the statement
