@@ -9,6 +9,7 @@ import 'package:kora_expense_tracker/widgets/transaction_list_item.dart';
 import 'package:kora_expense_tracker/core/models/category.dart';
 import 'package:kora_expense_tracker/core/models/account.dart';
 import 'package:kora_expense_tracker/screens/categories_screen.dart';
+import 'package:kora_expense_tracker/screens/transactions_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -246,15 +247,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     SizedBox(height: lp),
 
                     // ── Recent Transactions ───────────────────────────────
-                    Text(
-                      'Recent Transactions',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: sp),
-
                     if (txnCtrl.recentTransactions.isNotEmpty) ...[
+                      // Section header row with "View All" link
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Recent Transactions',
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const TransactionsScreen(),
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text('View All →', style: TextStyle(fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: sp),
                       Card(
                         child: Padding(
                           padding: EdgeInsets.symmetric(
@@ -264,8 +283,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: ListView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            itemCount: txnCtrl.recentTransactions.length
-                                .clamp(0, 4),
+                            itemCount: txnCtrl.recentTransactions.length,
                             itemBuilder: (context, index) {
                               final transaction =
                                   txnCtrl.recentTransactions[index];
