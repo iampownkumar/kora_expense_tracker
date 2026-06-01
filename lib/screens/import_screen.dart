@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
+import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
+import 'package:intl/intl.dart';
 import '../core/utils/import_export_service.dart';
 
 /// Result of the preview dialog
@@ -201,13 +201,13 @@ class _ImportScreenState extends State<ImportScreen> {
   Future<void> _performImport(List<dynamic> transactions, bool replaceMode) async {
     setState(() => _isImporting = true);
     try {
-      final provider = context.read<AppProvider>();
+      final provider = context.read<TransactionController>();
       int added;
       
       if (replaceMode) {
-        added = await provider.restoreFromImportedTransactions(List.from(transactions));
+        added = await context.read<TransactionController>().restoreFromImportedTransactions(List.from(transactions));
       } else {
-        added = await provider.mergeImportedTransactions(List.from(transactions));
+        added = await context.read<TransactionController>().mergeImportedTransactions(List.from(transactions));
       }
       
       _showStatus(

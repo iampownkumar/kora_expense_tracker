@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
+import 'package:provider/provider.dart';
 import '../core/models/credit_card.dart';
 import '../core/models/credit_card_statement.dart';
-import '../providers/app_provider.dart';
 import '../core/utils/formatters.dart';
 
 /// Statement Analytics Screen - Detailed analysis for a specific statement period
@@ -67,10 +68,10 @@ class _StatementAnalyticsScreenState extends State<StatementAnalyticsScreen> wit
           ],
         ),
       ),
-      body: Consumer<AppProvider>(
-        builder: (context, appProvider, child) {
+      body: Consumer<TransactionController>(
+        builder: (context, txnCtrl, child) {
           // Get transactions for this statement period
-          final periodTransactions = appProvider.transactions.where((transaction) {
+          final periodTransactions = txnCtrl.transactions.where((transaction) {
             return transaction.accountId == widget.creditCard.id &&
                    transaction.date.isAfter(widget.statement.periodStart) &&
                    transaction.date.isBefore(widget.statement.periodEnd.add(const Duration(days: 1)));
@@ -79,9 +80,9 @@ class _StatementAnalyticsScreenState extends State<StatementAnalyticsScreen> wit
           return TabBarView(
             controller: _tabController,
             children: [
-              _buildOverviewTab(periodTransactions, appProvider),
+              _buildOverviewTab(periodTransactions, txnCtrl),
               _buildSpendingTab(periodTransactions),
-              _buildCategoriesTab(periodTransactions, appProvider),
+              _buildCategoriesTab(periodTransactions, txnCtrl),
               _buildInsightsTab(periodTransactions),
             ],
           );
@@ -94,7 +95,7 @@ class _StatementAnalyticsScreenState extends State<StatementAnalyticsScreen> wit
   // TAB CONTENT METHODS
   // ========================================
 
-  Widget _buildOverviewTab(List transactions, AppProvider appProvider) {
+  Widget _buildOverviewTab(List transactions, TransactionController txnCtrl) {
     final totalSpent = transactions
         .where((t) => t.isExpense)
         .fold(0.0, (sum, t) => sum + t.amount.abs());
@@ -120,7 +121,7 @@ class _StatementAnalyticsScreenState extends State<StatementAnalyticsScreen> wit
           const SizedBox(height: 24),
           
           // Spending by Category
-          _buildSpendingByCategory(transactions, appProvider),
+          _buildSpendingByCategory(transactions, txnCtrl),
           const SizedBox(height: 24),
           
           // Smart Insights
@@ -144,7 +145,7 @@ class _StatementAnalyticsScreenState extends State<StatementAnalyticsScreen> wit
     );
   }
 
-  Widget _buildCategoriesTab(List transactions, AppProvider appProvider) {
+  Widget _buildCategoriesTab(List transactions, TransactionController txnCtrl) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -152,7 +153,7 @@ class _StatementAnalyticsScreenState extends State<StatementAnalyticsScreen> wit
         children: [
           _buildPeriodFilter(),
           const SizedBox(height: 24),
-          _buildCategoryBreakdown(transactions, appProvider),
+          _buildCategoryBreakdown(transactions, txnCtrl),
         ],
       ),
     );
@@ -423,11 +424,11 @@ class _StatementAnalyticsScreenState extends State<StatementAnalyticsScreen> wit
     );
   }
 
-  Widget _buildSpendingByCategory(List transactions, AppProvider appProvider) {
+  Widget _buildSpendingByCategory(List transactions, TransactionController txnCtrl) {
     final categorySpending = <String, double>{};
     
     for (final transaction in transactions.where((t) => t.isExpense)) {
-      final category = appProvider.categories
+      final category = txnCtrl.categories
           .where((c) => c.id == transaction.categoryId)
           .firstOrNull;
       if (category != null) {
@@ -773,11 +774,11 @@ class _StatementAnalyticsScreenState extends State<StatementAnalyticsScreen> wit
     );
   }
 
-  Widget _buildCategoryBreakdown(List transactions, AppProvider appProvider) {
+  Widget _buildCategoryBreakdown(List transactions, TransactionController txnCtrl) {
     final categorySpending = <String, double>{};
     
     for (final transaction in transactions.where((t) => t.isExpense)) {
-      final category = appProvider.categories
+      final category = txnCtrl.categories
           .where((c) => c.id == transaction.categoryId)
           .firstOrNull;
       if (category != null) {

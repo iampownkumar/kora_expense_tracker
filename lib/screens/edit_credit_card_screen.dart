@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/credit_card_provider.dart';
+import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
+import 'package:kora_expense_tracker/features/credit_cards/credit_card_controller.dart';
+import 'package:provider/provider.dart';
 import '../features/credit_cards/credit_card_controller.dart';
-import '../providers/app_provider.dart';
 import '../core/models/credit_card.dart';
 import '../core/utils/formatters.dart';
 
@@ -519,8 +520,8 @@ class _EditCreditCardScreenState extends State<EditCreditCardScreen> {
 
       if (success && mounted) {
         // Also update in AppProvider if it exists as an account
-        final appProvider = context.read<AppProvider>();
-        final account = appProvider.accounts.where(
+        final appProvider = context.read<AccountController>();
+        final account = context.read<AccountController>().accounts.where(
           (acc) => acc.id == widget.creditCard.id,
         ).firstOrNull;
 
@@ -529,7 +530,7 @@ class _EditCreditCardScreenState extends State<EditCreditCardScreen> {
             name: _nameController.text.trim(),
             balance: -widget.creditCard.outstandingBalance,
           );
-          await appProvider.updateAccount(updatedAccount);
+          await context.read<AccountController>().updateAccount(updatedAccount);
         }
 
         if (mounted) {

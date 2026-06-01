@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
 import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
-import 'package:kora_expense_tracker/providers/app_provider.dart';
 import 'package:kora_expense_tracker/core/models/transaction.dart';
 import 'package:kora_expense_tracker/core/models/account.dart';
 import 'package:kora_expense_tracker/core/models/category.dart';
@@ -523,32 +522,27 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   void _addTransaction(BuildContext context) {
-    final appProvider = Provider.of<AppProvider>(context, listen: false);
     showDialog(
       context: context,
-      builder: (context) => AddTransactionDialog(appProvider: appProvider),
+      builder: (context) => AddTransactionDialog(),
     );
   }
 
   void _showTransactionDetails(BuildContext context, Transaction transaction) {
-    final appProvider = Provider.of<AppProvider>(context, listen: false);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => TransactionDetailSheet(
         transaction: transaction,
-        appProvider: appProvider,
       ),
     );
   }
 
   void _editTransaction(BuildContext context, Transaction transaction, TransactionController txnCtrl, AccountController accCtrl) {
-    final appProvider = Provider.of<AppProvider>(context, listen: false);
     showDialog(
       context: context,
       builder: (context) => AddTransactionDialog(
-        appProvider: appProvider,
         transaction: transaction,
       ),
     );

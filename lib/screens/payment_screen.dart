@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
-import '../providers/credit_card_provider.dart';
+import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
+import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
+import 'package:kora_expense_tracker/features/credit_cards/credit_card_controller.dart';
+import 'package:provider/provider.dart';
 import '../features/credit_cards/credit_card_controller.dart';
 import '../core/models/credit_card.dart';
 import '../core/models/account.dart';
@@ -67,8 +69,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
         ],
       ),
-      body: Consumer<AppProvider>(
-        builder: (context, appProvider, child) {
+      body: Consumer2<TransactionController, AccountController>(
+        builder: (context, txnCtrl, accCtrl, child) {
           return Form(
             key: _formKey,
             child: SingleChildScrollView(
@@ -89,7 +91,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   const SizedBox(height: 24),
                   
                   // Source Account Selection (always required for account transfer)
-                  _buildSourceAccountSection(appProvider),
+                  _buildSourceAccountSection(txnCtrl, accCtrl),
                   
                   // Schedule Payment Section (hidden)
                   // _buildSchedulePaymentSection(),
@@ -99,11 +101,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   const SizedBox(height: 32),
                   
                   // Process Payment Button
-                  _buildProcessPaymentButton(appProvider),
+                  _buildProcessPaymentButton(txnCtrl, accCtrl),
                   const SizedBox(height: 16),
                   
                   // Recent Payments
-                  _buildRecentPayments(appProvider),
+                  _buildRecentPayments(txnCtrl, accCtrl),
                 ],
               ),
             ),
@@ -363,9 +365,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _buildSourceAccountSection(AppProvider appProvider) {
+  Widget _buildSourceAccountSection(TransactionController txnCtrl, AccountController accCtrl) {
     // Get asset accounts (savings, wallet, cash, investment) that can be used for payments
-    final availableAccounts = appProvider.accounts
+    final availableAccounts = accCtrl.accounts
         .where((account) => account.isAsset && account.balance > 0)
         .toList();
     
@@ -639,11 +641,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _buildProcessPaymentButton(AppProvider appProvider) {
+  Widget _buildProcessPaymentButton(TransactionController txnCtrl, AccountController accCtrl) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _isProcessing ? null : () => _processPayment(appProvider),
+        onPressed: _isProcessing ? null : () => _processPayment(context.read<TransactionController>(), context.read<AccountController>()),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
@@ -671,9 +673,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _buildRecentPayments(AppProvider appProvider) {
+  Widget _buildRecentPayments(TransactionController txnCtrl, AccountController accCtrl) {
     // Get recent transfer transactions to this credit card
-    final recentPayments = appProvider.transactions
+    final recentPayments = txnCtrl.transactions
         .where((transaction) => 
             transaction.isTransfer && 
             transaction.toAccountId == widget.creditCard.id)
@@ -741,7 +743,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _buildPaymentItem(Transaction transaction) {
-    final sourceAccount = context.read<AppProvider>().getAccountForTransaction(transaction.accountId);
+    final sourceAccount = context.read<AccountController>().findById(transaction.accountId);
     
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -850,7 +852,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
 
 
-  Future<void> _processPayment(AppProvider appProvider) async {
+  Future<void> _processPayment(TransactionController txnCtrl, AccountController accCtrl) async {
     if (!_formKey.currentState!.validate()) return;
 
     // Validate source account selection for transfer payments
@@ -881,14 +883,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final amount = double.parse(_amountController.text);
       
       // Find the Credit Card Payment category
-      final creditCardPaymentCategory = appProvider.categories
+      final creditCardPaymentCategory = txnCtrl.categories
           .firstWhere(
             (category) => category.name == 'Credit Card Payment',
-            orElse: () => appProvider.categories.first, // Fallback to first category
+            orElse: () => txnCtrl.categories.first, // Fallback to first category
           );
 
       // Handle immediate payment only
-      await _processImmediatePayment(appProvider, amount, creditCardPaymentCategory);
+      await _processImmediatePayment(txnCtrl, accCtrl, amount, creditCardPaymentCategory);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -905,7 +907,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  Future<void> _processImmediatePayment(AppProvider appProvider, double amount, category) async {
+  Future<void> _processImmediatePayment(TransactionController txnCtrl, AccountController accCtrl, double amount, category) async {
     // Create transfer transaction from source account to credit card
     final transaction = Transaction.create(
       type: 'transfer',
@@ -920,7 +922,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
 
     // Add transaction using AppProvider
-    final success = await appProvider.addTransaction(transaction);
+    final success = await txnCtrl.addTransaction(transaction);
     
     if (success) {
       // Refresh credit card provider to update payment data
@@ -941,7 +943,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(appProvider.error ?? 'Payment processing failed'),
+            content: Text(txnCtrl.error ?? 'Payment processing failed'),
             backgroundColor: Colors.red,
           ),
         );
@@ -949,7 +951,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  // Future<void> _processScheduledPayment(AppProvider appProvider, double amount, category) async {
+  // Future<void> _processScheduledPayment(TransactionController txnCtrl, AccountController accCtrl, double amount, category) async {
   //   // Create scheduled transaction (with future date)
   //   final transaction = Transaction.create(
   //     type: 'transfer',
@@ -965,7 +967,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   //   );
 
   //   // Add transaction using AppProvider
-  //   final success = await appProvider.addTransaction(transaction);
+  //   final success = await txnCtrl.addTransaction(transaction);
   //   
   //   if (success) {
   //     if (mounted) {
@@ -981,7 +983,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   //     if (mounted) {
   //       ScaffoldMessenger.of(context).showSnackBar(
   //         SnackBar(
-  //           content: Text(appProvider.error ?? 'Payment scheduling failed'),
+  //           content: Text(txnCtrl.error ?? 'Payment scheduling failed'),
   //           backgroundColor: Colors.red,
   //         ),
   //       );

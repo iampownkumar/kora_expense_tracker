@@ -6,10 +6,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
-import '../providers/credit_card_provider.dart';
-import '../providers/app_provider.dart';
 import '../features/credit_cards/credit_card_controller.dart';
 import '../features/transactions/transaction_controller.dart';
+import '../features/accounts/account_controller.dart';
 import '../core/models/credit_card.dart';
 import '../core/models/credit_card_statement.dart';
 import '../core/models/transaction.dart';
@@ -1027,9 +1026,13 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
               final creditCardProvider = context.read<CreditCardController>();
               final creditCardSuccess = await creditCardProvider.deleteCreditCard(_currentCard.id);
               
-              // CRITICAL: Also delete from AppProvider (Accounts screen)
-              final appProvider = context.read<AppProvider>();
-              final accountSuccess = await appProvider.deleteAccount(_currentCard.id);
+              // CRITICAL: Also delete from AccountController (Accounts screen)
+              final txnCtrl = context.read<TransactionController>();
+              final accCtrl = context.read<AccountController>();
+              final accountSuccess = await accCtrl.deleteAccount(
+                _currentCard.id,
+                txnCtrl.transactions,
+              );
               
               if (creditCardSuccess && accountSuccess && mounted) {
                 Navigator.of(context).pop();
@@ -1340,7 +1343,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   /// Delete statement only (keep payment applied)
   void _deleteStatementOnly(statement) async {
     final creditCardProvider = Provider.of<CreditCardController>(context, listen: false);
-    final appProvider = Provider.of<AppProvider>(context, listen: false);
+    final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
     
     // Show loading indicator
     showDialog(
@@ -1531,7 +1534,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
   Future<void> _deleteStatement(statement) async {
     final creditCardProvider = context.read<CreditCardController>();
-    final appProvider = context.read<AppProvider>();
+    final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
     final success = await creditCardProvider.deleteStatement(statement.id);
     
     if (success) {
@@ -2582,10 +2585,10 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
     Navigator.of(context).pop(); // Close dialog
     
     final creditCardProvider = context.read<CreditCardController>();
-    final appProvider = context.read<AppProvider>();
+    final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
     
     // Get the first available account for payment
-    final accounts = appProvider.accounts;
+    final accounts = accCtrl.accounts;
     if (accounts.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -2665,10 +2668,10 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   // ========================================
 
   Widget _buildTransactionsTab() {
-    return Consumer<AppProvider>(
-      builder: (context, appProvider, child) {
+    return Consumer2<TransactionController, AccountController>(
+      builder: (context, txnCtrl, accCtrl, child) {
         // Get all transactions for this credit card
-        final creditCardTransactions = appProvider.transactions
+        final creditCardTransactions = txnCtrl.transactions
             .where((transaction) => 
                 transaction.accountId == _currentCard.id ||
                 transaction.description.toLowerCase().contains(_currentCard.name.toLowerCase()))
@@ -2877,24 +2880,22 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   void _showTransactionDetails(Transaction transaction) {
-    final appProvider = context.read<AppProvider>();
+    final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => TransactionDetailSheet(
         transaction: transaction,
-        appProvider: appProvider,
       ),
     );
   }
 
   void _showAddTransactionDialog() {
-    final appProvider = context.read<AppProvider>();
+    final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
     showDialog(
       context: context,
       builder: (context) => AddTransactionDialog(
-        appProvider: appProvider,
         defaultAccountId: _currentCard.id, // Pre-select this credit card
       ),
     ).then((result) {
@@ -2979,8 +2980,8 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
       );
 
       // Get analytics data
-      final appProvider = Provider.of<AppProvider>(context, listen: false);
-      final transactions = appProvider.transactions
+      final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
+      final transactions = txnCtrl.transactions
           .where((transaction) => transaction.accountId == _currentCard.id)
           .toList();
 
@@ -3043,8 +3044,8 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
       );
 
       // Get analytics data
-      final appProvider = Provider.of<AppProvider>(context, listen: false);
-      final transactions = appProvider.transactions
+      final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
+      final transactions = txnCtrl.transactions
           .where((transaction) => transaction.accountId == _currentCard.id)
           .toList();
 
@@ -3100,10 +3101,10 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
     // Calculate spending by category
     final categorySpending = <String, double>{};
-    final appProvider = Provider.of<AppProvider>(context, listen: false);
+    final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
     
     for (final transaction in transactions.where((t) => t.isExpense)) {
-      final category = appProvider.categories
+      final category = txnCtrl.categories
           .where((c) => c.id == transaction.categoryId)
           .firstOrNull;
       if (category != null) {
@@ -3130,7 +3131,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
         'description': t.description,
         'amount': t.amount,
         'type': t.type,
-        'category': appProvider.categories
+        'category': txnCtrl.categories
             .where((c) => c.id == t.categoryId)
             .firstOrNull?.name ?? 'Unknown',
       }).toList(),
@@ -3205,10 +3206,10 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
     // Calculate spending by category
     final categorySpending = <String, double>{};
-    final appProvider = Provider.of<AppProvider>(context, listen: false);
+    final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
     
     for (final transaction in transactions.where((t) => t.isExpense)) {
-      final category = appProvider.categories
+      final category = txnCtrl.categories
           .where((c) => c.id == transaction.categoryId)
           .firstOrNull;
       if (category != null) {

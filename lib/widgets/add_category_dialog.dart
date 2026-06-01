@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 import 'package:kora_expense_tracker/core/models/category.dart';
-import 'package:kora_expense_tracker/providers/app_provider.dart';
+import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
 
 class AddCategoryDialog extends StatefulWidget {
-  final AppProvider appProvider;
-
   /// If editing an existing category
   final Category? category;
 
@@ -14,7 +13,6 @@ class AddCategoryDialog extends StatefulWidget {
 
   const AddCategoryDialog({
     super.key,
-    required this.appProvider,
     this.category,
     this.parentCategory,
   });
@@ -85,14 +83,12 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
   void initState() {
     super.initState();
     if (widget.category != null) {
-      // Editing existing
       _nameController.text = widget.category!.name;
       _selectedType = widget.category!.type;
       _selectedColor = widget.category!.color;
       _selectedIcon = widget.category!.icon;
       _selectedParentId = widget.category!.parentCategoryId;
     } else if (widget.parentCategory != null) {
-      // Pre-fill from "Add sub-category" click
       _selectedParentId = widget.parentCategory!.id;
       _selectedType = widget.parentCategory!.type;
       _selectedColor = widget.parentCategory!.color;
@@ -109,6 +105,8 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
     final name = _nameController.text.trim();
     if (name.isEmpty) return;
 
+    final ctrl = context.read<TransactionController>();
+
     bool success;
     if (widget.category != null) {
       final updated = widget.category!.copyWith(
@@ -119,7 +117,7 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
         parentCategoryId: _selectedParentId,
         clearParent: _selectedParentId == null,
       );
-      success = await widget.appProvider.updateCategory(updated);
+      success = await ctrl.updateCategory(updated);
     } else {
       final newCat = Category.create(
         name: name,
@@ -128,7 +126,7 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
         icon: _selectedIcon,
         parentCategoryId: _selectedParentId,
       );
-      success = await widget.appProvider.addCategory(newCat);
+      success = await ctrl.addCategory(newCat);
     }
 
     if (success && mounted) {
@@ -138,8 +136,8 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
 
   @override
   Widget build(BuildContext context) {
-    // Top-level categories available as parents (exclude the one being edited)
-    final topLevel = widget.appProvider.topLevelCategories
+    final ctrl = context.watch<TransactionController>();
+    final topLevel = ctrl.topLevelCategories
         .where((c) => widget.category == null || c.id != widget.category!.id)
         .toList();
 

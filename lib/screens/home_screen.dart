@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:kora_expense_tracker/providers/app_provider.dart';
 import 'package:kora_expense_tracker/screens/dashboard_screen.dart';
 import 'package:kora_expense_tracker/screens/transactions_screen.dart';
 import 'package:kora_expense_tracker/screens/accounts_screen.dart';
@@ -105,11 +104,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppProvider>(
-      builder: (context, appProvider, child) {
-        return Scaffold(
+    return Scaffold(
           body: IndexedStack(
-            index: appProvider.selectedTabIndex,
+            index: 0,
             children: _screens,
           ),
           bottomNavigationBar: GestureDetector(
@@ -126,15 +123,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   enableDrag: true,
                   isDismissible: true,
                   builder: (context) => AddTransactionDialog(
-                    appProvider: context.read<AppProvider>(),
                   ),
                 );
               }
             },
             child: NavigationBar(
-              selectedIndex: appProvider.selectedTabIndex,
+              selectedIndex: 0,
               onDestinationSelected: (index) {
-                appProvider.setSelectedTab(index);
+                ;
               },
               // Compact height
               height: 58,
@@ -177,8 +173,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-        );
-      },
     );
   }
 }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
-import '../providers/credit_card_provider.dart';
+import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
+import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
+import 'package:kora_expense_tracker/features/credit_cards/credit_card_controller.dart';
 
 import '../core/utils/import_export_service.dart';
 
@@ -231,17 +232,16 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
         );
       }
 
-      final appProvider = context.read<AppProvider>();
-      final creditCardProvider = context.read<CreditCardProvider>();
+      final creditCardCtrl = context.read<CreditCardController>();
 
       final filePath = await ImportExportService.exportData(
-        accounts: appProvider.accounts,
-        transactions: appProvider.transactions,
-        creditCards: creditCardProvider.creditCards,
-        statements: creditCardProvider.statements,
-        payments: creditCardProvider.payments,
-        categories: appProvider.categories,
-        settings: appProvider.settings,
+        accounts: context.read<AccountController>().accounts,
+        transactions: context.read<TransactionController>().transactions,
+        creditCards: creditCardCtrl.creditCards,
+        statements: creditCardCtrl.statements,
+        payments: creditCardCtrl.payments,
+        categories: context.read<TransactionController>().categories,
+        settings: null,
       );
 
       if (filePath != null) {
@@ -279,10 +279,8 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
         _showInfoSnackBar('Exporting to: $exportDir/Exports/');
       }
 
-      final appProvider = context.read<AppProvider>();
-
       final filePath = await ImportExportService.exportToCSV(
-        transactions: appProvider.transactions,
+        transactions: context.read<TransactionController>().transactions,
       );
 
       if (filePath != null) {
@@ -325,7 +323,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
 
   Future<void> _handleExportCSV(BuildContext context) async {
     setState(() => _isExporting = true);
-    final provider = context.read<AppProvider>();
+    final provider = context.read<TransactionController>();
     final hasPermission = await ImportExportService.requestStoragePermission();
     if (!hasPermission) {
       if (mounted)

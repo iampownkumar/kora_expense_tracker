@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:kora_expense_tracker/providers/app_provider.dart';
+import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
 import 'package:kora_expense_tracker/core/models/category.dart';
 import 'package:kora_expense_tracker/widgets/add_category_dialog.dart';
 
@@ -17,9 +17,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppProvider>(
-      builder: (context, appProvider, child) {
-        final topLevel = appProvider.topLevelCategories;
+    return Consumer<TransactionController>(
+      builder: (context, txnCtrl, child) {
+        final topLevel = txnCtrl.topLevelCategories;
 
         return Scaffold(
           appBar: AppBar(
@@ -30,7 +30,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 child: Chip(
                   label: Text(
                     '${topLevel.length} categories'
-                    '${appProvider.subCategoryCount > 0 ? " · ${appProvider.subCategoryCount} sub" : ""}',
+                    '${txnCtrl.subCategoryCount > 0 ? " · ${txnCtrl.subCategoryCount} sub" : ""}',
                     style: const TextStyle(fontSize: 11),
                   ),
                   padding: EdgeInsets.zero,
@@ -48,13 +48,13 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                   itemBuilder: (context, index) {
                     final parent = topLevel[index];
                     final subCats =
-                        appProvider.getSubCategories(parent.id);
+                        txnCtrl.getSubCategories(parent.id);
                     final hasChildren = subCats.isNotEmpty;
                     final isExpanded = _expanded.contains(parent.id);
 
                     return _buildParentTile(
                       context,
-                      appProvider,
+                      txnCtrl,
                       parent,
                       subCats,
                       hasChildren,
@@ -68,7 +68,6 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               showDialog(
                 context: context,
                 builder: (context) => AddCategoryDialog(
-                  appProvider: appProvider,
                 ),
               );
             },
@@ -81,7 +80,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   Widget _buildParentTile(
     BuildContext context,
-    AppProvider appProvider,
+    TransactionController txnCtrl,
     Category parent,
     List<Category> subCats,
     bool hasChildren,
@@ -142,7 +141,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 if (!parent.isDefault)
                   IconButton(
                     icon: const Icon(Icons.edit, size: 18),
-                    onPressed: () => _editCategory(context, appProvider, parent),
+                    onPressed: () => _editCategory(context, txnCtrl, parent),
                     visualDensity: VisualDensity.compact,
                     padding: EdgeInsets.zero,
                   ),
@@ -150,7 +149,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 IconButton(
                   icon: const Icon(Icons.add_circle_outline, size: 18),
                   onPressed: () =>
-                      _addSubCategory(context, appProvider, parent),
+                      _addSubCategory(context, txnCtrl, parent),
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
                   tooltip: 'Add sub-category',
@@ -184,7 +183,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           // ── Sub-category rows (expandable) ───────────────────────────
           if (hasChildren && isExpanded) ...[
             const Divider(height: 1, indent: 16, endIndent: 16),
-            ...subCats.map((sub) => _buildSubTile(context, appProvider, sub)),
+            ...subCats.map((sub) => _buildSubTile(context, txnCtrl, sub)),
           ],
         ],
       ),
@@ -193,7 +192,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   Widget _buildSubTile(
     BuildContext context,
-    AppProvider appProvider,
+    TransactionController txnCtrl,
     Category sub,
   ) {
     final theme = Theme.of(context);
@@ -216,14 +215,14 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           if (!sub.isDefault)
             IconButton(
               icon: const Icon(Icons.edit, size: 16),
-              onPressed: () => _editCategory(context, appProvider, sub),
+              onPressed: () => _editCategory(context, txnCtrl, sub),
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
             ),
           if (!sub.isDefault)
             IconButton(
               icon: const Icon(Icons.delete_outline, size: 16),
-              onPressed: () => _deleteCategory(context, appProvider, sub),
+              onPressed: () => _deleteCategory(context, txnCtrl, sub),
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
             ),
@@ -233,22 +232,20 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   }
 
   void _editCategory(
-      BuildContext context, AppProvider appProvider, Category category) {
+      BuildContext context, TransactionController txnCtrl, Category category) {
     showDialog(
       context: context,
       builder: (context) => AddCategoryDialog(
-        appProvider: appProvider,
         category: category,
       ),
     );
   }
 
   void _addSubCategory(
-      BuildContext context, AppProvider appProvider, Category parent) {
+      BuildContext context, TransactionController txnCtrl, Category parent) {
     showDialog(
       context: context,
       builder: (context) => AddCategoryDialog(
-        appProvider: appProvider,
         parentCategory: parent,
       ),
     ).then((_) {
@@ -260,7 +257,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   }
 
   void _deleteCategory(
-      BuildContext context, AppProvider appProvider, Category category) {
+      BuildContext context, TransactionController txnCtrl, Category category) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -274,7 +271,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              appProvider.deleteCategory(category.id);
+              txnCtrl.deleteCategory(category.id);
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),

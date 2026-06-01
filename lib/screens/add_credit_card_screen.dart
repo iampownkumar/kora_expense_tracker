@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
+import 'package:kora_expense_tracker/features/credit_cards/credit_card_controller.dart';
+import 'package:provider/provider.dart';
 import '../core/constants/app_constants.dart';
-import '../providers/credit_card_provider.dart';
 import '../features/credit_cards/credit_card_controller.dart';
-import '../providers/app_provider.dart';
 import '../core/models/credit_card.dart';
 import '../core/models/account.dart';
 import '../core/models/account_type.dart';
@@ -841,7 +842,7 @@ class _AddCreditCardScreenState extends State<AddCreditCardScreen> {
       );
 
       final creditCardProvider = context.read<CreditCardController>();
-      final appProvider = context.read<AppProvider>();
+      final accCtrl = context.read<AccountController>();
       
       // Add credit card
       final creditCardSuccess = await creditCardProvider.addCreditCard(creditCard);
@@ -861,8 +862,8 @@ class _AddCreditCardScreenState extends State<AddCreditCardScreen> {
           updatedAt: creditCard.updatedAt,
         );
         
-        // Add account to the app provider
-        final accountSuccess = await appProvider.addAccount(account);
+        // Add account to account controller
+        final accountSuccess = await accCtrl.addAccount(account);
         
         if (accountSuccess) {
           if (mounted) {

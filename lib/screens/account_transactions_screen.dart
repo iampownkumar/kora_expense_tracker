@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
+import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';
-import 'package:kora_expense_tracker/providers/app_provider.dart';
 import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
 import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
 import 'package:kora_expense_tracker/core/models/transaction.dart';
@@ -31,9 +32,9 @@ class _AccountTransactionsScreenState extends State<AccountTransactionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppProvider>(
-      builder: (context, appProvider, child) {
-        final accountTransactions = _getAccountTransactions(appProvider.transactions);
+    return Consumer2<TransactionController, AccountController>(
+      builder: (context, txnCtrl, accCtrl, child) {
+        final accountTransactions = _getAccountTransactions(txnCtrl.transactions);
         final filteredTransactions = _getFilteredTransactions(accountTransactions);
         final groupedTransactions = _groupTransactionsByDate(filteredTransactions);
 
@@ -49,18 +50,18 @@ class _AccountTransactionsScreenState extends State<AccountTransactionsScreen> {
             }
           },
           child: Scaffold(
-            appBar: _buildAppBar(context, appProvider),
+            appBar: _buildAppBar(context, txnCtrl),
             body: Column(
               children: [
                 _buildAccountInfo(context),
                 _buildFilterChips(),
                 _buildSortOptions(),
                 Expanded(
-                  child: appProvider.isLoading
+                  child: txnCtrl.isLoading
                       ? _buildLoadingState()
                       : filteredTransactions.isEmpty
                           ? _buildEmptyState()
-                          : _buildTransactionList(groupedTransactions, appProvider),
+                          : _buildTransactionList(groupedTransactions, txnCtrl),
                 ),
               ],
             ),
@@ -71,7 +72,7 @@ class _AccountTransactionsScreenState extends State<AccountTransactionsScreen> {
   }
 
   /// Build the app bar
-  PreferredSizeWidget _buildAppBar(BuildContext context, AppProvider appProvider) {
+  PreferredSizeWidget _buildAppBar(BuildContext context, TransactionController txnCtrl) {
     return AppBar(
       title: Text('${widget.account.name} Transactions'),
       actions: [
@@ -281,10 +282,11 @@ class _AccountTransactionsScreenState extends State<AccountTransactionsScreen> {
   }
 
   /// Build the transaction list with date grouping
-  Widget _buildTransactionList(Map<String, List<Transaction>> groupedTransactions, AppProvider appProvider) {
+  Widget _buildTransactionList(Map<String, List<Transaction>> groupedTransactions, TransactionController txnCtrl) {
+    final accCtrl = context.read<AccountController>();
     return RefreshIndicator(
       onRefresh: () async {
-        await appProvider.refresh();
+        await txnCtrl.refresh();
       },
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -298,18 +300,18 @@ class _AccountTransactionsScreenState extends State<AccountTransactionsScreen> {
             children: [
               _buildDateHeader(dateKey, transactions.length),
               ...transactions.map((transaction) {
-                Account? account = appProvider.getAccountForTransaction(transaction.accountId);
+                Account? account = accCtrl.findById(transaction.accountId);
                 
                 Category? category;
                 try {
-                  category = appProvider.categories.firstWhere((cat) => cat.id == transaction.categoryId);
+                  category = txnCtrl.categories.firstWhere((cat) => cat.id == transaction.categoryId);
                 } catch (e) {
-                  category = appProvider.categories.isNotEmpty ? appProvider.categories.first : null;
+                  category = txnCtrl.categories.isNotEmpty ? txnCtrl.categories.first : null;
                 }
                 
                 Account? toAccount;
                 if (transaction.toAccountId != null) {
-                  toAccount = appProvider.getAccountForTransaction(transaction.toAccountId!);
+                  toAccount = accCtrl.findById(transaction.toAccountId!);
                 }
                 
                 return TransactionListItem(
@@ -318,8 +320,8 @@ class _AccountTransactionsScreenState extends State<AccountTransactionsScreen> {
                   category: category,
                   toAccount: toAccount,
                   onTap: () => _showTransactionDetails(context, transaction),
-                  onEdit: () => _editTransaction(context, transaction, appProvider),
-                  onDelete: () => appProvider.deleteTransaction(transaction.id),
+                  onEdit: () => _editTransaction(context, transaction, txnCtrl),
+                  onDelete: () => txnCtrl.deleteTransaction(transaction.id),
                 );
               }),
               const SizedBox(height: 8),
@@ -492,26 +494,23 @@ class _AccountTransactionsScreenState extends State<AccountTransactionsScreen> {
 
   /// Show transaction details in bottom sheet
   void _showTransactionDetails(BuildContext context, Transaction transaction) {
-    final appProvider = Provider.of<AppProvider>(context, listen: false);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => TransactionDetailSheet(
         transaction: transaction,
-        appProvider: appProvider,
       ),
     );
   }
 
   /// Edit existing transaction
-  void _editTransaction(BuildContext context, Transaction transaction, AppProvider appProvider) {
+  void _editTransaction(BuildContext context, Transaction transaction, TransactionController txnCtrl) {
     // Import AddTransactionDialog if needed
     // showDialog(
     //   context: context,
     //   builder: (context) => AddTransactionDialog(
-    //     appProvider: appProvider,
-    //     transaction: transaction,
+    //    //     transaction: transaction,
     //   ),
     // );
   }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/credit_card_provider.dart';
 import '../features/credit_cards/credit_card_controller.dart';
 import '../core/models/credit_card.dart';
 import '../core/utils/formatters.dart';

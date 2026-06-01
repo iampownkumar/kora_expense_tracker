@@ -2,11 +2,12 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
+import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
-import '../providers/app_provider.dart';
 import '../core/models/credit_card.dart';
 import '../core/models/transaction.dart';
 import '../core/utils/formatters.dart';
@@ -88,13 +89,13 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
   }
 
   Widget _buildOverviewTab() {
-    return Consumer<AppProvider>(
-      builder: (context, appProvider, child) {
-        final transactions = _getCreditCardTransactions(appProvider);
+    return Consumer<TransactionController>(
+      builder: (context, txnCtrl, child) {
+        final transactions = _getCreditCardTransactions(txnCtrl.transactions);
         final monthlySpending = _calculateMonthlySpending(transactions);
         final categorySpending = _calculateCategorySpending(
           transactions,
-          appProvider,
+          txnCtrl,
         );
 
         return SingleChildScrollView(
@@ -128,9 +129,9 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
   }
 
   Widget _buildSpendingTab() {
-    return Consumer<AppProvider>(
-      builder: (context, appProvider, child) {
-        final transactions = _getCreditCardTransactions(appProvider);
+    return Consumer<TransactionController>(
+      builder: (context, txnCtrl, child) {
+        final transactions = _getCreditCardTransactions(txnCtrl.transactions);
         final monthlySpending = _calculateMonthlySpending(transactions);
 
         return SingleChildScrollView(
@@ -142,7 +143,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
               const SizedBox(height: 24),
               _buildSpendingTrendChart(monthlySpending),
               const SizedBox(height: 24),
-              _buildSpendingDetails(transactions, appProvider),
+              _buildSpendingDetails(transactions, txnCtrl),
             ],
           ),
         );
@@ -151,12 +152,12 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
   }
 
   Widget _buildCategoriesTab() {
-    return Consumer<AppProvider>(
-      builder: (context, appProvider, child) {
-        final transactions = _getCreditCardTransactions(appProvider);
+    return Consumer<TransactionController>(
+      builder: (context, txnCtrl, child) {
+        final transactions = _getCreditCardTransactions(txnCtrl.transactions);
         final categorySpending = _calculateCategorySpending(
           transactions,
-          appProvider,
+          txnCtrl,
         );
 
         return SingleChildScrollView(
@@ -177,9 +178,9 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
   }
 
   Widget _buildInsightsTab() {
-    return Consumer<AppProvider>(
-      builder: (context, appProvider, child) {
-        final transactions = _getCreditCardTransactions(appProvider);
+    return Consumer<TransactionController>(
+      builder: (context, txnCtrl, child) {
+        final transactions = _getCreditCardTransactions(txnCtrl.transactions);
         final monthlySpending = _calculateMonthlySpending(transactions);
 
         return SingleChildScrollView(
@@ -650,7 +651,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
 
   Widget _buildSpendingDetails(
     List<Transaction> transactions,
-    AppProvider appProvider,
+    TransactionController txnCtrl,
   ) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -693,7 +694,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
             )
           else
             ...transactions.take(5).map((transaction) {
-              final category = appProvider.categories
+              final category = txnCtrl.categories
                   .where((cat) => cat.id == transaction.categoryId)
                   .firstOrNull;
 
@@ -985,12 +986,12 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
   }
 
   // Helper methods
-  List<Transaction> _getCreditCardTransactions(AppProvider appProvider) {
+  List<Transaction> _getCreditCardTransactions(List<Transaction> allTransactions) {
     final now = DateTime.now();
     final monthsToShow = _getMonthsToShow();
     final cutoffDate = DateTime(now.year, now.month - monthsToShow + 1, 1);
 
-    return appProvider.transactions
+    return allTransactions
         .where(
           (transaction) =>
               (transaction.accountId == widget.creditCard.id ||
@@ -1050,7 +1051,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
 
   Map<String, double> _calculateCategorySpending(
     List<Transaction> transactions,
-    AppProvider appProvider,
+    TransactionController txnCtrl,
   ) {
     final Map<String, double> categorySpending = {};
     final now = DateTime.now();
@@ -1060,7 +1061,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
     for (final transaction in transactions) {
       if (transaction.type == 'expense' &&
           transaction.date.isAfter(cutoffDate)) {
-        final category = appProvider.categories
+        final category = txnCtrl.categories
             .where((cat) => cat.id == transaction.categoryId)
             .firstOrNull;
         if (category != null) {
@@ -1289,8 +1290,8 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
       );
 
       // Get analytics data
-      final appProvider = Provider.of<AppProvider>(context, listen: false);
-      final transactions = appProvider.transactions
+      final txnCtrl = context.read<TransactionController>();
+      final transactions = txnCtrl.transactions
           .where((transaction) => transaction.accountId == widget.creditCard.id)
           .toList();
 
@@ -1352,10 +1353,10 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
 
     // Calculate spending by category
     final categorySpending = <String, double>{};
-    final appProvider = Provider.of<AppProvider>(context, listen: false);
+    final txnCtrl = context.read<TransactionController>();
 
     for (final transaction in transactions.where((t) => t.isExpense)) {
-      final category = appProvider.categories
+      final category = txnCtrl.categories
           .where((c) => c.id == transaction.categoryId)
           .firstOrNull;
       if (category != null) {

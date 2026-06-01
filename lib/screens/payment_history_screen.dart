@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
+import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
+import 'package:provider/provider.dart';
 import '../core/models/credit_card.dart';
 import '../core/models/transaction.dart';
 import '../core/utils/formatters.dart';
@@ -22,10 +23,10 @@ class PaymentHistoryScreen extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
       ),
-      body: Consumer<AppProvider>(
-        builder: (context, appProvider, child) {
+      body: Consumer<TransactionController>(
+        builder: (context, txnCtrl, child) {
           // Get all payment transactions for this credit card
-          final paymentTransactions = appProvider.transactions
+          final paymentTransactions = txnCtrl.transactions
               .where((transaction) => 
                   transaction.type == 'expense' && 
                   transaction.toAccountId == creditCard.id)

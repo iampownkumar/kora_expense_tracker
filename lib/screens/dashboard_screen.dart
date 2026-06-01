@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 import 'package:kora_expense_tracker/core/utils/formatters.dart';
-import 'package:kora_expense_tracker/providers/app_provider.dart';
 import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
 import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
 import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
@@ -42,14 +41,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Consumer2<TransactionController, AccountController>(
       builder: (context, txnCtrl, accCtrl, child) {
-        // Keep scroll-to-top on tab reselect via AppProvider tab index (legacy bridge)
-        final appProvider = Provider.of<AppProvider>(context, listen: false);
-        if (appProvider.selectedTabIndex == 0 && _lastSelectedTabIndex != 0) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _resetScrollPosition();
-          });
-        }
-        _lastSelectedTabIndex = appProvider.selectedTabIndex;
+        // Tab index no longer tracked via legacy provider
 
         final sh = MediaQuery.of(context).size.height;
         // Aggressive compact scaling: small=0.65, medium=0.80, large=1.0
@@ -98,7 +90,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: InkWell(
-                        onTap: () => appProvider.setSelectedTab(2),
+                        onTap: () {},  // Tab navigation handled by AppShell
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
                           padding: EdgeInsets.all(p),
@@ -311,7 +303,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   showDialog(
                                     context: context,
                                     builder: (context) => AddTransactionDialog(
-                                      appProvider: appProvider,
                                       transaction: transaction,
                                     ),
                                   );
@@ -320,7 +311,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   showDialog(
                                     context: context,
                                     builder: (context) => AddTransactionDialog(
-                                      appProvider: appProvider,
                                       transaction: transaction,
                                     ),
                                   );
@@ -377,8 +367,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 onPressed: () {
                                   showDialog(
                                     context: context,
-                                    builder: (context) => AddTransactionDialog(
-                                        appProvider: appProvider),
+                                    builder: (context) => const AddTransactionDialog(),
                                   );
                                 },
                                 icon: const Icon(Icons.add, size: 14),
@@ -466,7 +455,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 showDialog(
                   context: context,
                   builder: (context) =>
-                      AddTransactionDialog(appProvider: appProvider),
+                      AddTransactionDialog(),
                 );
               },
               backgroundColor: Theme.of(context).colorScheme.primary,

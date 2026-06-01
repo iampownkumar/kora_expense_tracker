@@ -5,11 +5,12 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 import 'package:kora_expense_tracker/core/models/transaction.dart';
 import 'package:kora_expense_tracker/core/models/account_type.dart';
-import 'package:kora_expense_tracker/providers/app_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
+import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
 import 'package:kora_expense_tracker/core/utils/formatters.dart';
 
 class AddTransactionDialog extends StatefulWidget {
-  final AppProvider appProvider;
   final Transaction? transaction; // For editing existing transactions
   final String? defaultAccountId; // Pre-select this account
   final String?
@@ -17,7 +18,6 @@ class AddTransactionDialog extends StatefulWidget {
 
   const AddTransactionDialog({
     super.key,
-    required this.appProvider,
     this.transaction,
     this.defaultAccountId,
     this.initialType,
@@ -28,6 +28,10 @@ class AddTransactionDialog extends StatefulWidget {
 }
 
 class _AddTransactionDialogState extends State<AddTransactionDialog> {
+  // ── Controller accessors ──────────────────────────────────────────────────
+  TransactionController get _txn => context.read<TransactionController>();
+  AccountController get _acc => context.read<AccountController>();
+
   String _selectedType = AppConstants.transactionTypeExpense;
   String _amount = '';
   String _description = '';
@@ -62,6 +66,8 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   late TextEditingController _amountController;
   late TextEditingController _notesController;
 
+  bool _didInit = false;
+
   @override
   void initState() {
     super.initState();
@@ -83,21 +89,6 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       _selectedDate = transaction.date;
       _selectedTime = TimeOfDay.fromDateTime(transaction.date);
       _imagePath = transaction.imagePath;
-      // Detect whether the saved category is a sub-category
-      final savedCat = widget.appProvider.categories
-          .where((c) => c.id == transaction.categoryId)
-          .firstOrNull;
-      if (savedCat != null && savedCat.isSubCategory) {
-        // Sub selected: restore parent + sub
-        _selectedParentCategoryId = savedCat.parentCategoryId;
-        _selectedSubCategoryId = savedCat.id;
-        _selectedCategoryId = savedCat.id;
-      } else {
-        // Parent selected directly
-        _selectedParentCategoryId = savedCat?.id;
-        _selectedSubCategoryId = null;
-        _selectedCategoryId = savedCat?.id;
-      }
 
       // Set controller values
       _descriptionController.text = _description;
@@ -116,11 +107,8 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
 
     // Auto-focus appropriate field when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Always focus on description field first (transaction type/description)
-      // This allows user to start typing the transaction description immediately
       _descriptionFocus.requestFocus();
 
-      // Auto-select all text if editing
       if (widget.transaction != null) {
         _descriptionController.selection = TextSelection(
           baseOffset: 0,
@@ -128,6 +116,30 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
         );
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didInit) return;
+    _didInit = true;
+
+    // Resolve category for editing (needs context → controller)
+    if (widget.transaction != null) {
+      final transaction = widget.transaction!;
+      final savedCat = context.read<TransactionController>().categories
+          .where((c) => c.id == transaction.categoryId)
+          .firstOrNull;
+      if (savedCat != null && savedCat.isSubCategory) {
+        _selectedParentCategoryId = savedCat.parentCategoryId;
+        _selectedSubCategoryId = savedCat.id;
+        _selectedCategoryId = savedCat.id;
+      } else {
+        _selectedParentCategoryId = savedCat?.id;
+        _selectedSubCategoryId = null;
+        _selectedCategoryId = savedCat?.id;
+      }
+    }
   }
 
   @override
@@ -264,7 +276,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                           // Sub-category card — shown automatically when
                           // the selected parent has sub-categories
                           if (_selectedParentCategoryId != null &&
-                              widget.appProvider
+                              _txn
                                   .getSubCategories(_selectedParentCategoryId!)
                                   .isNotEmpty) ...
                           [
@@ -508,7 +520,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   }
 
   Widget _buildFromAccountCard() {
-    final selectedAccount = widget.appProvider.accounts
+    final selectedAccount = _acc.accounts
         .where((account) => account.id == _selectedAccountId)
         .firstOrNull;
     final hasError = _hasAttemptedSave && _selectedAccountId == null;
@@ -581,7 +593,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   }
 
   Widget _buildToAccountCard() {
-    final selectedAccount = widget.appProvider.accounts
+    final selectedAccount = _acc.accounts
         .where((account) => account.id == _selectedToAccountId)
         .firstOrNull;
     final hasError = _hasAttemptedSave && _selectedToAccountId == null;
@@ -650,7 +662,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   }
 
   Widget _buildAccountCard() {
-    final selectedAccount = widget.appProvider.accounts
+    final selectedAccount = _acc.accounts
         .where((account) => account.id == _selectedAccountId)
         .firstOrNull;
     final hasError = _hasAttemptedSave && _selectedAccountId == null;
@@ -727,7 +739,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   /// Step 1 — parent category card
   Widget _buildCategoryCard() {
     final parentCat = _selectedParentCategoryId != null
-        ? widget.appProvider.categories
+        ? _txn.categories
             .where((c) => c.id == _selectedParentCategoryId)
             .firstOrNull
         : null;
@@ -791,7 +803,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
 
   /// Step 2 — optional sub-category card (shown only when parent has subs)
   Widget _buildSubCategoryCard() {
-    final subs = widget.appProvider
+    final subs = _txn
         .getSubCategories(_selectedParentCategoryId!)
         .where((s) {
           if (_selectedType == AppConstants.transactionTypeIncome) {
@@ -806,12 +818,12 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
         .toList();
 
     final selectedSub = _selectedSubCategoryId != null
-        ? widget.appProvider.categories
+        ? _txn.categories
             .where((c) => c.id == _selectedSubCategoryId)
             .firstOrNull
         : null;
 
-    final parentCat = widget.appProvider.categories
+    final parentCat = _txn.categories
         .where((c) => c.id == _selectedParentCategoryId)
         .firstOrNull;
 
@@ -1366,7 +1378,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
             Flexible(
               child: ListView(
                 shrinkWrap: true,
-                children: widget.appProvider.accounts
+                children: _acc.accounts
                     .where((account) {
                       // For transfers, only show asset accounts as source
                       if (_selectedType ==
@@ -1414,7 +1426,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   }
 
   void _showToAccountPicker() {
-    final availableAccounts = widget.appProvider.accounts
+    final availableAccounts = _acc.accounts
         .where((account) => account.id != _selectedAccountId)
         .toList();
 
@@ -1496,7 +1508,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
             Flexible(
               child: ListView(
                 shrinkWrap: true,
-                children: widget.appProvider.accounts
+                children: _acc.accounts
                     .map(
                       (account) => ListTile(
                         leading: Icon(account.icon, color: account.color),
@@ -1537,7 +1549,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
 
   void _showCategoryPicker() {
     // Step 1: show only top-level categories filtered by transaction type
-    final topLevel = widget.appProvider.topLevelCategories.where((c) {
+    final topLevel = _txn.topLevelCategories.where((c) {
       if (_selectedType == AppConstants.transactionTypeIncome) {
         return c.type == AppConstants.categoryTypeIncome ||
             c.type == AppConstants.categoryTypeBoth;
@@ -1576,7 +1588,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               child: ListView(
                 shrinkWrap: true,
                 children: topLevel.map((category) {
-                  final subs = widget.appProvider
+                  final subs = _txn
                       .getSubCategories(category.id)
                       .where((s) {
                         if (_selectedType ==
@@ -1802,13 +1814,13 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     bool success = false;
     if (widget.transaction != null) {
       // Update existing transaction
-      success = await widget.appProvider.updateTransaction(
+      success = await _txn.updateTransaction(
         widget.transaction!.id,
         transaction,
       );
     } else {
       // Add new transaction
-      success = await widget.appProvider.addTransaction(transaction);
+      success = await _txn.addTransaction(transaction);
     }
 
     if (success) {
@@ -1837,7 +1849,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            widget.appProvider.error ?? 'Failed to save transaction',
+            _txn.error ?? 'Failed to save transaction',
           ),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 3),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:kora_expense_tracker/providers/app_provider.dart';
 import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
 import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
 import 'package:kora_expense_tracker/core/models/account.dart';
@@ -67,10 +66,10 @@ class _AccountsScreenState extends State<AccountsScreen>
     return WillPopScope(
       onWillPop: () async {
         // Check if we're on dashboard (index 0)
-        final provider = context.read<AppProvider>();
-        if (provider.selectedTabIndex != 0) {
+        final provider = context.read<AccountController>();
+        if (0 != 0) {
           // Go to dashboard first
-          provider.setSelectedTab(0);
+          ;
           return false; // Don't exit app
         }
 
@@ -99,7 +98,7 @@ class _AccountsScreenState extends State<AccountsScreen>
       child: Scaffold(
         body: Consumer<AccountController>(
           builder: (context, accCtrl, child) {
-            final appProvider = Provider.of<AppProvider>(context, listen: false);
+            final accCtrl = context.read<AccountController>();
             final accounts = _getFilteredAccounts(accCtrl.accounts);
             final accountCounts = _getAccountCounts(accCtrl.accounts);
 
@@ -114,7 +113,7 @@ class _AccountsScreenState extends State<AccountsScreen>
               child: CustomScrollView(
                 controller: _scrollController,
                 slivers: [
-                  _buildSliverAppBar(context, appProvider),
+                  _buildSliverAppBar(context, accCtrl),
 
                   SliverToBoxAdapter(
                     child: FadeTransition(
@@ -126,7 +125,7 @@ class _AccountsScreenState extends State<AccountsScreen>
                           totalLiabilities: accCtrl.totalLiabilities,
                           netWorth: accCtrl.netWorth,
                           accountCounts: accountCounts,
-                          onTap: () => _showFinancialDetails(context, appProvider),
+                          onTap: () => _showFinancialDetails(context, accCtrl),
                         ),
                       ),
                     ),
@@ -141,9 +140,9 @@ class _AccountsScreenState extends State<AccountsScreen>
                     ),
 
                   if (accounts.isEmpty)
-                    _buildEmptyState(context, appProvider)
+                    _buildEmptyState(context, accCtrl)
                   else
-                    _buildAccountsList(accounts, appProvider),
+                    _buildAccountsList(accounts, accCtrl),
                 ],
               ),
             );
@@ -215,7 +214,7 @@ class _AccountsScreenState extends State<AccountsScreen>
     );
   }
 
-  Widget _buildSliverAppBar(BuildContext context, AppProvider provider) {
+  Widget _buildSliverAppBar(BuildContext context, AccountController provider) {
     final theme = Theme.of(context);
     final sh = MediaQuery.of(context).size.height;
     final expandedHeight = AppConstants.responsivePadding(sh, 110.0);
@@ -414,7 +413,7 @@ class _AccountsScreenState extends State<AccountsScreen>
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, AppProvider provider) {
+  Widget _buildEmptyState(BuildContext context, AccountController provider) {
     final theme = Theme.of(context);
     final isSearching = _searchQuery.isNotEmpty;
     final hasFilter = _selectedFilter != null;
@@ -472,7 +471,7 @@ class _AccountsScreenState extends State<AccountsScreen>
     );
   }
 
-  Widget _buildAccountsList(List<Account> accounts, AppProvider provider) {
+  Widget _buildAccountsList(List<Account> accounts, AccountController provider) {
     return SliverPadding(
       padding: const EdgeInsets.all(AppConstants.defaultPadding),
       sliver: SliverList(
@@ -600,7 +599,7 @@ class _AccountsScreenState extends State<AccountsScreen>
       builder: (dialogContext) => AddAccountDialog(
         onSave: (account) {
           // Use the original context that has access to the provider
-          context.read<AppProvider>().addAccount(account);
+          context.read<AccountController>().addAccount(account);
         },
       ),
     ).then((_) {
@@ -615,7 +614,7 @@ class _AccountsScreenState extends State<AccountsScreen>
       builder: (dialogContext) => AddAccountDialog(
         existingAccount: account,
         onSave: (updatedAccount) {
-          final provider = context.read<AppProvider>();
+          final provider = context.read<AccountController>();
 
           if (account.balance != updatedAccount.balance) {
             // Update account details first but with the old balance
@@ -630,11 +629,11 @@ class _AccountsScreenState extends State<AccountsScreen>
 
             // Generate a balance adjustment transaction
             final categoryId = isIncome
-                ? (provider.incomeCategories.isNotEmpty
-                      ? provider.incomeCategories.first.id
+                ? (context.read<TransactionController>().incomeCategories.isNotEmpty
+                      ? context.read<TransactionController>().incomeCategories.first.id
                       : 'income')
-                : (provider.expenseCategories.isNotEmpty
-                      ? provider.expenseCategories.first.id
+                : (context.read<TransactionController>().expenseCategories.isNotEmpty
+                      ? context.read<TransactionController>().expenseCategories.first.id
                       : 'expense');
 
             final transaction = Transaction.create(
@@ -650,7 +649,7 @@ class _AccountsScreenState extends State<AccountsScreen>
             );
 
             // Adding this transaction modifies the balance to reflect the user's manual change
-            provider.addTransaction(transaction);
+            context.read<TransactionController>().addTransaction(transaction);
           } else {
             provider.updateAccount(updatedAccount);
           }
@@ -665,12 +664,12 @@ class _AccountsScreenState extends State<AccountsScreen>
   void _showDeleteConfirmation(
     BuildContext context,
     Account account,
-    AppProvider provider,
+    AccountController provider,
   ) {
     final isCreditCard = account.type == AccountType.creditCard;
 
     // Count transactions for this account
-    final transactionCount = provider.transactions
+    final transactionCount = context.read<TransactionController>().transactions
         .where((t) => t.accountId == account.id || t.toAccountId == account.id)
         .length;
 
@@ -772,7 +771,7 @@ class _AccountsScreenState extends State<AccountsScreen>
   void _deleteAccountWithTransactions(
     BuildContext context,
     Account account,
-    AppProvider provider,
+    AccountController provider,
     bool isCreditCard,
   ) async {
     Navigator.of(context).pop(); // Close the dialog
@@ -843,7 +842,7 @@ class _AccountsScreenState extends State<AccountsScreen>
   void _deleteAccountAndTransactions(
     BuildContext context,
     Account account,
-    AppProvider provider,
+    AccountController provider,
     bool isCreditCard,
     int transactionCount,
   ) async {
@@ -915,19 +914,20 @@ class _AccountsScreenState extends State<AccountsScreen>
   Future<void> _performAccountDeletion(
     BuildContext context,
     Account account,
-    AppProvider provider,
+    AccountController provider,
     bool isCreditCard,
     bool deleteTransactions,
   ) async {
     try {
       bool success = false;
 
+      final txns = context.read<TransactionController>().transactions;
       if (deleteTransactions) {
         // Delete account with all transactions (handles credit card sync automatically)
-        success = await provider.deleteAccountWithTransactions(account.id);
+        success = await provider.deleteAccountWithTransactions(account.id, txns);
       } else {
         // Delete account only (handles credit card sync automatically)
-        success = await provider.deleteAccount(account.id);
+        success = await provider.deleteAccount(account.id, txns);
       }
 
       if (success) {
@@ -969,7 +969,7 @@ class _AccountsScreenState extends State<AccountsScreen>
     );
   }
 
-  void _showFinancialDetails(BuildContext context, AppProvider provider) {
+  void _showFinancialDetails(BuildContext context, AccountController provider) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1166,7 +1166,7 @@ class _AccountsScreenState extends State<AccountsScreen>
     );
   }
 
-  Widget _buildHealthScoreCard(BuildContext context, AppProvider provider) {
+  Widget _buildHealthScoreCard(BuildContext context, AccountController provider) {
     final theme = Theme.of(context);
     final healthScore = _calculateHealthScore(provider);
     final healthColor = _getHealthScoreColor(healthScore);
@@ -1275,7 +1275,7 @@ class _AccountsScreenState extends State<AccountsScreen>
     );
   }
 
-  Widget _buildInsightsCard(BuildContext context, AppProvider provider) {
+  Widget _buildInsightsCard(BuildContext context, AccountController provider) {
     final theme = Theme.of(context);
     final insights = _generateInsights(provider);
 
@@ -1335,7 +1335,7 @@ class _AccountsScreenState extends State<AccountsScreen>
     );
   }
 
-  int _calculateHealthScore(AppProvider provider) {
+  int _calculateHealthScore(AccountController provider) {
     // Simple health score calculation based on net worth and asset-to-liability ratio
     final netWorth = provider.netWorth;
     final assets = provider.totalAssets;
@@ -1387,7 +1387,7 @@ class _AccountsScreenState extends State<AccountsScreen>
     return 'Poor';
   }
 
-  List<Map<String, dynamic>> _generateInsights(AppProvider provider) {
+  List<Map<String, dynamic>> _generateInsights(AccountController provider) {
     final insights = <Map<String, dynamic>>[];
     final netWorth = provider.netWorth;
     final assets = provider.totalAssets;

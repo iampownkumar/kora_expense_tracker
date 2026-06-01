@@ -15,21 +15,21 @@ class TransactionController extends ChangeNotifier {
 
   // ── State ─────────────────────────────────────────────────────────────────
   List<Transaction> _transactions = [];
-  List<Category>    _categories   = [];
-  bool    _isLoading = false;
+  List<Category> _categories = [];
+  bool _isLoading = false;
   String? _error;
 
   TransactionController({
     required AccountController accountController,
     TransactionService? service,
-  })  : _accountController = accountController,
-        _service = service ?? TransactionService();
+  }) : _accountController = accountController,
+       _service = service ?? TransactionService();
 
   // ── Getters ───────────────────────────────────────────────────────────────
   List<Transaction> get transactions => _transactions;
-  List<Category>    get categories   => _categories;
-  bool    get isLoading => _isLoading;
-  String? get error     => _error;
+  List<Category> get categories => _categories;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
 
   List<Transaction> get recentTransactions {
     final sorted = List<Transaction>.from(_transactions)
@@ -37,11 +37,13 @@ class TransactionController extends ChangeNotifier {
     return sorted.take(10).toList();
   }
 
-  double get totalIncome =>
-      _transactions.where((t) => t.isIncome).fold(0.0, (s, t) => s + t.amount.abs());
+  double get totalIncome => _transactions
+      .where((t) => t.isIncome)
+      .fold(0.0, (s, t) => s + t.amount.abs());
 
-  double get totalExpenses =>
-      _transactions.where((t) => t.isExpense).fold(0.0, (s, t) => s + t.amount.abs());
+  double get totalExpenses => _transactions
+      .where((t) => t.isExpense)
+      .fold(0.0, (s, t) => s + t.amount.abs());
 
   // Category helpers
   List<Category> get incomeCategories =>
@@ -74,7 +76,7 @@ class TransactionController extends ChangeNotifier {
         StorageService.loadCategories(),
       ]);
       _transactions = results[0] as List<Transaction>;
-      _categories   = results[1] as List<Category>;
+      _categories = results[1] as List<Category>;
 
       if (_categories.isEmpty) {
         _categories = await _createDefaultCategories();
@@ -90,7 +92,7 @@ class TransactionController extends ChangeNotifier {
 
   Future<void> refresh() async {
     _transactions = await StorageService.loadTransactions();
-    _categories   = await StorageService.loadCategories();
+    _categories = await StorageService.loadCategories();
     notifyListeners();
   }
 
@@ -101,10 +103,18 @@ class TransactionController extends ChangeNotifier {
       // Validate before proceeding
       if (transaction.isTransfer && transaction.toAccountId != null) {
         final v = _accountController.validateTransfer(transaction);
-        if (!v.isValid) { _error = v.errorMessage; notifyListeners(); return false; }
+        if (!v.isValid) {
+          _error = v.errorMessage;
+          notifyListeners();
+          return false;
+        }
       } else if (transaction.isExpense) {
         final v = _accountController.validateExpense(transaction);
-        if (!v.isValid) { _error = v.errorMessage; notifyListeners(); return false; }
+        if (!v.isValid) {
+          _error = v.errorMessage;
+          notifyListeners();
+          return false;
+        }
       }
 
       final saved = await _service.addTransaction(transaction);
@@ -209,7 +219,9 @@ class TransactionController extends ChangeNotifier {
   // ── Import ────────────────────────────────────────────────────────────────
 
   Future<int> mergeImportedTransactions(List<Transaction> incoming) async {
-    final defaultCatId = _categories.isNotEmpty ? _categories.first.id : 'uncategorized';
+    final defaultCatId = _categories.isNotEmpty
+        ? _categories.first.id
+        : 'uncategorized';
     final defaultAccId = _accountController.accounts.isNotEmpty
         ? _accountController.accounts.first.id
         : 'unknown';
@@ -217,6 +229,33 @@ class TransactionController extends ChangeNotifier {
     final added = await _service.mergeTransactions(
       incoming,
       _transactions,
+      _categories,
+      defaultCatId,
+      defaultAccId,
+    );
+
+    if (added > 0) {
+      _transactions = await StorageService.loadTransactions();
+      notifyListeners();
+    }
+    return added;
+  }
+
+  /// Wipe all existing transactions and replace with the backup.
+  Future<int> restoreFromImportedTransactions(List<Transaction> incoming) async {
+    // Clear existing transactions from storage
+    await StorageService.saveTransactions([]);
+    _transactions = [];
+
+    // Re-use merge logic but with empty existing list (so everything gets added)
+    final defaultCatId = _categories.isNotEmpty ? _categories.first.id : 'uncategorized';
+    final defaultAccId = _accountController.accounts.isNotEmpty
+        ? _accountController.accounts.first.id
+        : 'unknown';
+
+    final added = await _service.mergeTransactions(
+      incoming,
+      [],
       _categories,
       defaultCatId,
       defaultAccId,
@@ -256,13 +295,15 @@ class TransactionController extends ChangeNotifier {
   Future<List<Category>> _createDefaultCategories() async {
     final cats = <Category>[];
     for (final d in AppConstants.defaultCategories) {
-      cats.add(Category.create(
-        name: d['name'],
-        icon: d['icon'],
-        color: d['color'],
-        type: d['type'],
-        isDefault: true,
-      ));
+      cats.add(
+        Category.create(
+          name: d['name'],
+          icon: d['icon'],
+          color: d['color'],
+          type: d['type'],
+          isDefault: true,
+        ),
+      );
     }
     await StorageService.saveCategories(cats);
     return cats;

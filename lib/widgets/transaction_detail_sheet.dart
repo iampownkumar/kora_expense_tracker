@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/core/models/transaction.dart';
 import 'package:kora_expense_tracker/core/models/category.dart';
-import 'package:kora_expense_tracker/providers/app_provider.dart';
+import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
+import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
 import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
 import 'package:kora_expense_tracker/core/utils/formatters.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';
@@ -9,25 +11,25 @@ import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 /// Bottom sheet for displaying detailed transaction information
 class TransactionDetailSheet extends StatelessWidget {
   final Transaction transaction;
-  final AppProvider appProvider;
 
   const TransactionDetailSheet({
     super.key,
     required this.transaction,
-    required this.appProvider,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Use proper account lookup that handles deleted accounts
-    final account = appProvider.getAccountForTransaction(transaction.accountId);
-    
+    final txnCtrl = context.watch<TransactionController>();
+    final accCtrl = context.watch<AccountController>();
+
+    // Use AccountController for account lookup
+    final account = accCtrl.findById(transaction.accountId);
+
     // Handle category lookup with proper fallback
     Category? category;
     try {
-      category = appProvider.categories.firstWhere((cat) => cat.id == transaction.categoryId);
+      category = txnCtrl.categories.firstWhere((cat) => cat.id == transaction.categoryId);
     } catch (e) {
-      // If category not found, create a default one for display
       category = Category(
         id: 'unknown',
         name: 'Unknown Category',
@@ -42,184 +44,178 @@ class TransactionDetailSheet extends StatelessWidget {
     }
 
     return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle bar
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle bar
-              Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  borderRadius: BorderRadius.circular(2),
+
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _getTypeColor(context, transaction.type).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    _getTypeIcon(transaction.type),
+                    color: _getTypeColor(context, transaction.type),
+                    size: 24,
+                  ),
                 ),
-              ),
-              
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    // Transaction type icon
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: _getTypeColor(context, transaction.type).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        _getTypeIcon(transaction.type),
-                        color: _getTypeColor(context, transaction.type),
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    
-                    // Transaction title and amount
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            transaction.description,
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            Formatters.formatCurrency(transaction.amount),
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              color: _getAmountColor(context, transaction.type),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    // Edit button
-                    IconButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        showDialog(
-                          context: context,
-                          builder: (context) => AddTransactionDialog(
-                            appProvider: appProvider,
-                            transaction: transaction,
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.edit),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                        foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Transaction details
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    _buildDetailRow(
-                      context,
-                      'Type',
-                      transaction.typeDisplayName,
-                      _getTypeColor(context, transaction.type),
-                    ),
-                    _buildDetailRow(
-                      context,
-                      'Account',
-                      account?.name ?? 'Unknown Account',
-                      Theme.of(context).colorScheme.primary,
-                    ),
-                    if (transaction.type != AppConstants.transactionTypeTransfer)
-                      _buildDetailRow(
-                        context,
-                        'Category',
-                        category.name,
-                        Theme.of(context).colorScheme.secondary,
-                      ),
-                    _buildDetailRow(
-                      context,
-                      'Date',
-                      Formatters.formatDate(transaction.date),
-                      Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    _buildDetailRow(
-                      context,
-                      'Time',
-                      Formatters.formatTime(transaction.date),
-                      Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    if (transaction.notes?.isNotEmpty == true)
-                      _buildDetailRow(
-                        context,
-                        'Notes',
-                        transaction.notes!,
-                        Theme.of(context).colorScheme.onSurfaceVariant,
-                        isMultiline: true,
-                      ),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Action buttons
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                                                  showDialog(
-                          context: context,
-                          builder: (context) => AddTransactionDialog(
-                            appProvider: appProvider,
-                            transaction: transaction,
-                          ),
-                        );
-                        },
-                        icon: const Icon(Icons.edit),
-                        label: const Text('Edit'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: () => _deleteTransaction(context, appProvider),
-                        icon: const Icon(Icons.delete),
-                        label: const Text('Delete'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.error,
-                          foregroundColor: Theme.of(context).colorScheme.onError,
+                const SizedBox(width: 16),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        transaction.description,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        Formatters.formatCurrency(transaction.amount),
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: _getAmountColor(context, transaction.type),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              
-              // Safe area padding
-              SizedBox(height: MediaQuery.of(context).padding.bottom),
-            ],
+
+                // Edit button
+                IconButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    showDialog(
+                      context: context,
+                      builder: (context) => AddTransactionDialog(
+                        transaction: transaction,
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.edit),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ],
+            ),
           ),
-        );
+
+          // Transaction details
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                _buildDetailRow(
+                  context,
+                  'Type',
+                  transaction.typeDisplayName,
+                  _getTypeColor(context, transaction.type),
+                ),
+                _buildDetailRow(
+                  context,
+                  'Account',
+                  account?.name ?? 'Unknown Account',
+                  Theme.of(context).colorScheme.primary,
+                ),
+                if (transaction.type != AppConstants.transactionTypeTransfer)
+                  _buildDetailRow(
+                    context,
+                    'Category',
+                    category.name,
+                    Theme.of(context).colorScheme.secondary,
+                  ),
+                _buildDetailRow(
+                  context,
+                  'Date',
+                  Formatters.formatDate(transaction.date),
+                  Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                _buildDetailRow(
+                  context,
+                  'Time',
+                  Formatters.formatTime(transaction.date),
+                  Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                if (transaction.notes?.isNotEmpty == true)
+                  _buildDetailRow(
+                    context,
+                    'Notes',
+                    transaction.notes!,
+                    Theme.of(context).colorScheme.onSurfaceVariant,
+                    isMultiline: true,
+                  ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Action buttons
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      showDialog(
+                        context: context,
+                        builder: (context) => AddTransactionDialog(
+                          transaction: transaction,
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Edit'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => _deleteTransaction(context, txnCtrl),
+                    icon: const Icon(Icons.delete),
+                    label: const Text('Delete'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.error,
+                      foregroundColor: Theme.of(context).colorScheme.onError,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          SizedBox(height: MediaQuery.of(context).padding.bottom),
+        ],
+      ),
+    );
   }
 
-  /// Build a detail row with label and value
   Widget _buildDetailRow(
     BuildContext context,
     String label,
@@ -259,7 +255,6 @@ class TransactionDetailSheet extends StatelessWidget {
     );
   }
 
-  /// Get the appropriate color for transaction type
   Color _getTypeColor(BuildContext context, String type) {
     switch (type) {
       case AppConstants.transactionTypeIncome:
@@ -273,7 +268,6 @@ class TransactionDetailSheet extends StatelessWidget {
     }
   }
 
-  /// Get the appropriate icon for transaction type
   IconData _getTypeIcon(String type) {
     switch (type) {
       case AppConstants.transactionTypeIncome:
@@ -287,7 +281,6 @@ class TransactionDetailSheet extends StatelessWidget {
     }
   }
 
-  /// Get the appropriate color for amount display
   Color _getAmountColor(BuildContext context, String type) {
     switch (type) {
       case AppConstants.transactionTypeIncome:
@@ -301,8 +294,7 @@ class TransactionDetailSheet extends StatelessWidget {
     }
   }
 
-  /// Delete transaction with confirmation
-  void _deleteTransaction(BuildContext context, AppProvider appProvider) {
+  void _deleteTransaction(BuildContext context, TransactionController txnCtrl) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -315,7 +307,7 @@ class TransactionDetailSheet extends StatelessWidget {
           ),
           FilledButton(
             onPressed: () {
-              appProvider.deleteTransaction(transaction.id);
+              txnCtrl.deleteTransaction(transaction.id);
               Navigator.pop(context); // Close confirmation dialog
               Navigator.pop(context); // Close detail sheet
               ScaffoldMessenger.of(context).showSnackBar(

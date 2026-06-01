@@ -26,7 +26,7 @@ class ImportExportService {
     required List<CreditCardStatement> statements,
     required List<PaymentRecord> payments,
     required List<Category> categories,
-    required Settings settings,
+    Settings? settings,
   }) async {
     try {
       // Request storage permissions removed for Android 11+ compliance. All operations use app-scoped storage.
@@ -49,7 +49,7 @@ class ImportExportService {
           'categories': categories
               .map((category) => category.toJson())
               .toList(),
-          'settings': settings.toJson(),
+          'settings': settings?.toJson() ?? {},
         },
       };
 
