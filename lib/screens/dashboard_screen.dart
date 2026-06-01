@@ -275,14 +275,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       SizedBox(height: sp),
                       Card(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: p,
-                            vertical: sp,
-                          ),
+                        child: SizedBox(
+                          // ~4 compact items visible; scrolls independently
+                          height: (txnCtrl.recentTransactions.length > 4
+                                  ? 4
+                                  : txnCtrl.recentTransactions.length) *
+                              68.0,
                           child: ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: p,
+                              vertical: sp,
+                            ),
+                            physics: const ClampingScrollPhysics(),
                             itemCount: txnCtrl.recentTransactions.length,
                             itemBuilder: (context, index) {
                               final transaction =
