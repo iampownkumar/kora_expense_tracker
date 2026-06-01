@@ -5,7 +5,8 @@ import 'package:kora_expense_tracker/core/models/account_type.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 import 'package:kora_expense_tracker/screens/add_credit_card_screen.dart';
 
-/// A user-friendly dialog for adding new accounts with auto-focus and progressive disclosure
+/// Clean single-page bottom sheet for adding/editing accounts.
+/// No multi-step wizard — everything visible at once.
 class AddAccountDialog extends StatefulWidget {
   final Account? existingAccount;
   final Function(Account) onSave;
@@ -22,304 +23,306 @@ class AddAccountDialog extends StatefulWidget {
 
 class _AddAccountDialogState extends State<AddAccountDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _balanceController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  
-  AccountType _selectedType = AccountType.savings;
-  IconData _selectedIcon = Icons.account_balance;
-  Color _selectedColor = Colors.blue;
-  bool _isLoading = false;
-  int _currentStep = 0;
-  
-  final List<FocusNode> _focusNodes = [
-    FocusNode(), // Name
-    FocusNode(), // Balance
-    FocusNode(), // Description
+  final _nameFocus = FocusNode();
+  final _nameCtrl = TextEditingController();
+  final _balanceCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
+
+  AccountType _type = AccountType.savings;
+  IconData _icon = Icons.savings;
+  Color _color = const Color(0xFF1565C0); // deep blue
+  bool _saving = false;
+
+  // ── Palettes ────────────────────────────────────────────────────────────────
+  static const _icons = [
+    Icons.savings,
+    Icons.account_balance,
+    Icons.account_balance_wallet,
+    Icons.wallet,
+    Icons.credit_card,
+    Icons.money,
+    Icons.payment,
+    Icons.phone_android,
+    Icons.business,
+    Icons.home,
+    Icons.school,
+    Icons.work,
+  ];
+
+  static const _colors = [
+    Color(0xFF1565C0), // deep blue
+    Color(0xFF00897B), // teal
+    Color(0xFF43A047), // green
+    Color(0xFF7B1FA2), // purple
+    Color(0xFFE53935), // red
+    Color(0xFFF4511E), // deep orange
+    Color(0xFFFB8C00), // orange
+    Color(0xFF039BE5), // light blue
+    Color(0xFF00ACC1), // cyan
+    Color(0xFF5E35B1), // deep purple
+    Color(0xFF3949AB), // indigo
+    Color(0xFF8D6E63), // brown
+  ];
+
+  // ── Account type display (skip creditCard — goes to its own screen) ─────────
+  static const _types = [
+    AccountType.savings,
+    AccountType.wallet,
+    AccountType.cash,
+    AccountType.investment,
+    AccountType.loan,
   ];
 
   @override
   void initState() {
     super.initState();
-    _initializeFields();
-    _setupAutoFocus();
-  }
-
-  void _initializeFields() {
-    if (widget.existingAccount != null) {
-      final account = widget.existingAccount!;
-      _nameController.text = account.name;
-      _balanceController.text = account.balance.toString();
-      _descriptionController.text = account.description ?? '';
-      _selectedType = account.type;
-      _selectedIcon = account.icon;
-      _selectedColor = account.color;
+    final a = widget.existingAccount;
+    if (a != null) {
+      _nameCtrl.text = a.name;
+      _balanceCtrl.text = a.balance.toStringAsFixed(2);
+      _noteCtrl.text = a.description ?? '';
+      _type = a.type;
+      _icon = a.icon;
+      _color = a.color;
     } else {
-      _balanceController.text = '';
+      _balanceCtrl.text = '0';
     }
-  }
-
-  void _setupAutoFocus() {
-    // Auto-focus the first field when dialog opens
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_currentStep == 0) {
-        // Focus on the first account type option
-        _focusNodes[0].requestFocus();
-      } else if (_currentStep == 1) {
-        // Focus on the account name field and auto-select text if editing
-        _focusNodes[0].requestFocus();
-        if (widget.existingAccount != null) {
-          _nameController.selection = TextSelection(
-            baseOffset: 0,
-            extentOffset: _nameController.text.length,
-          );
-        }
-      }
-    });
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _nameFocus.requestFocus(),
+    );
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _balanceController.dispose();
-    _descriptionController.dispose();
-    for (final node in _focusNodes) {
-      node.dispose();
-    }
+    _nameFocus.dispose();
+    _nameCtrl.dispose();
+    _balanceCtrl.dispose();
+    _noteCtrl.dispose();
     super.dispose();
   }
 
+  // ── Build ───────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isEditing = widget.existingAccount != null;
-    
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-      ),
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(AppConstants.defaultPadding),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(AppConstants.borderRadius),
-                  topRight: Radius.circular(AppConstants.borderRadius),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    isEditing ? Icons.edit : Icons.add,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    isEditing ? 'Edit Account' : 'Add New Account',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-            ),
-            
-            // Progress indicator
-            if (!isEditing) _buildProgressIndicator(),
-            
-            // Form content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppConstants.defaultPadding),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (_currentStep == 0) _buildAccountTypeStep(),
-                      if (_currentStep == 1) _buildAccountDetailsStep(),
-                      if (_currentStep == 2) _buildAccountCustomizationStep(),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            
-            // Action buttons
-            _buildActionButtons(),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _buildProgressIndicator() {
-    final theme = Theme.of(context);
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppConstants.defaultPadding),
-      child: Row(
-        children: List.generate(3, (index) {
-          final isActive = index <= _currentStep;
-          final isCompleted = index < _currentStep;
-          
-          return Expanded(
-            child: Row(
-              children: [
-                Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: isActive ? theme.colorScheme.primary : theme.colorScheme.outline,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: isCompleted
-                        ? const Icon(Icons.check, color: Colors.white, size: 16)
-                        : Text(
-                            '${index + 1}',
-                            style: TextStyle(
-                              color: isActive ? Colors.white : theme.colorScheme.onSurface,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
-                ),
-                if (index < 2)
-                  Expanded(
-                    child: Container(
-                      height: 2,
-                      color: isCompleted ? theme.colorScheme.primary : theme.colorScheme.outline,
-                    ),
-                  ),
-              ],
-            ),
-          );
-        }),
+    return Padding(
+      // push content above keyboard
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-    );
-  }
-
-  Widget _buildAccountTypeStep() {
-    final theme = Theme.of(context);
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Choose Account Type',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
+      child: DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.88,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, scrollCtrl) => Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(24)),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Select the type of account you want to add',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 16),
-        
-        // Account type options
-        ...AccountType.values.map((type) => _buildAccountTypeOption(type)),
-      ],
-    );
-  }
-
-  Widget _buildAccountTypeOption(AccountType type) {
-    final theme = Theme.of(context);
-    final isSelected = _selectedType == type;
-    
-    return Card(
-      elevation: isSelected ? 4 : 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(
-          color: isSelected ? type.color : Colors.transparent,
-          width: 2,
-        ),
-      ),
-      child: InkWell(
-        onTap: () {
-          // If credit card is selected, redirect to Add Credit Card screen
-          if (type == AccountType.creditCard) {
-            Navigator.of(context).pop(); // Close this dialog
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const AddCreditCardScreen(),
-              ),
-            );
-            return;
-          }
-          
-          setState(() {
-            _selectedType = type;
-            _selectedIcon = type.icon;
-            _selectedColor = type.color;
-          });
-          // Auto-proceed to next step after selection
-          Future.delayed(const Duration(milliseconds: 300), () {
-            if (_validateCurrentStep()) {
-              _nextStep();
-            }
-          });
-        },
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
+          child: Column(
             children: [
+              // ── Handle ──────────────────────────────────────────────────
+              const SizedBox(height: 10),
               Container(
-                padding: const EdgeInsets.all(8),
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
-                  color: type.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  type.icon,
-                  color: type.color,
-                  size: 24,
+                  color: theme.colorScheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 12),
+
+              // ── Title row ───────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
                   children: [
-                    Text(
-                      type.displayName,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+                    // Animated account icon preview
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: _color.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(_icon, color: _color, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        isEditing ? 'Edit Account' : 'New Account',
+                        style: theme.textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                     ),
-                    Text(
-                      _getAccountTypeDescription(type),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
                     ),
                   ],
                 ),
               ),
-              if (isSelected)
-                Icon(
-                  Icons.check_circle,
-                  color: type.color,
+              const SizedBox(height: 4),
+              const Divider(height: 1),
+
+              // ── Scrollable form ─────────────────────────────────────────
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollCtrl,
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── 1. Account type chips ────────────────────────
+                        _sectionLabel('Account Type'),
+                        const SizedBox(height: 8),
+                        _buildTypeChips(context),
+                        const SizedBox(height: 20),
+
+                        // ── 2. Name ──────────────────────────────────────
+                        _sectionLabel('Account Name'),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _nameCtrl,
+                          focusNode: _nameFocus,
+                          textInputAction: TextInputAction.next,
+                          decoration: InputDecoration(
+                            hintText: 'e.g. HDFC Savings, Amazon Pay',
+                            prefixIcon: const Icon(Icons.label_outline),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                          ),
+                          validator: (v) {
+                            if (v == null || v.trim().length < 2) {
+                              return 'Enter at least 2 characters';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ── 3. Balance ───────────────────────────────────
+                        _sectionLabel('Opening Balance'),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _balanceCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                                RegExp(r'^\-?\d*\.?\d*')),
+                          ],
+                          textInputAction: TextInputAction.next,
+                          decoration: InputDecoration(
+                            hintText: '0.00',
+                            prefixIcon: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
+                              child: Text(
+                                AppConstants.defaultCurrencySymbol,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                          ),
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) {
+                              return 'Enter an amount';
+                            }
+                            if (double.tryParse(v) == null) {
+                              return 'Invalid number';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ── 4. Note (optional) ───────────────────────────
+                        _sectionLabel('Note  (optional)'),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _noteCtrl,
+                          textInputAction: TextInputAction.done,
+                          maxLines: 2,
+                          decoration: InputDecoration(
+                            hintText: 'e.g. Primary salary account',
+                            prefixIcon:
+                                const Icon(Icons.sticky_note_2_outlined),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // ── 5. Icon picker ───────────────────────────────
+                        _sectionLabel('Icon'),
+                        const SizedBox(height: 10),
+                        _buildIconGrid(),
+                        const SizedBox(height: 20),
+
+                        // ── 6. Color picker ──────────────────────────────
+                        _sectionLabel('Color'),
+                        const SizedBox(height: 10),
+                        _buildColorRow(),
+                        const SizedBox(height: 32),
+                      ],
+                    ),
+                  ),
                 ),
+              ),
+
+              // ── Save button ─────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _saving ? null : _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _color,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: _saving
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            isEditing ? 'Save Changes' : 'Create Account',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -327,447 +330,200 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
     );
   }
 
-  Widget _buildAccountDetailsStep() {
-    final theme = Theme.of(context);
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  // ── Type chips ──────────────────────────────────────────────────────────────
+  Widget _buildTypeChips(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
       children: [
-        Text(
-          'Account Details',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Enter the basic information for your account',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 16),
-        
-        // Account name
-        TextFormField(
-          controller: _nameController,
-          focusNode: _focusNodes[0],
-          decoration: InputDecoration(
-            labelText: 'Account Name',
-            hintText: 'e.g., HDFC Savings, Amazon Pay',
-            prefixIcon: const Icon(Icons.account_balance),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+        // Regular account types
+        ..._types.map((t) {
+          final selected = _type == t;
+          return ChoiceChip(
+            avatar: Icon(t.icon,
+                size: 16,
+                color: selected ? t.color : null),
+            label: Text(t.displayName),
+            selected: selected,
+            selectedColor: t.color.withValues(alpha: 0.18),
+            checkmarkColor: t.color,
+            side: selected
+                ? BorderSide(color: t.color, width: 1.5)
+                : BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outline
+                        .withValues(alpha: 0.4)),
+            labelStyle: TextStyle(
+              fontSize: 13,
+              fontWeight:
+                  selected ? FontWeight.w700 : FontWeight.w400,
+              color: selected ? t.color : null,
             ),
-          ),
-          textInputAction: TextInputAction.next,
-          onFieldSubmitted: (_) {
-            // Auto-focus to balance field
-            _focusNodes[1].requestFocus();
-            // Auto-select balance text if editing
-            if (widget.existingAccount != null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _balanceController.selection = TextSelection(
-                  baseOffset: 0,
-                  extentOffset: _balanceController.text.length,
-                );
+            onSelected: (_) {
+              setState(() {
+                _type = t;
+                _icon = t.icon;
+                _color = t.color;
               });
-            }
-          },
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Please enter an account name';
-            }
-            if (value.trim().length < 2) {
-              return 'Account name must be at least 2 characters';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        
-        // Initial balance
-        TextFormField(
-          controller: _balanceController,
-          focusNode: _focusNodes[1],
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-          ],
-          textInputAction: TextInputAction.next,
-          onFieldSubmitted: (_) {
-            // Auto-focus to description field
-            _focusNodes[2].requestFocus();
-            // Auto-select description text if editing
-            if (widget.existingAccount != null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _descriptionController.selection = TextSelection(
-                  baseOffset: 0,
-                  extentOffset: _descriptionController.text.length,
-                );
-              });
-            }
-          },
-          decoration: InputDecoration(
-            labelText: 'Initial Balance',
-            hintText: '0.00',
-            prefixIcon: const Icon(Icons.account_balance_wallet),
-            prefixText: AppConstants.defaultCurrencySymbol,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Please enter an initial balance';
-            }
-            final balance = double.tryParse(value);
-            if (balance == null) {
-              return 'Please enter a valid amount';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        
-        // Description (optional)
-        TextFormField(
-          controller: _descriptionController,
-          focusNode: _focusNodes[2],
-          textInputAction: TextInputAction.done,
-          onFieldSubmitted: (_) {
-            // Auto-proceed to next step (Icon & Color)
-            if (_validateCurrentStep()) {
-              _nextStep();
-            }
-          },
-          decoration: InputDecoration(
-            labelText: 'Description (Optional)',
-            hintText: 'Add a note about this account',
-            prefixIcon: const Icon(Icons.note),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          maxLines: 2,
-        ),
+            },
+          );
+        }),
+        // Credit card chip → navigates away
+        _creditCardChip(context),
       ],
     );
   }
 
-  Widget _buildAccountCustomizationStep() {
-    final theme = Theme.of(context);
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Customize Appearance',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Choose an icon and color for your account',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 16),
-        
-        // Icon selection
-        Text(
-          'Icon',
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _getAvailableIcons().map((icon) => _buildIconOption(icon)).toList(),
-        ),
-        
-        const SizedBox(height: 16),
-        
-        // Color selection
-        Text(
-          'Color',
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _getAvailableColors().map((color) => _buildColorOption(color)).toList(),
-        ),
-      ],
+  Widget _creditCardChip(BuildContext context) {
+    return ActionChip(
+      avatar: Icon(Icons.credit_card,
+          size: 16,
+          color: Theme.of(context).colorScheme.onSurfaceVariant),
+      label: const Text('Credit Card'),
+      labelStyle: const TextStyle(fontSize: 13),
+      onPressed: () {
+        Navigator.of(context).pop();
+        Navigator.of(context).push(
+          MaterialPageRoute(
+              builder: (_) => const AddCreditCardScreen()),
+        );
+      },
+      tooltip: 'Opens credit card setup',
     );
   }
 
-  Widget _buildIconOption(IconData icon) {
-    final isSelected = _selectedIcon == icon;
-    
-    return GestureDetector(
-      onTap: () => setState(() => _selectedIcon = icon),
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: isSelected ? _selectedColor.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? _selectedColor : Colors.transparent,
-            width: 2,
-          ),
-        ),
-        child: Icon(
-          icon,
-          color: isSelected ? _selectedColor : Colors.grey,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildColorOption(Color color) {
-    final isSelected = _selectedColor == color;
-    
-    return GestureDetector(
-      onTap: () => setState(() => _selectedColor = color),
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: isSelected ? Colors.white : Colors.transparent,
-            width: 3,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.5),
-                    blurRadius: 8,
-                    spreadRadius: 2,
-                  ),
-                ]
-              : null,
-        ),
-        child: isSelected
-            ? const Icon(
-                Icons.check,
-                color: Colors.white,
-                size: 20,
-              )
-            : null,
-      ),
-    );
-  }
-
-  Widget _buildActionButtons() {
-    final theme = Theme.of(context);
-    final isEditing = widget.existingAccount != null;
-    
-    return Container(
-      padding: const EdgeInsets.all(AppConstants.defaultPadding),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(AppConstants.borderRadius),
-          bottomRight: Radius.circular(AppConstants.borderRadius),
-        ),
-      ),
-      child: Row(
-        children: [
-          if (!isEditing && _currentStep > 0)
-            Expanded(
-              child: OutlinedButton(
-                onPressed: _previousStep,
-                child: const Text('Back'),
-              ),
+  // ── Icon grid ───────────────────────────────────────────────────────────────
+  Widget _buildIconGrid() {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: _icons.map((ico) {
+        final sel = _icon == ico;
+        return GestureDetector(
+          onTap: () => setState(() => _icon = ico),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: sel
+                  ? _color.withValues(alpha: 0.18)
+                  : Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+              border: sel
+                  ? Border.all(color: _color, width: 2)
+                  : null,
             ),
-          if (!isEditing && _currentStep > 0) const SizedBox(width: 12),
-          Expanded(
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _nextStep,
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(isEditing ? 'Save' : (_currentStep == 2 ? 'Create Account' : 'Next')),
-            ),
+            child: Icon(ico,
+                color: sel ? _color : Theme.of(context).colorScheme.onSurfaceVariant,
+                size: 22),
           ),
-        ],
-      ),
+        );
+      }).toList(),
     );
   }
 
-  void _previousStep() {
-    if (_currentStep > 0) {
-      setState(() => _currentStep--);
-    }
+  // ── Color row ───────────────────────────────────────────────────────────────
+  Widget _buildColorRow() {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: _colors.map((c) {
+        final sel = _color == c;
+        return GestureDetector(
+          onTap: () => setState(() => _color = c),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: c,
+              shape: BoxShape.circle,
+              border: sel
+                  ? Border.all(color: Colors.white, width: 3)
+                  : null,
+              boxShadow: sel
+                  ? [
+                      BoxShadow(
+                          color: c.withValues(alpha: 0.55),
+                          blurRadius: 8,
+                          spreadRadius: 1)
+                    ]
+                  : null,
+            ),
+            child: sel
+                ? const Icon(Icons.check, color: Colors.white, size: 18)
+                : null,
+          ),
+        );
+      }).toList(),
+    );
   }
 
-  void _nextStep() {
-    if (_currentStep < 2) {
-      if (_validateCurrentStep()) {
-        setState(() => _currentStep++);
-        // Auto-focus next field with smooth transition
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_currentStep == 1) {
-            // Step 1: Account Details - focus on name field
-            _focusNodes[0].requestFocus();
-            // Auto-select text if editing
-            if (widget.existingAccount != null) {
-              _nameController.selection = TextSelection(
-                baseOffset: 0,
-                extentOffset: _nameController.text.length,
-              );
-            }
-          } else if (_currentStep == 2) {
-            // Step 2: Icon & Color - no focus needed
-            // This step doesn't have text fields
-          }
-        });
-      }
-    } else {
-      _saveAccount();
-    }
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+  Widget _sectionLabel(String text) {
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+    );
   }
 
-  bool _validateCurrentStep() {
-    if (_currentStep == 1) {
-      return _formKey.currentState?.validate() ?? false;
-    }
-    return true;
-  }
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  Future<void> _saveAccount() async {
-    if (!_validateCurrentStep()) return;
-    
-    setState(() => _isLoading = true);
-    
+    setState(() => _saving = true);
     try {
-      debugPrint('AddAccountDialog: Creating account with name: ${_nameController.text.trim()}');
-      debugPrint('AddAccountDialog: Account type: $_selectedType');
-      debugPrint('AddAccountDialog: Account icon: $_selectedIcon');
-      debugPrint('AddAccountDialog: Account color: $_selectedColor');
-      
+      final name = _nameCtrl.text.trim();
+      final balance = double.parse(_balanceCtrl.text.trim());
+      final note = _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim();
+
       final account = widget.existingAccount?.copyWith(
-        name: _nameController.text.trim(),
-        balance: double.parse(_balanceController.text),
-        type: _selectedType,
-        icon: _selectedIcon,
-        color: _selectedColor,
-        description: _descriptionController.text.trim().isEmpty 
-            ? null 
-            : _descriptionController.text.trim(),
-      ) ?? Account.create(
-        name: _nameController.text.trim(),
-        balance: double.parse(_balanceController.text),
-        type: _selectedType,
-        icon: _selectedIcon,
-        color: _selectedColor,
-        description: _descriptionController.text.trim().isEmpty 
-            ? null 
-            : _descriptionController.text.trim(),
-      );
-      
-      debugPrint('AddAccountDialog: Account created successfully: ${account.id}');
-      debugPrint('AddAccountDialog: Calling onSave callback');
-      
+            name: name,
+            balance: balance,
+            type: _type,
+            icon: _icon,
+            color: _color,
+            description: note,
+          ) ??
+          Account.create(
+            name: name,
+            balance: balance,
+            type: _type,
+            icon: _icon,
+            color: _color,
+            description: note,
+          );
+
       widget.onSave(account);
-      
-      debugPrint('AddAccountDialog: onSave callback completed');
-      
+
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              widget.existingAccount != null 
-                  ? 'Account updated successfully!' 
-                  : 'Account created successfully!',
-            ),
-            backgroundColor: Colors.green,
+            content: Text(widget.existingAccount != null
+                ? '✓ Account updated'
+                : '✓ Account created'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor:
+                Theme.of(context).colorScheme.inverseSurface,
           ),
         );
       }
     } catch (e) {
-      debugPrint('AddAccountDialog: Error creating account: $e');
-      debugPrint('AddAccountDialog: Error stack trace: ${StackTrace.current}');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _saving = false);
     }
   }
-
-  String _getAccountTypeDescription(AccountType type) {
-    switch (type) {
-      case AccountType.savings:
-        return 'Bank savings account for your money';
-      case AccountType.wallet:
-        return 'Digital wallet like Paytm, PhonePe';
-      case AccountType.creditCard:
-        return 'Credit card for purchases';
-      case AccountType.cash:
-        return 'Physical cash in hand';
-      case AccountType.investment:
-        return 'Investment accounts and funds';
-      case AccountType.loan:
-        return 'Loans and debts to pay';
-    }
-  }
-
-  List<IconData> _getAvailableIcons() {
-    return [
-      Icons.account_balance,
-      Icons.account_balance_wallet,
-      Icons.credit_card,
-      Icons.money,
-      Icons.savings,
-      Icons.payment,
-      Icons.account_circle,
-      Icons.wallet,
-      Icons.business,
-      Icons.home,
-      Icons.school,
-      Icons.work,
-    ];
-  }
-
-  List<Color> _getAvailableColors() {
-    return [
-      Colors.blue,
-      Colors.green,
-      Colors.orange,
-      Colors.purple,
-      Colors.red,
-      Colors.teal,
-      Colors.indigo,
-      Colors.pink,
-      Colors.amber,
-      Colors.cyan,
-      Colors.deepOrange,
-      Colors.lightBlue,
-    ];
-  }
-
-
 }

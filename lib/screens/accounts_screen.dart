@@ -585,31 +585,35 @@ class _AccountsScreenState extends State<AccountsScreen>
   }
 
   void _showAddAccountDialog(BuildContext context) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => AddAccountDialog(
+      isScrollControlled: true,
+      useSafeArea: true,
+      enableDrag: true,
+      isDismissible: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => AddAccountDialog(
         onSave: (account) {
-          // Use the original context that has access to the provider
           context.read<AccountController>().addAccount(account);
         },
       ),
-    ).then((_) {
-      // Clear search focus when dialog is dismissed
-      _clearSearchFocus();
-    });
+    ).then((_) => _clearSearchFocus());
   }
 
   void _showEditAccountDialog(BuildContext context, Account account) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => AddAccountDialog(
+      isScrollControlled: true,
+      useSafeArea: true,
+      enableDrag: true,
+      isDismissible: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => AddAccountDialog(
         existingAccount: account,
         onSave: (updatedAccount) {
           final provider = context.read<AccountController>();
 
           if (account.balance != updatedAccount.balance) {
-            // Update account details first but with the old balance
-            // so the transaction can correctly apply the difference to it.
             final accountWithOldBalance = updatedAccount.copyWith(
               balance: account.balance,
             );
@@ -618,7 +622,6 @@ class _AccountsScreenState extends State<AccountsScreen>
             final difference = updatedAccount.balance - account.balance;
             final isIncome = difference > 0;
 
-            // Generate a balance adjustment transaction
             final categoryId = isIncome
                 ? (context.read<TransactionController>().incomeCategories.isNotEmpty
                       ? context.read<TransactionController>().incomeCategories.first.id
@@ -639,17 +642,13 @@ class _AccountsScreenState extends State<AccountsScreen>
               date: DateTime.now(),
             );
 
-            // Adding this transaction modifies the balance to reflect the user's manual change
             context.read<TransactionController>().addTransaction(transaction);
           } else {
             provider.updateAccount(updatedAccount);
           }
         },
       ),
-    ).then((_) {
-      // Clear search focus when dialog is dismissed
-      _clearSearchFocus();
-    });
+    ).then((_) => _clearSearchFocus());
   }
 
   void _showDeleteConfirmation(
