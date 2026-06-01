@@ -154,15 +154,6 @@ class _AppShellState extends State<AppShell> {
         index: _selectedTabIndex,
         children: _screens,
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _openAddTransaction(context),
-        tooltip: 'Add Transaction',
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        child: const Icon(Icons.add, size: 28),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: _buildNavBar(context),
     );
   }
