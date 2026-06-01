@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/screens/dashboard_screen.dart';
 import 'package:kora_expense_tracker/screens/transactions_screen.dart';
 import 'package:kora_expense_tracker/screens/accounts_screen.dart';

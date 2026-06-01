@@ -172,6 +172,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
 
+  // ignore: unused_element
   Widget _buildAnalyticsTab() {
     return Consumer<CreditCardController>(
       builder: (context, provider, child) {
@@ -513,6 +514,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
 
 
+  // ignore: unused_element
   Widget _buildPaymentCard(payment) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -791,6 +793,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
     );
   }
 
+  // ignore: unused_element
   Widget _buildEmptyState({
     required IconData icon,
     required String title,
@@ -920,6 +923,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
   // Helper Methods
 
+  // ignore: unused_element
   Color _getStatementStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'paid':
@@ -935,6 +939,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
     }
   }
 
+  // ignore: unused_element
   IconData _getStatementStatusIcon(String status) {
     switch (status.toLowerCase()) {
       case 'paid':
@@ -1156,6 +1161,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
     }
   }
 
+  // ignore: unused_element
   void _showCardDetails() {
     showDialog(
       context: context,
@@ -1273,6 +1279,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   /// Show past statement details
+  // ignore: unused_element
   void _showPastStatementDetails(statement) {
     showDialog(
       context: context,
@@ -1343,7 +1350,6 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   /// Delete statement only (keep payment applied)
   void _deleteStatementOnly(statement) async {
     final creditCardProvider = Provider.of<CreditCardController>(context, listen: false);
-    final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
     
     // Show loading indicator
     showDialog(
@@ -1374,6 +1380,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
 
   /// Show past statement transactions
+  // ignore: unused_element
   void _showPastStatementTransactions(statement) {
     showDialog(
       context: context,
@@ -1486,6 +1493,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
     );
   }
 
+  // ignore: unused_element
   Widget _buildStatementDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -1534,7 +1542,6 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
   Future<void> _deleteStatement(statement) async {
     final creditCardProvider = context.read<CreditCardController>();
-    final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
     final success = await creditCardProvider.deleteStatement(statement.id);
     
     if (success) {
@@ -2138,6 +2145,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   /// Build statement detail item
+  // ignore: unused_element
   Widget _buildStatementDetail(String label, String value, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(8),
@@ -2424,6 +2432,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   // USER-FRIENDLY FUNCTION IMPLEMENTATIONS
   // ========================================
 
+  // ignore: unused_element
   void _showExportOptions() {
     showDialog(
       context: context,
@@ -2476,6 +2485,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
     );
   }
 
+  // ignore: unused_element
   void _showAutoPaySetup() {
     showDialog(
       context: context,
@@ -2585,8 +2595,8 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
     Navigator.of(context).pop(); // Close dialog
     
     final creditCardProvider = context.read<CreditCardController>();
-    final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
-    
+    final accCtrl = context.read<AccountController>();
+
     // Get the first available account for payment
     final accounts = accCtrl.accounts;
     if (accounts.isEmpty) {
@@ -2628,6 +2638,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
     }
   }
 
+  // ignore: unused_element
   void _showPaymentHistoryExport() {
     showDialog(
       context: context,
@@ -2880,7 +2891,6 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   void _showTransactionDetails(Transaction transaction) {
-    final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -2892,7 +2902,6 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   void _showAddTransactionDialog() {
-    final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
     showDialog(
       context: context,
       builder: (context) => AddTransactionDialog(
@@ -2980,7 +2989,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
       );
 
       // Get analytics data
-      final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
+    final txnCtrl = context.read<TransactionController>();
       final transactions = txnCtrl.transactions
           .where((transaction) => transaction.accountId == _currentCard.id)
           .toList();
@@ -3044,7 +3053,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
       );
 
       // Get analytics data
-      final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
+    final txnCtrl = context.read<TransactionController>();
       final transactions = txnCtrl.transactions
           .where((transaction) => transaction.accountId == _currentCard.id)
           .toList();
@@ -3101,7 +3110,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
     // Calculate spending by category
     final categorySpending = <String, double>{};
-    final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
+    final txnCtrl = context.read<TransactionController>();
     
     for (final transaction in transactions.where((t) => t.isExpense)) {
       final category = txnCtrl.categories
@@ -3206,7 +3215,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
     // Calculate spending by category
     final categorySpending = <String, double>{};
-    final txnCtrl = context.read<TransactionController>(); final accCtrl = context.read<AccountController>();
+    final txnCtrl = context.read<TransactionController>();
     
     for (final transaction in transactions.where((t) => t.isExpense)) {
       final category = txnCtrl.categories
@@ -3217,9 +3226,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
       }
     }
 
-    // Sort categories by spending amount
-    final sortedCategories = categorySpending.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    // Categories sorted by amount (computed inline when needed)
 
     pdf.addPage(
       pw.MultiPage(

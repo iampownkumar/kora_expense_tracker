@@ -211,6 +211,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     );
   }
 
+  // ignore: unused_element
   Future<void> _exportAllData() async {
     setState(() => _isExporting = true);
 
@@ -260,6 +261,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     }
   }
 
+  // ignore: unused_element
   Future<void> _exportTransactionsCSV() async {
     setState(() => _isExporting = true);
 

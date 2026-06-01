@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
-import 'package:provider/provider.dart';
 import '../core/models/credit_card.dart';
 import '../core/models/transaction.dart';
 import '../core/utils/formatters.dart';

@@ -201,7 +201,6 @@ class _ImportScreenState extends State<ImportScreen> {
   Future<void> _performImport(List<dynamic> transactions, bool replaceMode) async {
     setState(() => _isImporting = true);
     try {
-      final provider = context.read<TransactionController>();
       int added;
       
       if (replaceMode) {

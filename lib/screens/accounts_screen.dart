@@ -66,12 +66,7 @@ class _AccountsScreenState extends State<AccountsScreen>
     return WillPopScope(
       onWillPop: () async {
         // Check if we're on dashboard (index 0)
-        final provider = context.read<AccountController>();
-        if (0 != 0) {
-          // Go to dashboard first
-          ;
-          return false; // Don't exit app
-        }
+        // Navigation handled by AppShell
 
         // If already on dashboard, check for double back press
         final now = DateTime.now();
@@ -492,11 +487,7 @@ class _AccountsScreenState extends State<AccountsScreen>
     );
   }
 
-  // Add manual scroll helper
-  void _scrollToTop() {
-    // This will be called when user wants to scroll to top
-    // You can add a scroll controller if needed for more control
-  }
+
 
   // Clear search focus and keyboard
   void _clearSearchFocus() {

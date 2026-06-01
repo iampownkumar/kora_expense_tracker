@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
-import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -1365,9 +1364,7 @@ class _CreditCardAnalyticsScreenState extends State<CreditCardAnalyticsScreen>
       }
     }
 
-    // Sort categories by spending amount
-    final sortedCategories = categorySpending.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    // Sort categories by spending amount (inline - sorted used directly in loop below)
 
     pdf.addPage(
       pw.MultiPage(

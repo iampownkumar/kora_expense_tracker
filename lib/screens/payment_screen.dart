@@ -3,8 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
 import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
 import 'package:kora_expense_tracker/features/credit_cards/credit_card_controller.dart';
-import 'package:provider/provider.dart';
-import '../features/credit_cards/credit_card_controller.dart';
 import '../core/models/credit_card.dart';
 import '../core/models/account.dart';
 import '../core/models/transaction.dart';

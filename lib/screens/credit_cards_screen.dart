@@ -772,6 +772,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
     return Icons.check_circle;
   }
 
+  // ignore: unused_element
   String _getDueDateText(CreditCard card) {
     if (card.isOverdue) return 'Payment overdue';
     if (card.isDueSoon) return 'Due in ${card.daysUntilDue} days';

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
-import 'package:provider/provider.dart';
 import '../core/models/credit_card.dart';
 import '../core/models/credit_card_statement.dart';
 import '../core/utils/formatters.dart';
@@ -23,7 +22,6 @@ class StatementAnalyticsScreen extends StatefulWidget {
 
 class _StatementAnalyticsScreenState extends State<StatementAnalyticsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final String _selectedPeriod = 'Statement Period';
 
   @override
   void initState() {
@@ -997,7 +995,6 @@ class _StatementAnalyticsScreenState extends State<StatementAnalyticsScreen> wit
       dailySpending[day] = (dailySpending[day] ?? 0) + transaction.amount.abs();
     }
     
-    final maxDailySpending = dailySpending.values.isEmpty ? 0.0 : dailySpending.values.reduce((a, b) => a > b ? a : b);
     final maxSpendingDay = dailySpending.entries.isEmpty ? null : dailySpending.entries.reduce((a, b) => a.value > b.value ? a : b);
 
     return Column(

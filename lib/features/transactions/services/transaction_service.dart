@@ -4,7 +4,6 @@ import 'package:path_provider/path_provider.dart';
 import '../../../core/models/transaction.dart';
 import '../../../core/models/category.dart';
 import '../../../core/utils/storage_service.dart';
-import '../../../core/constants/app_constants.dart';
 
 /// Pure data layer for transaction operations.
 /// Called by [TransactionController]. No Flutter widgets here.

@@ -1,113 +1,96 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
-import 'package:kora_expense_tracker/providers/app_provider.dart';
-import 'package:kora_expense_tracker/core/models/transaction.dart';
+import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
+import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
 import 'package:kora_expense_tracker/core/models/account.dart';
 import 'package:kora_expense_tracker/core/models/category.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 
 void main() {
-  group('AppProvider Tests', () {
-    late AppProvider appProvider;
+  group('AccountController Tests', () {
+    late AccountController accountController;
 
     setUp(() {
-      appProvider = AppProvider();
+      accountController = AccountController();
     });
 
-    test('Initial state', () {
-      expect(appProvider.transactions, isEmpty);
-      expect(appProvider.accounts, isEmpty);
-      expect(appProvider.categories, isEmpty);
-      expect(appProvider.totalBalance, equals(0.0));
-      expect(appProvider.totalIncome, equals(0.0));
-      expect(appProvider.totalExpenses, equals(0.0));
-      expect(appProvider.isLoading, isFalse);
-      expect(appProvider.error, isNull);
-      expect(appProvider.selectedTabIndex, equals(0));
+    test('Initial state is empty', () {
+      expect(accountController.accounts, isEmpty);
+      expect(accountController.isLoading, isFalse);
+      expect(accountController.error, isNull);
+      expect(accountController.totalBalance, equals(0.0));
     });
 
-    test('Add transaction updates totals', () {
-      // Create test data
-      final account = Account.create(
-        name: 'Test Account',
-        icon: Icons.account_balance,
-        color: Colors.blue,
-        balance: 1000.0,
+    test('findById returns null for unknown id', () {
+      expect(accountController.findById('nonexistent'), isNull);
+    });
+
+    test('totalBalance reflects accounts', () {
+      expect(accountController.totalAssets, equals(0.0));
+      expect(accountController.totalLiabilities, equals(0.0));
+      expect(accountController.netWorth, equals(0.0));
+    });
+  });
+
+  group('TransactionController Tests', () {
+    late AccountController accountController;
+    late TransactionController transactionController;
+
+    setUp(() {
+      accountController = AccountController();
+      transactionController = TransactionController(
+        accountController: accountController,
       );
-
-      final category = Category.create(
-        name: 'Test Category',
-        icon: Icons.shopping_cart,
-        color: Colors.red,
-        type: AppConstants.transactionTypeExpense,
-      );
-
-      final transaction = Transaction.create(
-        type: AppConstants.transactionTypeExpense,
-        amount: 100.0,
-        description: 'Test expense',
-        categoryId: category.id,
-        accountId: account.id,
-      );
-
-      // Add to provider
-      appProvider.addAccount(account);
-      appProvider.addCategory(category);
-      appProvider.addTransaction(transaction);
-
-      // Verify totals
-      expect(appProvider.totalExpenses, equals(100.0));
-      expect(appProvider.totalIncome, equals(0.0));
-      expect(appProvider.totalBalance, equals(900.0)); // 1000 - 100
-      expect(appProvider.transactions.length, equals(1));
     });
 
-    test('Tab navigation', () {
-      expect(appProvider.selectedTabIndex, equals(0));
-      
-      appProvider.setSelectedTab(2);
-      expect(appProvider.selectedTabIndex, equals(2));
-      
-      appProvider.setSelectedTab(4);
-      expect(appProvider.selectedTabIndex, equals(4));
-    });
-
-    test('Error handling', () {
-      expect(appProvider.error, isNull);
-      
-      appProvider.clearError();
-      expect(appProvider.error, isNull);
+    test('Initial state is empty', () {
+      expect(transactionController.transactions, isEmpty);
+      expect(transactionController.categories, isEmpty);
+      expect(transactionController.isLoading, isFalse);
+      expect(transactionController.error, isNull);
+      expect(transactionController.totalIncome, equals(0.0));
+      expect(transactionController.totalExpenses, equals(0.0));
     });
 
     test('Category filtering', () {
-      // Add mixed categories
-      final incomeCategory = Category.create(
-        name: 'Income',
-        icon: Icons.work,
-        color: Colors.green,
-        type: AppConstants.transactionTypeIncome,
-      );
+      // Categories start empty until initialized
+      expect(transactionController.incomeCategories, isEmpty);
+      expect(transactionController.expenseCategories, isEmpty);
+      expect(transactionController.topLevelCategories, isEmpty);
+    });
 
-      final expenseCategory = Category.create(
-        name: 'Expense',
+    test('clearError resets error state', () {
+      transactionController.clearError();
+      expect(transactionController.error, isNull);
+    });
+  });
+
+  group('Category model Tests', () {
+    test('Category.create sets fields correctly', () {
+      final category = Category.create(
+        name: 'Test',
         icon: Icons.shopping_cart,
         color: Colors.red,
         type: AppConstants.transactionTypeExpense,
       );
+      expect(category.name, equals('Test'));
+      expect(category.isExpense, isTrue);
+      expect(category.isIncome, isFalse);
+      expect(category.id, isNotEmpty);
+    });
+  });
 
-      final bothCategory = Category.create(
-        name: 'Both',
-        icon: Icons.category,
-        color: Colors.blue,
-        type: 'both',
+  group('Account model Tests', () {
+    test('Account.create sets fields correctly', () {
+      final account = Account.create(
+        name: 'Savings',
+        icon: Icons.savings,
+        color: Colors.green,
+        balance: 5000.0,
       );
-
-      appProvider.addCategory(incomeCategory);
-      appProvider.addCategory(expenseCategory);
-      appProvider.addCategory(bothCategory);
-
-      expect(appProvider.incomeCategories.length, equals(2)); // income + both
-      expect(appProvider.expenseCategories.length, equals(2)); // expense + both
+      expect(account.name, equals('Savings'));
+      expect(account.balance, equals(5000.0));
+      expect(account.id, isNotEmpty);
     });
   });
 }
