@@ -126,17 +126,39 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       child: Row(
                         children: ReportPeriod.values.map((p) {
                           final selected = _period == p;
+                          final isDark = Theme.of(context).brightness == Brightness.dark;
                           return Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: FilterChip(
                               selected: selected,
-                              label: Text(_periodLabel(p)),
+                              label: Text(
+                                _periodLabel(p),
+                                style: TextStyle(
+                                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                                  color: selected
+                                      ? Theme.of(context).colorScheme.onPrimaryContainer
+                                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
+                                ),
+                              ),
                               onSelected: (_) =>
                                   setState(() => _period = p),
+                              backgroundColor: isDark
+                                  ? Colors.white.withValues(alpha: 0.05)
+                                  : Colors.black.withValues(alpha: 0.035),
                               selectedColor:
                                   Theme.of(context).colorScheme.primaryContainer,
                               checkmarkColor:
                                   Theme.of(context).colorScheme.onPrimaryContainer,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              side: BorderSide(
+                                color: selected
+                                    ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.25)
+                                    : (isDark
+                                        ? Colors.white.withValues(alpha: 0.08)
+                                        : Colors.black.withValues(alpha: 0.06)),
+                              ),
                             ),
                           );
                         }).toList(),

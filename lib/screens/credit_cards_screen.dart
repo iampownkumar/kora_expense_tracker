@@ -302,6 +302,8 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
 
   /// Build filter chips
   Widget _buildFilterChips(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return SliverToBoxAdapter(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -313,15 +315,36 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
               return Container(
                 margin: const EdgeInsets.only(right: 8),
                 child: FilterChip(
-                  label: Text(option),
+                  label: Text(
+                    option,
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.onPrimaryContainer
+                          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
+                    ),
+                  ),
                   selected: isSelected,
                   onSelected: (selected) {
                     setState(() {
                       _selectedFilter = selected ? option : 'All';
                     });
                   },
+                  backgroundColor: isDark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.black.withValues(alpha: 0.035),
                   selectedColor: Theme.of(context).colorScheme.primaryContainer,
-                  checkmarkColor: Theme.of(context).colorScheme.primary,
+                  checkmarkColor: Theme.of(context).colorScheme.onPrimaryContainer,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  side: BorderSide(
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.25)
+                        : (isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : Colors.black.withValues(alpha: 0.06)),
+                  ),
                 ),
               );
             }).toList(),
