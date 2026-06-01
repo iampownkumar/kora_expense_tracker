@@ -42,87 +42,148 @@ class AppConstants {
   static const String accountTypeCredit = 'credit';
   static const String accountTypeInvestment = 'investment';
 
-  // Default Categories
+  // Default Categories — comprehensive, modern, India-relevant
   static const List<Map<String, dynamic>> defaultCategories = [
-    // Income Categories
+
+    // ── Income ─────────────────────────────────────────────────────────────
     {
       'name': 'Salary',
-      'icon': Icons.work,
-      'color': Colors.green,
+      'icon': Icons.account_balance_wallet,
+      'color': Color(0xFF16A34A), // green-600
       'type': 'income',
     },
     {
       'name': 'Freelance',
-      'icon': Icons.computer,
-      'color': Colors.blue,
+      'icon': Icons.laptop_mac,
+      'color': Color(0xFF0284C7), // sky-600
       'type': 'income',
     },
     {
-      'name': 'Investment',
+      'name': 'Business',
+      'icon': Icons.store,
+      'color': Color(0xFF7C3AED), // violet-600
+      'type': 'income',
+    },
+    {
+      'name': 'Investment Returns',
       'icon': Icons.trending_up,
-      'color': Colors.orange,
+      'color': Color(0xFF059669), // emerald-600
       'type': 'income',
     },
     {
-      'name': 'Gift',
+      'name': 'Gift / Bonus',
       'icon': Icons.card_giftcard,
-      'color': Colors.purple,
+      'color': Color(0xFFDB2777), // pink-600
+      'type': 'income',
+    },
+    {
+      'name': 'Other Income',
+      'icon': Icons.add_circle_outline,
+      'color': Color(0xFF65A30D), // lime-600
       'type': 'income',
     },
 
-    // Expense Categories
+    // ── Expense ─────────────────────────────────────────────────────────────
     {
       'name': 'Food & Dining',
-      'icon': Icons.restaurant,
-      'color': Colors.red,
+      'icon': Icons.lunch_dining,
+      'color': Color(0xFFEA580C), // orange-600
       'type': 'expense',
     },
     {
-      'name': 'Transportation',
-      'icon': Icons.directions_car,
-      'color': Colors.indigo,
+      'name': 'Groceries',
+      'icon': Icons.local_grocery_store,
+      'color': Color(0xFF16A34A), // green-600
+      'type': 'expense',
+    },
+    {
+      'name': 'Transport',
+      'icon': Icons.directions_bus,
+      'color': Color(0xFF2563EB), // blue-600
+      'type': 'expense',
+    },
+    {
+      'name': 'Fuel',
+      'icon': Icons.local_gas_station,
+      'color': Color(0xFFCA8A04), // yellow-600
       'type': 'expense',
     },
     {
       'name': 'Shopping',
       'icon': Icons.shopping_bag,
-      'color': Colors.pink,
-      'type': 'expense',
-    },
-    {
-      'name': 'Entertainment',
-      'icon': Icons.movie,
-      'color': Colors.amber,
-      'type': 'expense',
-    },
-    {
-      'name': 'Healthcare',
-      'icon': Icons.medical_services,
-      'color': Colors.teal,
+      'color': Color(0xFFEC4899), // pink-500
       'type': 'expense',
     },
     {
       'name': 'Bills & Utilities',
-      'icon': Icons.receipt,
-      'color': Colors.grey,
+      'icon': Icons.electric_bolt,
+      'color': Color(0xFFD97706), // amber-600
+      'type': 'expense',
+    },
+    {
+      'name': 'Rent & Housing',
+      'icon': Icons.home,
+      'color': Color(0xFF7C3AED), // violet-600
+      'type': 'expense',
+    },
+    {
+      'name': 'Healthcare',
+      'icon': Icons.local_hospital,
+      'color': Color(0xFFDC2626), // red-600
+      'type': 'expense',
+    },
+    {
+      'name': 'Entertainment',
+      'icon': Icons.movie_filter,
+      'color': Color(0xFF9333EA), // purple-600
+      'type': 'expense',
+    },
+    {
+      'name': 'Subscriptions',
+      'icon': Icons.subscriptions,
+      'color': Color(0xFF0891B2), // cyan-600
       'type': 'expense',
     },
     {
       'name': 'Education',
-      'icon': Icons.school,
-      'color': Colors.cyan,
+      'icon': Icons.menu_book,
+      'color': Color(0xFF0284C7), // sky-600
       'type': 'expense',
     },
     {
       'name': 'Travel',
-      'icon': Icons.flight,
-      'color': Colors.deepOrange,
+      'icon': Icons.flight_takeoff,
+      'color': Color(0xFF0369A1), // sky-700
       'type': 'expense',
     },
     {
-      'name': 'Credit Card Payment',
-      'icon': Icons.payment,
-      'color': Colors.blue,
+      'name': 'Personal Care',
+      'icon': Icons.spa,
+      'color': Color(0xFFBE185D), // pink-700
+      'type': 'expense',
+    },
+    {
+      'name': 'EMI / Loan',
+      'icon': Icons.account_balance,
+      'color': Color(0xFF374151), // gray-700
+      'type': 'expense',
+    },
+    {
+      'name': 'Credit Card Bill',
+      'icon': Icons.credit_card,
+      'color': Color(0xFF1D4ED8), // blue-700
+      'type': 'expense',
+    },
+    {
+      'name': 'Savings & Investment',
+      'icon': Icons.savings,
+      'color': Color(0xFF15803D), // green-700
+      'type': 'expense',
+    },
+    {
+      'name': 'Other',
+      'icon': Icons.more_horiz,
+      'color': Color(0xFF6B7280), // gray-500
       'type': 'expense',
     },
   ];
