@@ -300,17 +300,17 @@ class _HeroCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF1D4ED8).withValues(alpha: isDark ? 0.3 : 0.25),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Greeting + month ──────────────────────────────────────────
+            // ── Greeting + Today's Date ───────────────────────────────────
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -318,7 +318,7 @@ class _HeroCard extends StatelessWidget {
                   _greeting(),
                   style: const TextStyle(
                     color: Colors.white70,
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -330,7 +330,7 @@ class _HeroCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    _monthLabel(),
+                    _todayLabel(),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 11,
@@ -340,29 +340,29 @@ class _HeroCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             const Text(
               'Total Balance',
               style: TextStyle(
-                  color: Colors.white60, fontSize: 12, letterSpacing: 0.5),
+                  color: Colors.white60, fontSize: 11, letterSpacing: 0.5),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
 
             // ── Balance number ────────────────────────────────────────────
             Text(
               Formatters.formatCurrency(accCtrl.totalBalance),
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 34,
+                fontSize: 28,
                 fontWeight: FontWeight.w800,
-                letterSpacing: -1,
+                letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 14),
 
             // ── Income vs Expense split bar ───────────────────────────────
             _SpendBar(spendRatio: spendRatio),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
             // ── Income / Expense / Savings ────────────────────────────────
             Row(
@@ -373,14 +373,14 @@ class _HeroCard extends StatelessWidget {
                   icon: Icons.arrow_upward_rounded,
                   color: const Color(0xFF4ADE80), // green-400
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 _MiniStat(
                   label: 'Expenses',
                   value: Formatters.formatCurrency(expense),
                   icon: Icons.arrow_downward_rounded,
                   color: const Color(0xFFFCA5A5), // red-300
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 _MiniStat(
                   label: 'Saved',
                   value: '${savingsRate.toStringAsFixed(0)}%',
@@ -402,13 +402,15 @@ class _HeroCard extends StatelessWidget {
     return 'Good Evening 🌙';
   }
 
-  String _monthLabel() {
+  String _todayLabel() {
+    const weekdays = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     final now = DateTime.now();
-    return '${months[now.month - 1]} ${now.year}';
+    final weekdayStr = weekdays[now.weekday];
+    return '$weekdayStr, ${now.day} ${months[now.month - 1]} ${now.year}';
   }
 }
 
@@ -481,7 +483,7 @@ class _MiniStat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(14),
