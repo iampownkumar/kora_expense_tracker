@@ -64,13 +64,11 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
     Color(0xFF8D6E63), // brown
   ];
 
-  // ── Account type display (skip creditCard — goes to its own screen) ─────────
+  // ── Account type chips (Credit Card handled separately) ──────────────────────
   static const _types = [
     AccountType.savings,
     AccountType.wallet,
     AccountType.cash,
-    AccountType.investment,
-    AccountType.loan,
   ];
 
   @override
