@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../constants/app_constants.dart';
+import '../core/constants/app_constants.dart';
 import '../providers/credit_card_provider.dart';
+import '../features/credit_cards/credit_card_controller.dart';
 import '../providers/app_provider.dart';
-import '../models/credit_card.dart';
-import '../models/account.dart';
-import '../models/account_type.dart';
-import '../utils/formatters.dart';
+import '../core/models/credit_card.dart';
+import '../core/models/account.dart';
+import '../core/models/account_type.dart';
+import '../core/utils/formatters.dart';
 
 /// Add Credit Card Screen - User-friendly form for adding new credit cards
 class AddCreditCardScreen extends StatefulWidget {
@@ -839,7 +840,7 @@ class _AddCreditCardScreenState extends State<AddCreditCardScreen> {
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
       );
 
-      final creditCardProvider = context.read<CreditCardProvider>();
+      final creditCardProvider = context.read<CreditCardController>();
       final appProvider = context.read<AppProvider>();
       
       // Add credit card

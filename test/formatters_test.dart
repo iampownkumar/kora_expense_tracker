@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:kora_expense_tracker/utils/formatters.dart';
+import 'package:kora_expense_tracker/core/utils/formatters.dart';
 
 void main() {
   setUpAll(() async {

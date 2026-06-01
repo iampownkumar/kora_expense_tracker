@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:kora_expense_tracker/models/transaction.dart';
-import 'package:kora_expense_tracker/models/category.dart';
+import 'package:kora_expense_tracker/core/models/transaction.dart';
+import 'package:kora_expense_tracker/core/models/category.dart';
 import 'package:kora_expense_tracker/providers/app_provider.dart';
 import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
-import 'package:kora_expense_tracker/utils/formatters.dart';
-import 'package:kora_expense_tracker/constants/app_constants.dart';
+import 'package:kora_expense_tracker/core/utils/formatters.dart';
+import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 
 /// Bottom sheet for displaying detailed transaction information
 class TransactionDetailSheet extends StatelessWidget {

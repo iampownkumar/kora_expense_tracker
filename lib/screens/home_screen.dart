@@ -8,8 +8,8 @@ import 'package:kora_expense_tracker/screens/credit_cards_screen.dart';
 import 'package:kora_expense_tracker/screens/more_screen.dart';
 import 'package:kora_expense_tracker/screens/reports_screen.dart';
 import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
-import 'package:kora_expense_tracker/utils/storage_service.dart';
-import 'package:kora_expense_tracker/constants/app_constants.dart';
+import 'package:kora_expense_tracker/core/utils/storage_service.dart';
+import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

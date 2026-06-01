@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../providers/credit_card_provider.dart';
-import '../models/credit_card.dart';
-import '../models/account.dart';
-import '../models/transaction.dart';
-import '../utils/formatters.dart';
-import '../constants/app_constants.dart';
+import '../features/credit_cards/credit_card_controller.dart';
+import '../core/models/credit_card.dart';
+import '../core/models/account.dart';
+import '../core/models/transaction.dart';
+import '../core/utils/formatters.dart';
+import '../core/constants/app_constants.dart';
 
 /// Payment Screen for making credit card payments
 class PaymentScreen extends StatefulWidget {
@@ -923,7 +924,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     
     if (success) {
       // Refresh credit card provider to update payment data
-      final creditCardProvider = Provider.of<CreditCardProvider>(context, listen: false);
+      final creditCardProvider = Provider.of<CreditCardController>(context, listen: false);
       await creditCardProvider.refresh();
       
       if (mounted) {

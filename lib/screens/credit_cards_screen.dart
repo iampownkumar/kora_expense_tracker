@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/credit_card_provider.dart';
-import '../models/credit_card.dart';
-import '../utils/formatters.dart';
-import '../constants/app_constants.dart';
+import '../features/credit_cards/credit_card_controller.dart';
+import '../core/models/credit_card.dart';
+import '../core/utils/formatters.dart';
+import '../core/constants/app_constants.dart';
 import 'payment_screen.dart';
 import 'credit_card_detail_screen.dart';
 import 'add_credit_card_screen.dart';
@@ -31,7 +32,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
     super.initState();
     // Initialize credit card provider
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CreditCardProvider>().initialize();
+      context.read<CreditCardController>().initialize();
     });
   }
 
@@ -56,7 +57,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
           ),
         ],
       ),
-      body: Consumer<CreditCardProvider>(
+      body: Consumer<CreditCardController>(
         builder: (context, creditCardProvider, child) {
           if (creditCardProvider.isLoading) {
             return const Center(child: CircularProgressIndicator());
@@ -109,7 +110,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
 
   Widget _buildCreditOverviewCard(
     BuildContext context,
-    CreditCardProvider provider,
+    CreditCardController provider,
   ) {
     return SliverToBoxAdapter(
       child: Container(
@@ -259,7 +260,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
   }
 
   /// Build quick stats row
-  Widget _buildQuickStats(BuildContext context, CreditCardProvider provider) {
+  Widget _buildQuickStats(BuildContext context, CreditCardController provider) {
     return SliverToBoxAdapter(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -587,7 +588,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
           Text(error),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => context.read<CreditCardProvider>().refresh(),
+            onPressed: () => context.read<CreditCardController>().refresh(),
             child: const Text('Retry'),
           ),
         ],
@@ -956,7 +957,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
 
   /// Build statement status indicator
   Widget _buildStatementStatus(BuildContext context, CreditCard card) {
-    return Consumer<CreditCardProvider>(
+    return Consumer<CreditCardController>(
       builder: (context, provider, child) {
         final hasCurrentStatement = provider.hasStatementForCurrentMonth(
           card.id,

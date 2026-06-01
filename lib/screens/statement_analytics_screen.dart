@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/credit_card.dart';
-import '../models/credit_card_statement.dart';
+import '../core/models/credit_card.dart';
+import '../core/models/credit_card_statement.dart';
 import '../providers/app_provider.dart';
-import '../utils/formatters.dart';
+import '../core/utils/formatters.dart';
 
 /// Statement Analytics Screen - Detailed analysis for a specific statement period
 class StatementAnalyticsScreen extends StatefulWidget {

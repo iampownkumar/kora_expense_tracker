@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:kora_expense_tracker/constants/app_constants.dart';
+import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 import 'package:kora_expense_tracker/providers/app_provider.dart';
-import 'package:kora_expense_tracker/models/transaction.dart';
-import 'package:kora_expense_tracker/models/account.dart';
-import 'package:kora_expense_tracker/models/category.dart';
+import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
+import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
+import 'package:kora_expense_tracker/core/models/transaction.dart';
+import 'package:kora_expense_tracker/core/models/account.dart';
+import 'package:kora_expense_tracker/core/models/category.dart';
 import 'package:kora_expense_tracker/widgets/transaction_list_item.dart';
 import 'package:kora_expense_tracker/widgets/transaction_detail_sheet.dart';
-import 'package:kora_expense_tracker/utils/formatters.dart';
+import 'package:kora_expense_tracker/core/utils/formatters.dart';
 
 /// Account-specific transactions screen with filtering and swipe gestures
 class AccountTransactionsScreen extends StatefulWidget {

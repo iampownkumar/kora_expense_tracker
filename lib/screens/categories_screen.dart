@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/providers/app_provider.dart';
-import 'package:kora_expense_tracker/models/category.dart';
+import 'package:kora_expense_tracker/core/models/category.dart';
 import 'package:kora_expense_tracker/widgets/add_category_dialog.dart';
 
 class CategoriesScreen extends StatefulWidget {

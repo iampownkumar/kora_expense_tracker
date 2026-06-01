@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/providers/app_provider.dart';
-import 'package:kora_expense_tracker/models/account.dart';
-import 'package:kora_expense_tracker/models/account_type.dart';
+import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
+import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
+import 'package:kora_expense_tracker/core/models/account.dart';
+import 'package:kora_expense_tracker/core/models/account_type.dart';
 import 'package:kora_expense_tracker/widgets/account_card.dart';
 import 'package:kora_expense_tracker/widgets/financial_summary_card.dart';
 import 'package:kora_expense_tracker/widgets/add_account_dialog.dart';
 import 'package:kora_expense_tracker/screens/account_transactions_screen.dart';
-import 'package:kora_expense_tracker/constants/app_constants.dart';
-import 'package:kora_expense_tracker/models/transaction.dart';
+import 'package:kora_expense_tracker/core/constants/app_constants.dart';
+import 'package:kora_expense_tracker/core/models/transaction.dart';
 
 class AccountsScreen extends StatefulWidget {
   const AccountsScreen({super.key});
@@ -95,47 +97,42 @@ class _AccountsScreenState extends State<AccountsScreen>
         return true;
       },
       child: Scaffold(
-        body: Consumer<AppProvider>(
-          builder: (context, provider, child) {
-            final accounts = _getFilteredAccounts(provider.accounts);
-            final accountCounts = _getAccountCounts(provider.accounts);
+        body: Consumer<AccountController>(
+          builder: (context, accCtrl, child) {
+            final appProvider = Provider.of<AppProvider>(context, listen: false);
+            final accounts = _getFilteredAccounts(accCtrl.accounts);
+            final accountCounts = _getAccountCounts(accCtrl.accounts);
 
             return GestureDetector(
               onHorizontalDragEnd: (details) {
-                // Swipe left/right to cycle through account types
                 if (details.primaryVelocity! > 0) {
-                  // Swipe right - go to previous filter
                   _cycleFilter(-1);
                 } else if (details.primaryVelocity! < 0) {
-                  // Swipe left - go to next filter
                   _cycleFilter(1);
                 }
               },
               child: CustomScrollView(
                 controller: _scrollController,
                 slivers: [
-                  // App Bar with search
-                  _buildSliverAppBar(context, provider),
+                  _buildSliverAppBar(context, appProvider),
 
-                  // Financial Summary
                   SliverToBoxAdapter(
                     child: FadeTransition(
                       opacity: _fadeAnimation,
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                         child: FinancialSummaryCard(
-                          totalAssets: provider.totalAssets,
-                          totalLiabilities: provider.totalLiabilities,
-                          netWorth: provider.netWorth,
+                          totalAssets: accCtrl.totalAssets,
+                          totalLiabilities: accCtrl.totalLiabilities,
+                          netWorth: accCtrl.netWorth,
                           accountCounts: accountCounts,
-                          onTap: () => _showFinancialDetails(context, provider),
+                          onTap: () => _showFinancialDetails(context, appProvider),
                         ),
                       ),
                     ),
                   ),
 
-                  // Filter chips
-                  if (provider.accounts.isNotEmpty)
+                  if (accCtrl.accounts.isNotEmpty)
                     SliverPersistentHeader(
                       pinned: true,
                       delegate: _StickyTabBarDelegate(
@@ -143,11 +140,10 @@ class _AccountsScreenState extends State<AccountsScreen>
                       ),
                     ),
 
-                  // Accounts list or empty state
                   if (accounts.isEmpty)
-                    _buildEmptyState(context, provider)
+                    _buildEmptyState(context, appProvider)
                   else
-                    _buildAccountsList(accounts, provider),
+                    _buildAccountsList(accounts, appProvider),
                 ],
               ),
             );

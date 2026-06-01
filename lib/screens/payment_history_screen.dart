@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
-import '../models/credit_card.dart';
-import '../models/transaction.dart';
-import '../utils/formatters.dart';
+import '../core/models/credit_card.dart';
+import '../core/models/transaction.dart';
+import '../core/utils/formatters.dart';
 
 /// Payment History Screen for viewing all payments made to a credit card
 class PaymentHistoryScreen extends StatelessWidget {

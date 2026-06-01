@@ -1,14 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:kora_expense_tracker/models/transaction.dart';
-import 'package:kora_expense_tracker/models/account.dart';
-import 'package:kora_expense_tracker/models/account_type.dart';
-import 'package:kora_expense_tracker/models/category.dart';
-import 'package:kora_expense_tracker/models/settings.dart';
-import 'package:kora_expense_tracker/utils/storage_service.dart';
-import 'package:kora_expense_tracker/utils/formatters.dart';
-import 'package:kora_expense_tracker/constants/app_constants.dart';
+import 'package:kora_expense_tracker/core/models/transaction.dart';
+import 'package:kora_expense_tracker/core/models/account.dart';
+import 'package:kora_expense_tracker/core/models/account_type.dart';
+import 'package:kora_expense_tracker/core/models/category.dart';
+import 'package:kora_expense_tracker/core/models/settings.dart';
+import 'package:kora_expense_tracker/core/utils/storage_service.dart';
+import 'package:kora_expense_tracker/core/utils/formatters.dart';
+import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 import 'package:kora_expense_tracker/providers/credit_card_provider.dart';
 
 // Transfer validation result

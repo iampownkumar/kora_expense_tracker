@@ -2,11 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:kora_expense_tracker/constants/app_constants.dart';
-import 'package:kora_expense_tracker/models/transaction.dart';
-import 'package:kora_expense_tracker/models/account_type.dart';
+import 'package:kora_expense_tracker/core/constants/app_constants.dart';
+import 'package:kora_expense_tracker/core/models/transaction.dart';
+import 'package:kora_expense_tracker/core/models/account_type.dart';
 import 'package:kora_expense_tracker/providers/app_provider.dart';
-import 'package:kora_expense_tracker/utils/formatters.dart';
+import 'package:kora_expense_tracker/core/utils/formatters.dart';
 
 class AddTransactionDialog extends StatefulWidget {
   final AppProvider appProvider;

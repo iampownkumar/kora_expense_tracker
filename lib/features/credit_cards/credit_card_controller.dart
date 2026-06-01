@@ -190,6 +190,28 @@ class CreditCardController extends ChangeNotifier {
   List<CreditCardStatement> getStatementsForCard(String cardId) =>
       _statements.where((s) => s.creditCardId == cardId).toList();
 
+  /// Returns true if a statement already exists for the current billing month.
+  bool hasStatementForCurrentMonth(String cardId) {
+    final now = DateTime.now();
+    return _statements.any((s) =>
+        s.creditCardId == cardId &&
+        s.periodStart.year == now.year &&
+        s.periodStart.month == now.month);
+  }
+
+  /// Returns the current month's statement for a card, or null.
+  CreditCardStatement? getCurrentMonthStatement(String cardId) {
+    final now = DateTime.now();
+    try {
+      return _statements.firstWhere((s) =>
+          s.creditCardId == cardId &&
+          s.periodStart.year == now.year &&
+          s.periodStart.month == now.month);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<bool> addStatement(CreditCardStatement statement) async {
     try {
       await _service.addStatement(statement);
@@ -425,6 +447,26 @@ class CreditCardController extends ChangeNotifier {
       }
     }
     if (updated) await _service.saveStatements(_statements);
+  }
+
+  /// Configure auto-pay for a card (stub — full auto-pay scheduling is a future feature).
+  Future<bool> setupAutoPay(
+    String cardId, {
+    required double amount,
+    required String paymentAccountId,
+    required bool payFullBalance,
+  }) async {
+    try {
+      final card = getCreditCardById(cardId);
+      if (card == null) return false;
+      debugPrint('CreditCardController.setupAutoPay: card=$cardId amount=$amount payFull=$payFullBalance');
+      // TODO: Persist auto-pay config when model is extended
+      return true;
+    } catch (e) {
+      _error = 'Failed to setup auto-pay: $e';
+      notifyListeners();
+      return false;
+    }
   }
 
   void clearError() {

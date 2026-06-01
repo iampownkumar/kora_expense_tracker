@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:kora_expense_tracker/models/account.dart';
-import 'package:kora_expense_tracker/models/account_type.dart';
-import 'package:kora_expense_tracker/constants/app_constants.dart';
+import 'package:kora_expense_tracker/core/models/account.dart';
+import 'package:kora_expense_tracker/core/models/account_type.dart';
+import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 import 'package:kora_expense_tracker/screens/add_credit_card_screen.dart';
 
 /// A user-friendly dialog for adding new accounts with auto-focus and progressive disclosure

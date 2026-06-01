@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:kora_expense_tracker/constants/app_constants.dart';
+import 'package:kora_expense_tracker/core/constants/app_constants.dart';
+import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
+import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
 import 'package:kora_expense_tracker/providers/app_provider.dart';
-import 'package:kora_expense_tracker/models/transaction.dart';
-import 'package:kora_expense_tracker/models/account.dart';
-import 'package:kora_expense_tracker/models/category.dart';
+import 'package:kora_expense_tracker/core/models/transaction.dart';
+import 'package:kora_expense_tracker/core/models/account.dart';
+import 'package:kora_expense_tracker/core/models/category.dart';
 import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
 import 'package:kora_expense_tracker/widgets/transaction_list_item.dart';
 import 'package:kora_expense_tracker/widgets/transaction_detail_sheet.dart';
-import 'package:kora_expense_tracker/utils/formatters.dart';
+import 'package:kora_expense_tracker/core/utils/formatters.dart';
 
 /// Comprehensive Transaction Screen with filtering, search, and sorting
 class TransactionsScreen extends StatefulWidget {
@@ -56,39 +58,36 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppProvider>(
-      builder: (context, appProvider, child) {
-        final filteredTransactions = _getFilteredTransactions(appProvider.transactions);
+    return Consumer2<TransactionController, AccountController>(
+      builder: (context, txnCtrl, accCtrl, child) {
+        final filteredTransactions = _getFilteredTransactions(txnCtrl.transactions);
         final groupedTransactions = _groupTransactionsByDate(filteredTransactions);
 
         return GestureDetector(
           onHorizontalDragEnd: (details) {
-            // Swipe left/right anywhere in the app to change filter
             if (details.primaryVelocity! > 0) {
-              // Swipe right
               _cycleFilter(-1);
             } else if (details.primaryVelocity! < 0) {
-              // Swipe left
               _cycleFilter(1);
             }
           },
           child: Scaffold(
-            appBar: _buildAppBar(context, appProvider),
+            appBar: _buildAppBar(context, txnCtrl),
             body: Column(
               children: [
                 if (_isSearchVisible) _buildSearchBar(),
                 _buildFilterChips(),
                 _buildSortOptions(),
                 Expanded(
-                  child: appProvider.isLoading
+                  child: txnCtrl.isLoading
                       ? _buildLoadingState()
                       : filteredTransactions.isEmpty
                           ? _buildEmptyState()
-                          : _buildTransactionList(groupedTransactions, appProvider),
+                          : _buildTransactionList(groupedTransactions, txnCtrl, accCtrl),
                 ),
               ],
             ),
-            floatingActionButton: _buildFAB(context, appProvider),
+            floatingActionButton: _buildFAB(context, txnCtrl, accCtrl),
           ),
         );
       },
@@ -96,9 +95,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   /// Build the app bar with search and filter actions
-  PreferredSizeWidget _buildAppBar(BuildContext context, AppProvider appProvider) {
+  PreferredSizeWidget _buildAppBar(BuildContext context, TransactionController txnCtrl) {
     return AppBar(
-      title: Text('Transactions (${appProvider.transactions.length})'),
+      title: Text('Transactions (${txnCtrl.transactions.length})'),
       actions: [
         IconButton(
           icon: Icon(_isSearchVisible ? Icons.close : Icons.search),
@@ -287,10 +286,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   /// Build the transaction list with date grouping
-  Widget _buildTransactionList(Map<String, List<Transaction>> groupedTransactions, AppProvider appProvider) {
+  Widget _buildTransactionList(Map<String, List<Transaction>> groupedTransactions, TransactionController txnCtrl, AccountController accCtrl) {
     return RefreshIndicator(
       onRefresh: () async {
-        await appProvider.refresh();
+        await txnCtrl.refresh();
       },
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -304,18 +303,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             children: [
               _buildDateHeader(dateKey, transactions.length),
               ...transactions.map((transaction) {
-                Account? account = appProvider.getAccountForTransaction(transaction.accountId);
+                final account = accCtrl.findById(transaction.accountId);
                 
                 Category? category;
                 try {
-                  category = appProvider.categories.firstWhere((cat) => cat.id == transaction.categoryId);
+                  category = txnCtrl.categories.firstWhere((cat) => cat.id == transaction.categoryId);
                 } catch (e) {
-                  category = appProvider.categories.isNotEmpty ? appProvider.categories.first : null;
+                  category = txnCtrl.categories.isNotEmpty ? txnCtrl.categories.first : null;
                 }
                 
                 Account? toAccount;
                 if (transaction.toAccountId != null) {
-                  toAccount = appProvider.getAccountForTransaction(transaction.toAccountId!);
+                  toAccount = accCtrl.findById(transaction.toAccountId!);
                 }
                 
                 return TransactionListItem(
@@ -324,8 +323,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   category: category,
                   toAccount: toAccount,
                   onTap: () => _showTransactionDetails(context, transaction),
-                  onEdit: () => _editTransaction(context, transaction, appProvider),
-                  onDelete: () => appProvider.deleteTransaction(transaction.id),
+                  onEdit: () => _editTransaction(context, transaction, txnCtrl, accCtrl),
+                  onDelete: () => txnCtrl.deleteTransaction(transaction.id),
                 );
               }),
               const SizedBox(height: 8),
@@ -417,7 +416,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   /// Build the floating action button
-  Widget _buildFAB(BuildContext context, AppProvider appProvider) {
+  Widget _buildFAB(BuildContext context, TransactionController txnCtrl, AccountController accCtrl) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
@@ -431,7 +430,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       ),
       child: FloatingActionButton(
         heroTag: "transactions_fab",
-        onPressed: () => _addTransaction(context, appProvider),
+        onPressed: () => _addTransaction(context),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 0,
@@ -523,15 +522,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     return grouped;
   }
 
-  /// Add new transaction
-  void _addTransaction(BuildContext context, AppProvider appProvider) {
+  void _addTransaction(BuildContext context) {
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
     showDialog(
       context: context,
       builder: (context) => AddTransactionDialog(appProvider: appProvider),
     );
   }
 
-  /// Show transaction details in bottom sheet
   void _showTransactionDetails(BuildContext context, Transaction transaction) {
     final appProvider = Provider.of<AppProvider>(context, listen: false);
     showModalBottomSheet(
@@ -545,8 +543,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  /// Edit existing transaction
-  void _editTransaction(BuildContext context, Transaction transaction, AppProvider appProvider) {
+  void _editTransaction(BuildContext context, Transaction transaction, TransactionController txnCtrl, AccountController accCtrl) {
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
     showDialog(
       context: context,
       builder: (context) => AddTransactionDialog(

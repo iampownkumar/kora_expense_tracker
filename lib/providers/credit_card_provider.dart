@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
-import '../models/credit_card.dart';
-import '../models/credit_card_statement.dart';
-import '../models/payment_record.dart';
-import '../models/transaction.dart';
-import '../utils/storage_service.dart';
+import '../core/models/credit_card.dart';
+import '../core/models/credit_card_statement.dart';
+import '../core/models/payment_record.dart';
+import '../core/models/transaction.dart';
+import '../core/utils/storage_service.dart';
 import 'app_provider.dart';
 
 /// Credit Card Provider for managing credit card state and operations

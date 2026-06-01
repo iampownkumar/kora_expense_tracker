@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/payment.dart';
-import '../models/bank_account.dart';
-import '../utils/storage_service.dart';
+import '../core/models/payment.dart';
+import '../core/models/bank_account.dart';
+import '../core/utils/storage_service.dart';
 
 /// Payment Provider for managing payment operations
 class PaymentProvider extends ChangeNotifier {

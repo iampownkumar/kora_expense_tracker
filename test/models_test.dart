@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
-import 'package:kora_expense_tracker/models/transaction.dart';
-import 'package:kora_expense_tracker/models/account.dart';
-import 'package:kora_expense_tracker/models/category.dart';
-import 'package:kora_expense_tracker/models/settings.dart';
-import 'package:kora_expense_tracker/constants/app_constants.dart';
+import 'package:kora_expense_tracker/core/models/transaction.dart';
+import 'package:kora_expense_tracker/core/models/account.dart';
+import 'package:kora_expense_tracker/core/models/category.dart';
+import 'package:kora_expense_tracker/core/models/settings.dart';
+import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 
 void main() {
   group('Model Tests', () {

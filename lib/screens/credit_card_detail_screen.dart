@@ -8,10 +8,12 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
 import '../providers/credit_card_provider.dart';
 import '../providers/app_provider.dart';
-import '../models/credit_card.dart';
-import '../models/credit_card_statement.dart';
-import '../models/transaction.dart';
-import '../utils/formatters.dart';
+import '../features/credit_cards/credit_card_controller.dart';
+import '../features/transactions/transaction_controller.dart';
+import '../core/models/credit_card.dart';
+import '../core/models/credit_card_statement.dart';
+import '../core/models/transaction.dart';
+import '../core/utils/formatters.dart';
 import 'payment_screen.dart';
 import 'statement_analytics_screen.dart';
 import 'credit_card_analytics_screen.dart';
@@ -138,7 +140,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   Widget _buildStatementsTab() {
-    return Consumer<CreditCardProvider>(
+    return Consumer<CreditCardController>(
       builder: (context, provider, child) {
         final allStatements = provider.getStatementsForCard(_currentCard.id);
         final generatedStatements = allStatements.where((stmt) => stmt.status == StatementStatus.generated).toList();
@@ -172,7 +174,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
 
   Widget _buildAnalyticsTab() {
-    return Consumer<CreditCardProvider>(
+    return Consumer<CreditCardController>(
       builder: (context, provider, child) {
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -457,13 +459,12 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   Widget _buildRecentActivity() {
-    return Consumer<AppProvider>(
-      builder: (context, appProvider, child) {
-        // Get transactions for this credit card
-        final creditCardTransactions = appProvider.transactions
+    return Consumer<TransactionController>(
+      builder: (context, txnCtrl, child) {
+        final creditCardTransactions = txnCtrl.transactions
             .where((transaction) => transaction.accountId == _currentCard.id)
             .toList()
-          ..sort((a, b) => b.date.compareTo(a.date)); // Sort by date, newest first
+          ..sort((a, b) => b.date.compareTo(a.date));
         
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -635,9 +636,9 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   Widget _buildQuickAnalyticsOverview() {
-    return Consumer<AppProvider>(
-      builder: (context, appProvider, child) {
-        final transactions = appProvider.transactions
+    return Consumer<TransactionController>(
+      builder: (context, txnCtrl, child) {
+        final transactions = txnCtrl.transactions
             .where((transaction) => transaction.accountId == _currentCard.id)
             .toList();
         
@@ -1023,7 +1024,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
               Navigator.of(context).pop();
               
               // Delete from CreditCardProvider
-              final creditCardProvider = context.read<CreditCardProvider>();
+              final creditCardProvider = context.read<CreditCardController>();
               final creditCardSuccess = await creditCardProvider.deleteCreditCard(_currentCard.id);
               
               // CRITICAL: Also delete from AppProvider (Accounts screen)
@@ -1074,7 +1075,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   void _generateStatement() {
-    final provider = context.read<CreditCardProvider>();
+    final provider = context.read<CreditCardController>();
     final statements = provider.getStatementsForCard(_currentCard.id);
     
     // Check if statement already exists for current period
@@ -1132,7 +1133,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   void _performStatementGeneration() async {
-    final provider = context.read<CreditCardProvider>();
+    final provider = context.read<CreditCardController>();
     final statement = await provider.generateStatement(_currentCard.id);
     
     if (statement != null && mounted) {
@@ -1338,7 +1339,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
   /// Delete statement only (keep payment applied)
   void _deleteStatementOnly(statement) async {
-    final creditCardProvider = Provider.of<CreditCardProvider>(context, listen: false);
+    final creditCardProvider = Provider.of<CreditCardController>(context, listen: false);
     final appProvider = Provider.of<AppProvider>(context, listen: false);
     
     // Show loading indicator
@@ -1350,7 +1351,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
       ),
     );
     
-    final success = await creditCardProvider.deleteStatement(statement.id, appProvider: appProvider);
+    final success = await creditCardProvider.deleteStatement(statement.id);
     
     // Close loading indicator
     if (mounted) Navigator.of(context).pop();
@@ -1529,9 +1530,9 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   Future<void> _deleteStatement(statement) async {
-    final creditCardProvider = context.read<CreditCardProvider>();
+    final creditCardProvider = context.read<CreditCardController>();
     final appProvider = context.read<AppProvider>();
-    final success = await creditCardProvider.deleteStatement(statement.id, appProvider: appProvider);
+    final success = await creditCardProvider.deleteStatement(statement.id);
     
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1611,7 +1612,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
   /// Build current statement overview
   Widget _buildCurrentStatementOverview() {
-    return Consumer<CreditCardProvider>(
+    return Consumer<CreditCardController>(
       builder: (context, provider, child) {
         final hasCurrentStatement = provider.hasStatementForCurrentMonth(_currentCard.id);
         final currentStatement = provider.getCurrentMonthStatement(_currentCard.id);
@@ -1791,7 +1792,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
   /// Build past statements section (paid statements)
   Widget _buildPastStatementsSection() {
-    return Consumer<CreditCardProvider>(
+    return Consumer<CreditCardController>(
       builder: (context, provider, child) {
         final pastStatements = provider.getStatementsForCard(_currentCard.id)
             .where((stmt) => stmt.status == StatementStatus.paid)
@@ -2580,7 +2581,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   void _confirmAutoPaySetup(bool payFullBalance) async {
     Navigator.of(context).pop(); // Close dialog
     
-    final creditCardProvider = context.read<CreditCardProvider>();
+    final creditCardProvider = context.read<CreditCardController>();
     final appProvider = context.read<AppProvider>();
     
     // Get the first available account for payment

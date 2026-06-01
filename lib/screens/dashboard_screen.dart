@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:kora_expense_tracker/constants/app_constants.dart';
-import 'package:kora_expense_tracker/utils/formatters.dart';
+import 'package:kora_expense_tracker/core/constants/app_constants.dart';
+import 'package:kora_expense_tracker/core/utils/formatters.dart';
 import 'package:kora_expense_tracker/providers/app_provider.dart';
+import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
+import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
 import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
 import 'package:kora_expense_tracker/widgets/transaction_list_item.dart';
-import 'package:kora_expense_tracker/models/category.dart';
-import 'package:kora_expense_tracker/models/account.dart';
+import 'package:kora_expense_tracker/core/models/category.dart';
+import 'package:kora_expense_tracker/core/models/account.dart';
 import 'package:kora_expense_tracker/screens/categories_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -38,8 +40,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppProvider>(
-      builder: (context, appProvider, child) {
+    return Consumer2<TransactionController, AccountController>(
+      builder: (context, txnCtrl, accCtrl, child) {
+        // Keep scroll-to-top on tab reselect via AppProvider tab index (legacy bridge)
+        final appProvider = Provider.of<AppProvider>(context, listen: false);
         if (appProvider.selectedTabIndex == 0 && _lastSelectedTabIndex != 0) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _resetScrollPosition();
@@ -76,7 +80,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           body: SafeArea(
             child: RefreshIndicator(
-              onRefresh: () async => await appProvider.refresh(),
+              onRefresh: () async {
+                await txnCtrl.refresh();
+                await accCtrl.refresh();
+              },
               child: SingleChildScrollView(
                 controller: _scrollController,
                 physics: const ClampingScrollPhysics(),
@@ -169,7 +176,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               SizedBox(height: sp),
                               Text(
                                 Formatters.formatCurrency(
-                                    appProvider.totalBalance),
+                                    accCtrl.totalBalance),
                                 style: Theme.of(context)
                                     .textTheme
                                     .headlineSmall
@@ -207,7 +214,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ),
                                   Text(
                                     Formatters.formatCurrency(
-                                        appProvider.netWorth),
+                                        accCtrl.netWorth),
                                     style: Theme.of(context)
                                         .textTheme
                                         .labelSmall
@@ -228,7 +235,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       context,
                                       'Income',
                                       Formatters.formatCurrency(
-                                          appProvider.totalIncome),
+                                          txnCtrl.totalIncome),
                                       AppConstants.successColor,
                                       Icons.arrow_upward,
                                     ),
@@ -239,7 +246,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       context,
                                       'Expenses',
                                       Formatters.formatCurrency(
-                                          appProvider.totalExpenses),
+                                          txnCtrl.totalExpenses),
                                       AppConstants.errorColor,
                                       Icons.arrow_downward,
                                     ),
@@ -263,7 +270,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     SizedBox(height: sp),
 
-                    if (appProvider.recentTransactions.isNotEmpty) ...[
+                    if (txnCtrl.recentTransactions.isNotEmpty) ...[
                       Card(
                         child: Padding(
                           padding: EdgeInsets.symmetric(
@@ -273,13 +280,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: ListView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            // Max 4 recent transactions on dashboard
-                            itemCount: appProvider.recentTransactions.length
+                            itemCount: txnCtrl.recentTransactions.length
                                 .clamp(0, 4),
                             itemBuilder: (context, index) {
                               final transaction =
-                                  appProvider.recentTransactions[index];
-                              final category = appProvider.categories
+                                  txnCtrl.recentTransactions[index];
+                              final category = txnCtrl.categories
                                   .firstWhere(
                                     (c) => c.id == transaction.categoryId,
                                     orElse: () => Category.create(
@@ -289,14 +295,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       type: AppConstants.categoryTypeExpense,
                                     ),
                                   );
-                              final account = appProvider
-                                  .getAccountForTransaction(
-                                      transaction.accountId);
+                              final account = accCtrl.findById(transaction.accountId);
                               Account? toAccount;
                               if (transaction.toAccountId != null) {
-                                toAccount = appProvider
-                                    .getAccountForTransaction(
-                                        transaction.toAccountId!);
+                                toAccount = accCtrl.findById(transaction.toAccountId!);
                               }
                               return TransactionListItem(
                                 transaction: transaction,
@@ -324,7 +326,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   );
                                 },
                                 onDelete: () async {
-                                  await appProvider
+                                  await txnCtrl
                                       .deleteTransaction(transaction.id);
                                 },
                               );
@@ -412,7 +414,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             context,
                             Icons.trending_up,
                             AppConstants.successColor,
-                            '${appProvider.accounts.length}',
+                            '${accCtrl.accounts.length}',
                             'Accounts',
                             null,
                           ),
@@ -424,7 +426,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             context,
                             Icons.category,
                             AppConstants.infoColor,
-                            '${appProvider.topLevelCategories.length}',
+                            '${txnCtrl.topLevelCategories.length}',
                             'Categories',
                             () => Navigator.push(
                               context,
@@ -432,8 +434,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 builder: (context) => const CategoriesScreen(),
                               ),
                             ),
-                            subLabel: appProvider.subCategoryCount > 0
-                                ? '${appProvider.subCategoryCount} sub'
+                            subLabel: txnCtrl.subCategoryCount > 0
+                                ? '${txnCtrl.subCategoryCount} sub'
                                 : null,
                           ),
                         ),

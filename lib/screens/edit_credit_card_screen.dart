@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/credit_card_provider.dart';
+import '../features/credit_cards/credit_card_controller.dart';
 import '../providers/app_provider.dart';
-import '../models/credit_card.dart';
-import '../utils/formatters.dart';
+import '../core/models/credit_card.dart';
+import '../core/utils/formatters.dart';
 
 /// Edit Credit Card Screen - User-friendly credit card editing
 class EditCreditCardScreen extends StatefulWidget {
@@ -513,7 +514,7 @@ class _EditCreditCardScreenState extends State<EditCreditCardScreen> {
       );
 
       // Update in CreditCardProvider
-      final creditCardProvider = context.read<CreditCardProvider>();
+      final creditCardProvider = context.read<CreditCardController>();
       final success = await creditCardProvider.updateCreditCard(updatedCard);
 
       if (success && mounted) {

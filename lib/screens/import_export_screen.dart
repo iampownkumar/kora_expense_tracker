@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../providers/credit_card_provider.dart';
 
-import '../utils/import_export_service.dart';
+import '../core/utils/import_export_service.dart';
 
 /// Import/Export Screen for data backup and restore
 class ImportExportScreen extends StatefulWidget {

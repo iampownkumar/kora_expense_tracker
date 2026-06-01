@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:kora_expense_tracker/constants/app_constants.dart';
-import 'package:kora_expense_tracker/utils/formatters.dart';
-import 'package:kora_expense_tracker/providers/app_provider.dart';
-import 'package:kora_expense_tracker/models/transaction.dart';
-import 'package:kora_expense_tracker/models/category.dart';
+import 'package:kora_expense_tracker/core/constants/app_constants.dart';
+import 'package:kora_expense_tracker/core/utils/formatters.dart';
+import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
+import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
+import 'package:kora_expense_tracker/core/models/transaction.dart';
+import 'package:kora_expense_tracker/core/models/category.dart';
 
 /// Period filter options for the Reports screen.
 enum ReportPeriod { week, month, year }
@@ -76,10 +77,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppProvider>(
-      builder: (context, provider, _) {
+    return Consumer2<TransactionController, AccountController>(
+      builder: (context, txnCtrl, accCtrl, _) {
         final range = _range(_period);
-        final filtered = _filtered(provider.transactions, range);
+        final filtered = _filtered(txnCtrl.transactions, range);
 
         final income = filtered
             .where((t) => t.isIncome)
@@ -112,7 +113,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
           body: SafeArea(
             child: RefreshIndicator(
-              onRefresh: () => provider.refresh(),
+              onRefresh: () async { txnCtrl.refresh(); accCtrl.refresh(); },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(AppConstants.defaultPadding),
@@ -315,7 +316,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           child: Column(
                             children: topCats.map((entry) {
                               final cat = _findCategory(
-                                  provider.categories, entry.key);
+                                  txnCtrl.categories, entry.key);
                               final ratio =
                                   maxCatSpend > 0
                                       ? entry.value / maxCatSpend

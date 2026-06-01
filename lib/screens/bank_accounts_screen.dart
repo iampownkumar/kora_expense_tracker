@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/payment_provider.dart';
-import '../models/bank_account.dart';
-import '../utils/formatters.dart';
-import '../constants/app_constants.dart';
+import '../core/models/bank_account.dart';
+import '../core/utils/formatters.dart';
+import '../core/constants/app_constants.dart';
 
 /// Bank Accounts Management Screen
 class BankAccountsScreen extends StatefulWidget {
