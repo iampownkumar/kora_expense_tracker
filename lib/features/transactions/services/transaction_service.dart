@@ -30,8 +30,7 @@ class TransactionService {
   ) async {
     final path = await _persistImage(updated.imagePath);
     // Clean up old image if different
-    if (oldTransaction.imagePath != null &&
-        oldTransaction.imagePath != path) {
+    if (oldTransaction.imagePath != null && oldTransaction.imagePath != path) {
       await _deleteImage(oldTransaction.imagePath);
     }
     final final_ = path != updated.imagePath
@@ -95,9 +94,10 @@ class TransactionService {
 
     final appDir = await getApplicationDocumentsDirectory();
     final receiptsPath = '${appDir.path}/receipts';
-    final receiptsDir  = Directory(receiptsPath);
+    final receiptsDir = Directory(receiptsPath);
 
-    if (currentPath.startsWith(receiptsPath)) return currentPath; // already saved
+    if (currentPath.startsWith(receiptsPath))
+      return currentPath; // already saved
 
     if (!await receiptsDir.exists()) {
       await receiptsDir.create(recursive: true);
@@ -105,7 +105,7 @@ class TransactionService {
 
     // B5 fix: stable unique filename using milliseconds + microseconds
     final ext = _fileExtension(currentPath);
-    final ts  = DateTime.now();
+    final ts = DateTime.now();
     final name = '${ts.millisecondsSinceEpoch}_${ts.microsecond}$ext';
     final saved = await file.copy('$receiptsPath/$name');
     return saved.path;

@@ -6,7 +6,7 @@ import '../features/credit_cards/credit_card_controller.dart';
 import '../features/reports/reports_controller.dart';
 import '../features/settings/settings_controller.dart';
 
-// Screens (still referenced from old location — will be migrated per-tab)
+// Screens
 import '../screens/dashboard_screen.dart';
 import '../screens/transactions_screen.dart';
 import '../screens/reports_screen.dart';
@@ -14,8 +14,8 @@ import '../screens/accounts_screen.dart';
 import '../screens/credit_cards_screen.dart';
 import '../screens/more_screen.dart';
 import '../widgets/add_transaction_dialog.dart';
-import '../utils/storage_service.dart';
-import '../constants/app_constants.dart';
+import '../core/utils/storage_service.dart';
+import '../core/constants/app_constants.dart';
 
 /// Global coordinator and navigation shell.
 ///
@@ -136,6 +136,17 @@ class _AppShellState extends State<AppShell> {
 
   void _onTabSelected(int index) => setState(() => _selectedTabIndex = index);
 
+  void _openAddTransaction(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      enableDrag: true,
+      isDismissible: true,
+      builder: (_) => const AddTransactionDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -143,6 +154,15 @@ class _AppShellState extends State<AppShell> {
         index: _selectedTabIndex,
         children: _screens,
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _openAddTransaction(context),
+        tooltip: 'Add Transaction',
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        child: const Icon(Icons.add, size: 28),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: _buildNavBar(context),
     );
   }
@@ -162,19 +182,7 @@ class _AppShellState extends State<AppShell> {
       onVerticalDragEnd: (details) {
         // Only swipe-UP (negative velocity = upward) opens the add dialog
         if ((details.primaryVelocity ?? 0) < -300) {
-          final txnCtrl = context.read<TransactionController>();
-          final accCtrl = context.read<AccountController>();
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            useSafeArea: true,
-            enableDrag: true,
-            isDismissible: true,
-            builder: (_) => _LegacyAddTransactionBridge(
-              txnController: txnCtrl,
-              accController: accCtrl,
-            ),
-          );
+          _openAddTransaction(context);
         }
       },
       child: NavigationBar(
@@ -219,25 +227,5 @@ class _AppShellState extends State<AppShell> {
         ],
       ),
     );
-  }
-}
-
-/// Temporary bridge widget that adapts the old [AddTransactionDialog]
-/// to the new controller API. Remove once [AddTransactionDialog] is
-/// fully migrated to use [TransactionController] directly.
-class _LegacyAddTransactionBridge extends StatelessWidget {
-  final TransactionController txnController;
-  final AccountController     accController;
-
-  const _LegacyAddTransactionBridge({
-    required this.txnController,
-    required this.accController,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // For now, build a bridge AppProvider-like object for the old dialog.
-    // This will be removed when the dialog is migrated in Phase 3 view work.
-    return const Center(child: Text('Add Transaction — coming in view migration'));
   }
 }
