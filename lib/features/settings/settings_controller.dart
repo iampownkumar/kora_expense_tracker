@@ -51,6 +51,13 @@ class SettingsController extends ChangeNotifier {
     }
   }
 
+  /// Toggles theme mode between light and dark
+  Future<bool> toggleThemeMode() async {
+    final nextMode = _settings.themeMode == 'dark' ? 'light' : 'dark';
+    final updated = _settings.copyWith(themeMode: nextMode);
+    return await updateSettings(updated);
+  }
+
   void clearError() {
     _error = null;
     notifyListeners();

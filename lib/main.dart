@@ -52,24 +52,28 @@ class KoraApp extends StatelessWidget {
         ChangeNotifierProvider.value(value: reportsController),
         ChangeNotifierProvider.value(value: settingsController),
       ],
-      child: MaterialApp(
-        title: AppConstants.appName,
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light(),
-        darkTheme: AppTheme.dark(),
-        themeMode: ThemeMode.system,
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [
-          Locale('en', ''),
-          Locale('ta', ''),
-          Locale('hi', ''),
-        ],
-        locale: const Locale('en', ''),
-        home: const SplashScreen(),
+      child: Consumer<SettingsController>(
+        builder: (context, settingsController, _) {
+          return MaterialApp(
+            title: AppConstants.appName,
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light(),
+            darkTheme: AppTheme.dark(),
+            themeMode: settingsController.settings.themeModeEnum,
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('en', ''),
+              Locale('ta', ''),
+              Locale('hi', ''),
+            ],
+            locale: const Locale('en', ''),
+            home: const SplashScreen(),
+          );
+        },
       ),
     );
   }
