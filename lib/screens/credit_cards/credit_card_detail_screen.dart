@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -34,20 +35,26 @@ class CreditCardDetailScreen extends StatefulWidget {
 }
 
 class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
   late CreditCard _currentCard;
+  late AnimationController _flipCtrl;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _currentCard = widget.creditCard;
+    _flipCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _flipCtrl.dispose();
     super.dispose();
   }
 
@@ -207,6 +214,41 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   Widget _buildCardVisual() {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        if (_flipCtrl.isCompleted) {
+          _flipCtrl.reverse();
+        } else {
+          _flipCtrl.forward();
+        }
+      },
+      child: AnimatedBuilder(
+        animation: _flipCtrl,
+        builder: (context, child) {
+          final transform = Matrix4.identity()
+            ..setEntry(3, 2, 0.001) // perspective
+            ..rotateY(_flipCtrl.value * 3.1415927);
+
+          final isBack = _flipCtrl.value > 0.5;
+
+          return Transform(
+            transform: transform,
+            alignment: Alignment.center,
+            child: isBack
+                ? Transform(
+                    transform: Matrix4.identity()..rotateY(3.1415927),
+                    alignment: Alignment.center,
+                    child: _buildCardBack(),
+                  )
+                : _buildCardFront(),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCardFront() {
     return Container(
       height: 200,
       decoration: BoxDecoration(
@@ -274,6 +316,138 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
               style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCardBack() {
+    return Container(
+      height: 200,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [_currentCard.color.withValues(alpha: 0.95), _currentCard.color],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: _currentCard.color.withValues(alpha: 0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            // Magnetic strip
+            Container(
+              height: 36,
+              color: Colors.black.withValues(alpha: 0.85),
+              width: double.infinity,
+            ),
+            const SizedBox(height: 12),
+            // Signature strip / Info
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        'Billing Cycle: Day ${_currentCard.billingCycleDay}',
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 44,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'CVV',
+                      style: TextStyle(
+                        color: Colors.black54,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Spacer(),
+            // Summary stats at the bottom
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'LIMIT',
+                        style: TextStyle(color: Colors.white60, fontSize: 8, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        Formatters.formatCurrency(_currentCard.creditLimit),
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'AVAILABLE',
+                        style: TextStyle(color: Colors.white60, fontSize: 8, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        Formatters.formatCurrency(_currentCard.availableCredit),
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text(
+                        'UTILIZATION',
+                        style: TextStyle(color: Colors.white60, fontSize: 8, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        '${(_currentCard.utilizationPercentage * 100).toStringAsFixed(1)}%',
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],

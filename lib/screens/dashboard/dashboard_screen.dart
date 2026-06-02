@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';
-import 'package:kora_expense_tracker/core/utils/formatters.dart';
 import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
 import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
 import 'package:kora_expense_tracker/features/settings/settings_controller.dart';
 import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
 import 'package:kora_expense_tracker/widgets/transaction_list_item.dart';
+import 'package:kora_expense_tracker/widgets/animated_balance_text.dart';
 import 'package:kora_expense_tracker/core/models/categories/category.dart';
 import 'package:kora_expense_tracker/core/models/accounts/account.dart';
 import 'package:kora_expense_tracker/screens/categories/categories_screen.dart';
@@ -349,8 +349,8 @@ class _HeroCard extends StatelessWidget {
             const SizedBox(height: 4),
 
             // ── Balance number ────────────────────────────────────────────
-            Text(
-              Formatters.formatCurrency(accCtrl.totalBalance),
+            AnimatedBalanceText(
+              value: accCtrl.totalBalance,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 28,
@@ -369,21 +369,21 @@ class _HeroCard extends StatelessWidget {
               children: [
                 _MiniStat(
                   label: 'Income',
-                  value: Formatters.formatCurrency(income),
+                  numericValue: income,
                   icon: Icons.arrow_upward_rounded,
                   color: const Color(0xFF4ADE80), // green-400
                 ),
                 const SizedBox(width: 10),
                 _MiniStat(
                   label: 'Expenses',
-                  value: Formatters.formatCurrency(expense),
+                  numericValue: expense,
                   icon: Icons.arrow_downward_rounded,
                   color: const Color(0xFFFCA5A5), // red-300
                 ),
                 const SizedBox(width: 10),
                 _MiniStat(
                   label: 'Saved',
-                  value: '${savingsRate.toStringAsFixed(0)}%',
+                  textValue: '${savingsRate.toStringAsFixed(0)}%',
                   icon: Icons.savings_outlined,
                   color: const Color(0xFF93C5FD), // blue-300
                 ),
@@ -468,13 +468,15 @@ class _SpendBar extends StatelessWidget {
 // ── Mini stat widget ──────────────────────────────────────────────────────────
 class _MiniStat extends StatelessWidget {
   final String label;
-  final String value;
+  final double? numericValue;
+  final String? textValue;
   final IconData icon;
   final Color color;
 
   const _MiniStat({
     required this.label,
-    required this.value,
+    this.numericValue,
+    this.textValue,
     required this.icon,
     required this.color,
   });
@@ -501,15 +503,25 @@ class _MiniStat extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+            if (numericValue != null)
+              AnimatedBalanceText(
+                value: numericValue!,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              )
+            else
+              Text(
+                textValue ?? '',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
-              overflow: TextOverflow.ellipsis,
-            ),
           ],
         ),
       ),
