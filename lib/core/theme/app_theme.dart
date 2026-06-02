@@ -39,7 +39,7 @@ class AppDimensions {
 /// Premium Material 3 theme — carefully tuned light + dark modes.
 class AppTheme {
   // ── Brand seed ──────────────────────────────────────────────────────────────
-  static const _seed = Color(0xFF1E40AF); // Kora deep blue
+  static const _seed = Color(0xFF6366F1); // Kora premium indigo seed
 
   static ThemeData light() => _build(Brightness.light);
   static ThemeData dark() => _build(Brightness.dark);
@@ -51,18 +51,18 @@ class AppTheme {
       seedColor: _seed,
       brightness: brightness,
       // Override a few tones for more premium feel
-      primary: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8),
-      onPrimary: isDark ? const Color(0xFF0C1F5C) : Colors.white,
+      primary: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5),
+      onPrimary: isDark ? const Color(0xFF09090B) : Colors.white,
       primaryContainer:
-          isDark ? const Color(0xFF1E3A8A) : const Color(0xFFDBEAFE),
+          isDark ? const Color(0xFF27272A) : const Color(0xFFEEF2F6),
       onPrimaryContainer:
-          isDark ? const Color(0xFFBFDBFE) : const Color(0xFF1E3A8A),
-      secondary: isDark ? const Color(0xFF67E8F9) : const Color(0xFF0891B2),
+          isDark ? const Color(0xFFF4F4F5) : const Color(0xFF312E81),
+      secondary: isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED),
       surface:
-          isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC), // slate
+          isDark ? const Color(0xFF09090B) : Colors.white,
       surfaceContainerHighest: isDark
-          ? const Color(0xFF1E293B)
-          : const Color(0xFFEFF6FF),
+          ? const Color(0xFF27272A)
+          : const Color(0xFFF4F4F5),
     );
 
     // Status bar style
@@ -99,7 +99,7 @@ class AppTheme {
       // ── Cards ──────────────────────────────────────────────────────────────
       cardTheme: CardThemeData(
         elevation: 0,
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF18181B) : Colors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -115,7 +115,7 @@ class AppTheme {
 
       // ── Navigation bar ─────────────────────────────────────────────────────
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF18181B) : Colors.white,
         indicatorColor: cs.primary.withValues(alpha: 0.15),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
@@ -148,7 +148,7 @@ class AppTheme {
       // ── FAB ────────────────────────────────────────────────────────────────
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: cs.primary,
-        foregroundColor: isDark ? const Color(0xFF0C1F5C) : Colors.white,
+        foregroundColor: cs.onPrimary,
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -236,7 +236,7 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: cs.primary,
-          foregroundColor: isDark ? const Color(0xFF0C1F5C) : Colors.white,
+          foregroundColor: cs.onPrimary,
           elevation: 0,
           padding:
               const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -265,7 +265,7 @@ class AppTheme {
 
       // ── Scaffold ───────────────────────────────────────────────────────────
       scaffoldBackgroundColor:
-          isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+          isDark ? const Color(0xFF09090B) : const Color(0xFFF4F4F5),
 
       // ── SnackBar ───────────────────────────────────────────────────────────
       snackBarTheme: SnackBarThemeData(
@@ -274,7 +274,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
         ),
         backgroundColor:
-            isDark ? const Color(0xFF1E293B) : const Color(0xFF1E293B),
+            isDark ? const Color(0xFF18181B) : const Color(0xFF18181B),
         contentTextStyle: const TextStyle(
           fontFamily: 'Inter',
           color: Colors.white,

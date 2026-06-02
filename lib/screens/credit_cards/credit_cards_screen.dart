@@ -119,8 +119,8 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              const Color(0xFF1E3A8A),
-              const Color(0xFF1E40AF),
+              const Color(0xFF312E81),
+              const Color(0xFF4F46E5),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -128,7 +128,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF1E40AF).withValues(alpha: 0.3),
+              color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),

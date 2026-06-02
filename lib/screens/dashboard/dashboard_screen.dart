@@ -287,19 +287,19 @@ class _HeroCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: isDark
               ? [
-                  const Color(0xFF1E3A8A),
-                  const Color(0xFF1E40AF),
-                  const Color(0xFF1D4ED8),
+                  const Color(0xFF1E1B4B),
+                  const Color(0xFF312E81),
+                  const Color(0xFF4F46E5),
                 ]
               : [
-                  const Color(0xFF1D4ED8),
-                  const Color(0xFF2563EB),
-                  const Color(0xFF3B82F6),
+                  const Color(0xFF4F46E5),
+                  const Color(0xFF6366F1),
+                  const Color(0xFF8B5CF6),
                 ],
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1D4ED8).withValues(alpha: isDark ? 0.3 : 0.25),
+            color: const Color(0xFF4F46E5).withValues(alpha: isDark ? 0.3 : 0.25),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
