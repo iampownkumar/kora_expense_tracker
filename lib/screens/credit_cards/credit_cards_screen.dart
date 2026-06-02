@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../features/credit_cards/credit_card_controller.dart';
 import '../../core/models/credit_cards/credit_card.dart';
@@ -437,14 +438,17 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                 // Card Header
                 Row(
                   children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: card.color,
-                        borderRadius: BorderRadius.circular(6),
+                    Hero(
+                      tag: 'card_icon_${card.id}',
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: card.color,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Icon(card.icon, color: Colors.white, size: 14),
                       ),
-                      child: Icon(card.icon, color: Colors.white, size: 14),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -1093,6 +1097,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
   }
 
   void _navigateToCreditCardDetail(BuildContext context, CreditCard card) {
+    HapticFeedback.lightImpact();
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => CreditCardDetailScreen(creditCard: card),

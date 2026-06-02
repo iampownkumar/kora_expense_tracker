@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:ui';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/core/models/transactions/transaction.dart';
@@ -44,13 +46,20 @@ class TransactionDetailSheet extends StatelessWidget {
       );
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.85),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.15),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
         children: [
           // Handle bar
           Container(
@@ -292,7 +301,9 @@ class TransactionDetailSheet extends StatelessWidget {
           ),
 
           SizedBox(height: MediaQuery.of(context).padding.bottom),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -388,6 +399,7 @@ class TransactionDetailSheet extends StatelessWidget {
           ),
           FilledButton(
             onPressed: () {
+              HapticFeedback.mediumImpact();
               txnCtrl.deleteTransaction(transaction.id);
               Navigator.pop(context); // Close confirmation dialog
               Navigator.pop(context); // Close detail sheet

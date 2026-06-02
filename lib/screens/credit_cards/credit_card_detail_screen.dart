@@ -231,10 +231,13 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
           children: [
             Row(
               children: [
-                Icon(
-                  _currentCard.icon,
-                  color: Colors.white,
-                  size: 32,
+                 Hero(
+                  tag: 'card_icon_${_currentCard.id}',
+                  child: Icon(
+                    _currentCard.icon,
+                    color: Colors.white,
+                    size: 32,
+                  ),
                 ),
                 const Spacer(),
                 Text(
