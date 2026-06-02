@@ -218,7 +218,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                           style: Theme.of(context).textTheme.labelMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onPrimary,
+                                color: Colors.white,
                               ),
                         ),
                         Row(
@@ -240,9 +240,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                                   : provider.overallUtilizationStatus,
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onPrimary.withValues(alpha: 0.7),
+                                    color: Colors.white70,
                                   ),
                             ),
                           ],
@@ -415,7 +413,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -666,7 +664,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
@@ -922,7 +920,9 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.7),
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.black.withValues(alpha: 0.25)
+            : Colors.black.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),

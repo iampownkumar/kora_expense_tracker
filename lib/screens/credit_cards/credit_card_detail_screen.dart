@@ -2512,7 +2512,9 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.7),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.black.withValues(alpha: 0.25)
+                  : Colors.black.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -2545,7 +2547,9 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.7),
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.black.withValues(alpha: 0.25)
+            : Colors.black.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: color.withValues(alpha: 0.3),
