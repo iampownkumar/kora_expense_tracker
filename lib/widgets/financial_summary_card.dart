@@ -344,24 +344,32 @@ class FinancialSummaryCard extends StatelessWidget {
   }
 
   Color _getNetWorthColor(double netWorth, ThemeData theme) {
+    final totalAccounts = accountCounts.values.fold(0, (sum, val) => sum + val);
+    if (totalAccounts == 0) return theme.colorScheme.primary;
     if (netWorth > 0) return Colors.green;
     if (netWorth < 0) return Colors.red;
-    return theme.colorScheme.onSurfaceVariant;
+    return theme.colorScheme.primary;
   }
 
   IconData _getNetWorthIcon(double netWorth) {
+    final totalAccounts = accountCounts.values.fold(0, (sum, val) => sum + val);
+    if (totalAccounts == 0) return Icons.info_outline;
     if (netWorth > 0) return Icons.trending_up;
     if (netWorth < 0) return Icons.trending_down;
     return Icons.remove;
   }
 
   String _getNetWorthStatus(double netWorth) {
+    final totalAccounts = accountCounts.values.fold(0, (sum, val) => sum + val);
+    if (totalAccounts == 0) return 'No Accounts';
     if (netWorth > 0) return 'Positive';
     if (netWorth < 0) return 'Negative';
     return 'Neutral';
   }
 
   String _getHealthStatus(double netWorth) {
+    final totalAccounts = accountCounts.values.fold(0, (sum, val) => sum + val);
+    if (totalAccounts == 0) return 'No Accounts Added';
     if (netWorth > 100000) return 'Excellent';
     if (netWorth > 50000) return 'Good';
     if (netWorth > 0) return 'Positive';

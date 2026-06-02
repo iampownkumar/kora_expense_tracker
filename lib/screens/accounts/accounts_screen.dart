@@ -20,10 +20,7 @@ class AccountsScreen extends StatefulWidget {
 
 class _AccountsScreenState extends State<AccountsScreen>
     with TickerProviderStateMixin {
-  AccountType? _selectedFilter;
-  String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocusNode = FocusNode();
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   final ScrollController _scrollController = ScrollController();
@@ -54,8 +51,6 @@ class _AccountsScreenState extends State<AccountsScreen>
 
   @override
   void dispose() {
-    _searchController.dispose();
-    _searchFocusNode.dispose();
     _animationController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -97,49 +92,32 @@ class _AccountsScreenState extends State<AccountsScreen>
             final accounts = _getFilteredAccounts(accCtrl.accounts);
             final accountCounts = _getAccountCounts(accCtrl.accounts);
 
-            return GestureDetector(
-              onHorizontalDragEnd: (details) {
-                if (details.primaryVelocity! > 0) {
-                  _cycleFilter(-1);
-                } else if (details.primaryVelocity! < 0) {
-                  _cycleFilter(1);
-                }
-              },
-              child: CustomScrollView(
-                controller: _scrollController,
-                slivers: [
-                  _buildSliverAppBar(context, accCtrl),
+            return CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                _buildSliverAppBar(context, accCtrl),
 
-                  SliverToBoxAdapter(
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                        child: FinancialSummaryCard(
-                          totalAssets: accCtrl.totalAssets,
-                          totalLiabilities: accCtrl.totalLiabilities,
-                          netWorth: accCtrl.netWorth,
-                          accountCounts: accountCounts,
-                          onTap: () => _showFinancialDetails(context, accCtrl),
-                        ),
+                SliverToBoxAdapter(
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                      child: FinancialSummaryCard(
+                        totalAssets: accCtrl.totalAssets,
+                        totalLiabilities: accCtrl.totalLiabilities,
+                        netWorth: accCtrl.netWorth,
+                        accountCounts: accountCounts,
+                        onTap: () => _showFinancialDetails(context, accCtrl),
                       ),
                     ),
                   ),
+                ),
 
-                  if (accCtrl.accounts.isNotEmpty)
-                    SliverPersistentHeader(
-                      pinned: true,
-                      delegate: _StickyTabBarDelegate(
-                        child: _buildFilterChips(context),
-                      ),
-                    ),
-
-                  if (accounts.isEmpty)
-                    _buildEmptyState(context, accCtrl)
-                  else
-                    _buildAccountsList(accounts, accCtrl),
-                ],
-              ),
+                if (accounts.isEmpty)
+                  _buildEmptyState(context, accCtrl)
+                else
+                  _buildAccountsList(accounts, accCtrl),
+              ],
             );
           },
         ),
@@ -211,11 +189,8 @@ class _AccountsScreenState extends State<AccountsScreen>
 
   Widget _buildSliverAppBar(BuildContext context, AccountController provider) {
     final theme = Theme.of(context);
-    final sh = MediaQuery.of(context).size.height;
-    final expandedHeight = AppConstants.responsivePadding(sh, 110.0);
 
     return SliverAppBar(
-      expandedHeight: expandedHeight,
       floating: false,
       pinned: true,
       backgroundColor: theme.brightness == Brightness.dark
@@ -223,7 +198,7 @@ class _AccountsScreenState extends State<AccountsScreen>
           : theme.colorScheme.primary,
       foregroundColor: Colors.white,
       flexibleSpace: FlexibleSpaceBar(
-        titlePadding: const EdgeInsets.only(bottom: 8),
+        titlePadding: EdgeInsets.zero,
         background: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -241,98 +216,25 @@ class _AccountsScreenState extends State<AccountsScreen>
             ),
           ),
           child: SafeArea(
-            child: Column(
-              children: [
-                // Title area
-                Container(
-                  height: 50,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      Text(
-                        'Accounts',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.filter_list,
-                          color: Colors.white,
-                        ),
-                        onPressed: () => _showFilterOptions(context),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.add, color: Colors.white),
-                        onPressed: () => _showAddAccountDialog(context),
-                      ),
-                    ],
-                  ),
-                ),
-                // Search bar area
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-                  child: TextField(
-                    controller: _searchController,
-                    focusNode: _searchFocusNode,
-                    onChanged: (value) {
-                      setState(() => _searchQuery = value.toLowerCase());
-                    },
-                    onTap: () {
-                      _searchFocusNode.requestFocus();
-                    },
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: 'Search accounts...',
-                      hintStyle: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                      ),
-                      prefixIcon: const Icon(Icons.search, color: Colors.white, size: 20),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(
-                                Icons.clear,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() => _searchQuery = '');
-                              },
-                            )
-                          : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                          color: Colors.white,
-                          width: 2,
-                        ),
-                      ),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.1),
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 7,
-                      ),
+            child: Container(
+              height: 56,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Text(
+                    'Accounts',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-              ],
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.add, color: Colors.white),
+                    onPressed: () => _showAddAccountDialog(context),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -340,78 +242,10 @@ class _AccountsScreenState extends State<AccountsScreen>
     );
   }
 
-  Widget _buildFilterChips(BuildContext context) {
-    final sh = MediaQuery.of(context).size.height;
-    final chipBarHeight = sh < 650 ? 36.0 : 40.0;
-    final ScrollController filterScrollController = ScrollController();
 
-    return Container(
-      height: chipBarHeight,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppConstants.defaultPadding,
-      ),
-      child: ListView(
-        controller: filterScrollController,
-        scrollDirection: Axis.horizontal,
-        children: [
-          // All accounts chip
-          _buildFilterChip(
-            context,
-            'All',
-            _selectedFilter == null,
-            () => setState(() => _selectedFilter = null),
-          ),
-
-          // Account type chips
-          ...AccountType.values.map(
-            (type) => _buildFilterChip(
-              context,
-              type.displayName,
-              _selectedFilter == type,
-              () => setState(() => _selectedFilter = type),
-              type.color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(
-    BuildContext context,
-    String label,
-    bool isSelected,
-    VoidCallback onTap, [
-    Color? color,
-  ]) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (_) => onTap(),
-        backgroundColor:
-            color?.withValues(alpha: 0.1) ?? theme.colorScheme.surface,
-        selectedColor:
-            color?.withValues(alpha: 0.2) ??
-            theme.colorScheme.primary.withValues(alpha: 0.2),
-        checkmarkColor: color ?? theme.colorScheme.primary,
-        labelStyle: TextStyle(
-          color: isSelected
-              ? (color ?? theme.colorScheme.primary)
-              : theme.colorScheme.onSurface,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-        ),
-      ),
-    );
-  }
 
   Widget _buildEmptyState(BuildContext context, AccountController provider) {
     final theme = Theme.of(context);
-    final isSearching = _searchQuery.isNotEmpty;
-    final hasFilter = _selectedFilter != null;
 
     return SliverFillRemaining(
       child: Center(
@@ -421,44 +255,37 @@ class _AccountsScreenState extends State<AccountsScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                isSearching || hasFilter
-                    ? Icons.search_off
-                    : Icons.account_balance_wallet,
+                Icons.account_balance_wallet,
                 size: 80,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
               const SizedBox(height: 16),
               Text(
-                isSearching || hasFilter
-                    ? 'No accounts found'
-                    : 'No accounts yet',
+                'No accounts yet',
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                isSearching || hasFilter
-                    ? 'Try adjusting your search or filter'
-                    : 'Add your first account to get started',
+                'Add your first account to get started',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              if (!isSearching && !hasFilter)
-                ElevatedButton.icon(
-                  onPressed: () => _showAddAccountDialog(context),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Your First Account'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
+              ElevatedButton.icon(
+                onPressed: () => _showAddAccountDialog(context),
+                icon: const Icon(Icons.add),
+                label: const Text('Add Your First Account'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
                   ),
                 ),
+              ),
             ],
           ),
         ),
@@ -489,90 +316,10 @@ class _AccountsScreenState extends State<AccountsScreen>
 
 
 
-  // Clear search focus and keyboard
-  void _clearSearchFocus() {
-    // Clear search text
-    _searchController.clear();
-    setState(() => _searchQuery = '');
-
-    // Remove focus from search field specifically
-    _searchFocusNode.unfocus();
-
-    // Also remove any other focus
-    FocusScope.of(context).unfocus();
-  }
-
-  // Cycle through account type filters with swipe
-  void _cycleFilter(int direction) {
-    // Include all account types for complete swipe loop
-    final List<AccountType?> filters = [
-      null, // All
-      AccountType.savings,
-      AccountType.wallet,
-      AccountType.creditCard,
-      AccountType.cash,
-      AccountType.investment,
-      AccountType.loan,
-    ];
-    final currentIndex = filters.indexOf(_selectedFilter);
-
-    int newIndex;
-    if (direction > 0) {
-      // Swipe left - next filter
-      newIndex = (currentIndex + 1) % filters.length;
-    } else {
-      // Swipe right - previous filter
-      newIndex = (currentIndex - 1 + filters.length) % filters.length;
-    }
-
-    setState(() {
-      _selectedFilter = filters[newIndex];
-    });
-
-    // Comment out popup message for production
-    // final filterName = _selectedFilter == null ? 'All' : _selectedFilter!.displayName;
-    // ScaffoldMessenger.of(context).showSnackBar(
-    //   SnackBar(
-    //     duration: const Duration(milliseconds: 1200),
-    //     behavior: SnackBarBehavior.floating,
-    //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    //     margin: const EdgeInsets.all(16),
-    //     elevation: 4,
-    //     backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-    //     content: Text(
-    //       'Showing: $filterName',
-    //       style: TextStyle(
-    //         color: Theme.of(context).colorScheme.onSurfaceVariant,
-    //         fontWeight: FontWeight.w500,
-    //       ),
-    //     ),
-    //   ),
-    // );
-  }
-
   List<Account> _getFilteredAccounts(List<Account> accounts) {
-    var filtered = accounts.where((account) {
-      // Search filter
-      if (_searchQuery.isNotEmpty) {
-        final matchesSearch =
-            account.name.toLowerCase().contains(_searchQuery) ||
-            account.type.displayName.toLowerCase().contains(_searchQuery) ||
-            (account.description?.toLowerCase().contains(_searchQuery) ??
-                false);
-        if (!matchesSearch) return false;
-      }
-
-      // Type filter
-      if (_selectedFilter != null) {
-        return account.type == _selectedFilter;
-      }
-
-      return true;
-    }).toList();
-
+    var filtered = List<Account>.from(accounts);
     // Sort by balance (highest first)
     filtered.sort((a, b) => b.balance.compareTo(a.balance));
-
     return filtered;
   }
 
@@ -597,7 +344,7 @@ class _AccountsScreenState extends State<AccountsScreen>
           context.read<AccountController>().addAccount(account);
         },
       ),
-    ).then((_) => _clearSearchFocus());
+    );
   }
 
   void _showEditAccountDialog(BuildContext context, Account account) {
@@ -648,7 +395,7 @@ class _AccountsScreenState extends State<AccountsScreen>
           }
         },
       ),
-    ).then((_) => _clearSearchFocus());
+    );
   }
 
   void _showDeleteConfirmation(
@@ -1031,8 +778,6 @@ class _AccountsScreenState extends State<AccountsScreen>
                     IconButton(
                       onPressed: () {
                         Navigator.of(context).pop();
-                        // Clear search focus when returning
-                        _clearSearchFocus();
                       },
                       icon: const Icon(Icons.close),
                     ),
@@ -1092,10 +837,7 @@ class _AccountsScreenState extends State<AccountsScreen>
           ),
         ),
       ),
-    ).then((_) {
-      // Clear search focus when modal is dismissed
-      _clearSearchFocus();
-    });
+    );
   }
 
   Widget _buildFinancialDetailCard(
@@ -1433,69 +1175,5 @@ class _AccountsScreenState extends State<AccountsScreen>
     }
 
     return insights;
-  }
-
-  void _showFilterOptions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(AppConstants.defaultPadding),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Filter Accounts',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            // Add filter options here
-            const Text('Filter options will be implemented here'),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Close'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-  final double height;
-
-  _StickyTabBarDelegate({required this.child}) : height = 40.0;
-
-  @override
-  double get minExtent => height;
-  @override
-  double get maxExtent => height;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: child,
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _StickyTabBarDelegate oldDelegate) {
-    return oldDelegate.child != child || oldDelegate.height != height;
   }
 }
