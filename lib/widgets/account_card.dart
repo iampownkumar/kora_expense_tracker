@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:kora_expense_tracker/core/models/account.dart';
-import 'package:kora_expense_tracker/core/models/account_type.dart';
+import 'package:kora_expense_tracker/core/models/accounts/account.dart';
+import 'package:kora_expense_tracker/core/models/accounts/account_type.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 
 /// A card widget for displaying account information with visual grouping

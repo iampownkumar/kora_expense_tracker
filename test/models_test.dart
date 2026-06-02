@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
-import 'package:kora_expense_tracker/core/models/transaction.dart';
-import 'package:kora_expense_tracker/core/models/account.dart';
-import 'package:kora_expense_tracker/core/models/category.dart';
+import 'package:kora_expense_tracker/core/models/transactions/transaction.dart';
+import 'package:kora_expense_tracker/core/models/accounts/account.dart';
+import 'package:kora_expense_tracker/core/models/categories/category.dart';
 import 'package:kora_expense_tracker/core/models/settings.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 

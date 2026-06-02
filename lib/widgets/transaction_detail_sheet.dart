@@ -1,7 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:kora_expense_tracker/core/models/transaction.dart';
-import 'package:kora_expense_tracker/core/models/category.dart';
+import 'package:kora_expense_tracker/core/models/transactions/transaction.dart';
+import 'package:kora_expense_tracker/core/models/categories/category.dart';
 import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
 import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
 import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
@@ -160,7 +161,7 @@ class TransactionDetailSheet extends StatelessWidget {
                   Formatters.formatTime(transaction.date),
                   Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-                if (transaction.notes?.isNotEmpty == true)
+                 if (transaction.notes?.isNotEmpty == true)
                   _buildDetailRow(
                     context,
                     'Notes',
@@ -168,6 +169,86 @@ class TransactionDetailSheet extends StatelessWidget {
                     Theme.of(context).colorScheme.onSurfaceVariant,
                     isMultiline: true,
                   ),
+                if (transaction.imagePath != null && transaction.imagePath!.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 80,
+                        child: Text(
+                          'Receipt',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: GestureDetector(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => Dialog(
+                                  backgroundColor: Colors.transparent,
+                                  insetPadding: EdgeInsets.zero,
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () => Navigator.of(context).pop(),
+                                        child: Container(color: Colors.black87),
+                                      ),
+                                      InteractiveViewer(
+                                        panEnabled: true,
+                                        minScale: 0.5,
+                                        maxScale: 4.0,
+                                        child: Image.file(
+                                          File(transaction.imagePath!),
+                                          fit: BoxFit.contain,
+                                          width: MediaQuery.of(context).size.width,
+                                          height: MediaQuery.of(context).size.height,
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 40,
+                                        right: 20,
+                                        child: IconButton(
+                                          icon: const Icon(
+                                            Icons.close,
+                                            color: Colors.white,
+                                            size: 30,
+                                          ),
+                                          padding: const EdgeInsets.all(8),
+                                          style: IconButton.styleFrom(
+                                            backgroundColor: Colors.black54,
+                                          ),
+                                          onPressed: () => Navigator.of(context).pop(),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                File(transaction.imagePath!),
+                                width: 120,
+                                height: 120,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),

@@ -6,12 +6,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import '../models/account.dart';
-import '../models/transaction.dart';
-import '../models/credit_card.dart';
-import '../models/credit_card_statement.dart';
-import '../models/payment_record.dart';
-import '../models/category.dart';
+import '../models/accounts/account.dart';
+import '../models/transactions/transaction.dart';
+import '../models/credit_cards/credit_card.dart';
+import '../models/credit_cards/credit_card_statement.dart';
+import '../models/credit_cards/payment_record.dart';
+import '../models/categories/category.dart';
 import '../models/settings.dart';
 
 /// Service for handling data import and export operations

@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
-import '../../core/models/credit_card.dart';
-import '../../core/models/credit_card_statement.dart';
-import '../../core/models/payment_record.dart';
+import '../../core/models/credit_cards/credit_card.dart';
+import '../../core/models/credit_cards/credit_card_statement.dart';
+import '../../core/models/credit_cards/payment_record.dart';
 import '../transactions/transaction_controller.dart';
+import '../accounts/account_controller.dart';
 import 'services/credit_card_service.dart';
 
 /// Exposes credit card state to the UI.
@@ -12,6 +13,7 @@ import 'services/credit_card_service.dart';
 class CreditCardController extends ChangeNotifier {
   final CreditCardService _service;
   final TransactionController _transactionController;
+  final AccountController _accountController;
 
   // ── State ─────────────────────────────────────────────────────────────────
   List<CreditCard>          _creditCards = [];
@@ -22,9 +24,29 @@ class CreditCardController extends ChangeNotifier {
 
   CreditCardController({
     required TransactionController transactionController,
+    required AccountController accountController,
     CreditCardService? service,
   })  : _transactionController = transactionController,
-        _service = service ?? CreditCardService();
+        _accountController = accountController,
+        _service = service ?? CreditCardService() {
+    _transactionController.addListener(_onTransactionChanged);
+    _accountController.addListener(_onAccountChanged);
+  }
+
+  void _onTransactionChanged() {
+    refresh();
+  }
+
+  void _onAccountChanged() {
+    refresh();
+  }
+
+  @override
+  void dispose() {
+    _transactionController.removeListener(_onTransactionChanged);
+    _accountController.removeListener(_onAccountChanged);
+    super.dispose();
+  }
 
   // ── Getters ───────────────────────────────────────────────────────────────
   List<CreditCard>          get creditCards => _creditCards;
@@ -170,6 +192,9 @@ class CreditCardController extends ChangeNotifier {
       for (final t in paymentTxns) {
         await _transactionController.deleteTransaction(t.id);
       }
+
+      // Consolidate deletion: delete matching account from AccountController
+      await _accountController.deleteAccount(id, _transactionController.transactions);
 
       notifyListeners();
       return true;

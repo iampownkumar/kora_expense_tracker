@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:kora_expense_tracker/core/models/account_type.dart';
+import 'package:kora_expense_tracker/core/models/accounts/account_type.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 
 /// A widget that displays financial health summary at the top of accounts screen

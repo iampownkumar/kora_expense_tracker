@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../core/models/account.dart';
-import '../../../core/models/account_type.dart';
-import '../../../core/models/transaction.dart';
+import '../../../core/models/accounts/account.dart';
+import '../../../core/models/accounts/account_type.dart';
+import '../../../core/models/transactions/transaction.dart';
+import '../../../core/models/credit_cards/credit_card.dart';
 import '../../../core/utils/storage_service.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/constants/app_constants.dart';
@@ -70,11 +71,27 @@ class AccountService {
     // Re-point all transactions that referenced the deleted account
     for (final t in transactions) {
       if (t.accountId == accountId) {
-        await StorageService.updateTransaction(t.copyWith(accountId: placeholder.id));
+        await StorageService.updateTransaction(
+          t.copyWith(accountId: placeholder.id),
+        );
       }
       if (t.toAccountId == accountId) {
-        await StorageService.updateTransaction(t.copyWith(toAccountId: placeholder.id));
+        await StorageService.updateTransaction(
+          t.copyWith(toAccountId: placeholder.id),
+        );
       }
+    }
+
+    if (account.type == AccountType.creditCard) {
+      await StorageService.deleteCreditCard(accountId);
+
+      final statements = await StorageService.loadCreditCardStatements();
+      statements.removeWhere((s) => s.creditCardId == accountId);
+      await StorageService.saveCreditCardStatements(statements);
+
+      final payments = await StorageService.loadPaymentRecords();
+      payments.removeWhere((p) => p.creditCardId == accountId);
+      await StorageService.savePaymentRecords(payments);
     }
 
     await StorageService.deleteAccount(accountId);
@@ -91,10 +108,47 @@ class AccountService {
     for (final t in related) {
       await StorageService.deleteTransaction(t.id);
     }
+
+    final accounts = await StorageService.loadAccounts();
+    final account = accounts.where((a) => a.id == accountId).firstOrNull;
+    if (account != null && account.type == AccountType.creditCard) {
+      await StorageService.deleteCreditCard(accountId);
+
+      final statements = await StorageService.loadCreditCardStatements();
+      statements.removeWhere((s) => s.creditCardId == accountId);
+      await StorageService.saveCreditCardStatements(statements);
+
+      final payments = await StorageService.loadPaymentRecords();
+      payments.removeWhere((p) => p.creditCardId == accountId);
+      await StorageService.savePaymentRecords(payments);
+    }
+
     await StorageService.deleteAccount(accountId);
   }
 
   // ── Balance updates ───────────────────────────────────────────────────────
+
+  /// Helper to keep CreditCard balances in SQLite synchronized with Account balances.
+  Future<void> _updateCreditCardBalanceInStorage(
+    String cardId,
+    double newBalance,
+  ) async {
+    try {
+      final List<CreditCard> cards = await StorageService.loadCreditCards();
+      final idx = cards.indexWhere((c) => c.id == cardId);
+      if (idx != -1) {
+        final card = cards[idx];
+        final updatedCard = card.copyWith(
+          outstandingBalance: newBalance,
+          availableCredit: card.creditLimit - newBalance,
+          updatedAt: DateTime.now(),
+        );
+        await StorageService.updateCreditCard(updatedCard);
+      }
+    } catch (e) {
+      debugPrint('Error updating credit card balance in storage: $e');
+    }
+  }
 
   /// Applies or reverses a transaction's effect on account balances.
   /// Returns the updated list of accounts.
@@ -108,26 +162,40 @@ class AccountService {
 
     if (transaction.isTransfer && transaction.toAccountId != null) {
       final fromIdx = updated.indexWhere((a) => a.id == transaction.accountId);
-      final toIdx   = updated.indexWhere((a) => a.id == transaction.toAccountId!);
+      final toIdx = updated.indexWhere((a) => a.id == transaction.toAccountId!);
       if (fromIdx == -1 || toIdx == -1) return updated;
 
       final amount = transaction.amount.abs() * multiplier;
       final fromAcc = updated[fromIdx];
-      final toAcc   = updated[toIdx];
+      final toAcc = updated[toIdx];
 
       updated[fromIdx] = fromAcc.subtractFromBalance(amount);
       // Credit card: subtract = reduce debt. Other accounts: add = increase asset.
-      updated[toIdx]   = toAcc.type == AccountType.creditCard
+      updated[toIdx] = toAcc.type == AccountType.creditCard
           ? toAcc.subtractFromBalance(amount)
           : toAcc.addToBalance(amount);
 
       await StorageService.updateAccount(updated[fromIdx]);
       await StorageService.updateAccount(updated[toIdx]);
+
+      // Keep matching CreditCards in sync
+      if (fromAcc.type == AccountType.creditCard) {
+        await _updateCreditCardBalanceInStorage(
+          fromAcc.id,
+          updated[fromIdx].balance,
+        );
+      }
+      if (toAcc.type == AccountType.creditCard) {
+        await _updateCreditCardBalanceInStorage(
+          toAcc.id,
+          updated[toIdx].balance,
+        );
+      }
     } else {
       final idx = updated.indexWhere((a) => a.id == transaction.accountId);
       if (idx == -1) return updated;
 
-      final acc    = updated[idx];
+      final acc = updated[idx];
       final amount = transaction.amount.abs() * multiplier;
 
       if (transaction.isIncome) {
@@ -140,6 +208,11 @@ class AccountService {
             : acc.subtractFromBalance(amount);
       }
       await StorageService.updateAccount(updated[idx]);
+
+      // Keep matching CreditCard in sync
+      if (acc.type == AccountType.creditCard) {
+        await _updateCreditCardBalanceInStorage(acc.id, updated[idx].balance);
+      }
     }
     return updated;
   }
@@ -152,7 +225,7 @@ class AccountService {
   ) {
     try {
       final from = accounts.firstWhere((a) => a.id == transaction.accountId);
-      final to   = accounts.firstWhere((a) => a.id == transaction.toAccountId!);
+      final to = accounts.firstWhere((a) => a.id == transaction.toAccountId!);
 
       if (from.type.isLiability) {
         return const ValidationResult.fail(
@@ -160,7 +233,9 @@ class AccountService {
         );
       }
       if (from.id == to.id) {
-        return const ValidationResult.fail('Cannot transfer to the same account.');
+        return const ValidationResult.fail(
+          'Cannot transfer to the same account.',
+        );
       }
       if (from.type.isAsset && from.balance < transaction.amount.abs()) {
         return ValidationResult.fail(

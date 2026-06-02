@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:path_provider/path_provider.dart';
-import '../../../core/models/transaction.dart';
-import '../../../core/models/category.dart';
+import '../../../core/models/transactions/transaction.dart';
+import '../../../core/models/categories/category.dart';
 import '../../../core/utils/storage_service.dart';
 
 /// Pure data layer for transaction operations.

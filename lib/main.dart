@@ -33,6 +33,7 @@ class KoraApp extends StatelessWidget {
     // ── CreditCardController depends on TransactionController ────────────────
     final creditCardController = CreditCardController(
       transactionController: transactionController,
+      accountController: accountController,
     );
 
     // ── ReportsController aggregates Account + Transaction ───────────────────

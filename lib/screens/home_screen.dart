@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:kora_expense_tracker/screens/dashboard_screen.dart';
-import 'package:kora_expense_tracker/screens/transactions_screen.dart';
-import 'package:kora_expense_tracker/screens/accounts_screen.dart';
-import 'package:kora_expense_tracker/screens/credit_cards_screen.dart';
+import 'package:kora_expense_tracker/screens/dashboard/dashboard_screen.dart';
+import 'package:kora_expense_tracker/screens/transactions/transactions_screen.dart';
+import 'package:kora_expense_tracker/screens/accounts/accounts_screen.dart';
+import 'package:kora_expense_tracker/screens/credit_cards/credit_cards_screen.dart';
 import 'package:kora_expense_tracker/screens/more_screen.dart';
-import 'package:kora_expense_tracker/screens/reports_screen.dart';
+import 'package:kora_expense_tracker/screens/reports/reports_screen.dart';
 import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
 import 'package:kora_expense_tracker/core/utils/storage_service.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';

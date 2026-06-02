@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';
-import 'package:kora_expense_tracker/core/models/category.dart';
+import 'package:kora_expense_tracker/core/models/categories/category.dart';
 import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
 
 class AddCategoryDialog extends StatefulWidget {

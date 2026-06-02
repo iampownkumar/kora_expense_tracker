@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
-import 'categories_screen.dart';
-import 'import_export_screen.dart';
-import 'import_screen.dart';
+import 'categories/categories_screen.dart';
+import 'import_export/import_export_screen.dart';
+import 'import_export/import_screen.dart';
 import 'release_notes_screen.dart';
 
 class MoreScreen extends StatelessWidget {

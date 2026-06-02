@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import '../../core/models/account.dart';
-import '../../core/models/account_type.dart';
-import '../../core/models/transaction.dart';
+import '../../core/models/accounts/account.dart';
+import '../../core/models/accounts/account_type.dart';
+import '../../core/models/transactions/transaction.dart';
 import 'services/account_service.dart';
 
 export 'services/account_service.dart' show ValidationResult;

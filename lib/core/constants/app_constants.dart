@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/account_type.dart';
+import '../models/accounts/account_type.dart';
 
 /// App-wide constants for the Kora Expense Tracker
 class AppConstants {

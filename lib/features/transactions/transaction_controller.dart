@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart' hide Category;
-import '../../core/models/transaction.dart';
-import '../../core/models/category.dart';
+import '../../core/models/transactions/transaction.dart';
+import '../../core/models/categories/category.dart';
 import '../../core/utils/storage_service.dart';
 import '../../core/constants/app_constants.dart';
 import '../accounts/account_controller.dart';
@@ -23,7 +23,19 @@ class TransactionController extends ChangeNotifier {
     required AccountController accountController,
     TransactionService? service,
   }) : _accountController = accountController,
-       _service = service ?? TransactionService();
+       _service = service ?? TransactionService() {
+    _accountController.addListener(_onAccountChanged);
+  }
+
+  void _onAccountChanged() {
+    refresh();
+  }
+
+  @override
+  void dispose() {
+    _accountController.removeListener(_onAccountChanged);
+    super.dispose();
+  }
 
   // ── Getters ───────────────────────────────────────────────────────────────
   List<Transaction> get transactions => _transactions;

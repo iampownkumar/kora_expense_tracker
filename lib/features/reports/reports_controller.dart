@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart' hide Category;
-import '../../core/models/transaction.dart';
-import '../../core/models/category.dart';
-import '../../core/models/account.dart';
+import '../../core/models/transactions/transaction.dart';
+import '../../core/models/categories/category.dart';
+import '../../core/models/accounts/account.dart';
 import '../transactions/transaction_controller.dart';
 import '../accounts/account_controller.dart';
 
@@ -10,19 +10,33 @@ import '../accounts/account_controller.dart';
 /// Views use [Consumer<ReportsController>].
 class ReportsController extends ChangeNotifier {
   final TransactionController _txController;
-  final AccountController     _accController;
+  final AccountController _accController;
 
   ReportsController({
     required TransactionController transactionController,
     required AccountController accountController,
-  })  : _txController  = transactionController,
-        _accController = accountController;
+  }) : _txController = transactionController,
+       _accController = accountController {
+    _txController.addListener(_onUnderlyingChanged);
+    _accController.addListener(_onUnderlyingChanged);
+  }
+
+  void _onUnderlyingChanged() {
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _txController.removeListener(_onUnderlyingChanged);
+    _accController.removeListener(_onUnderlyingChanged);
+    super.dispose();
+  }
 
   // ── Shortcut getters ──────────────────────────────────────────────────────
 
   List<Transaction> get allTransactions => _txController.transactions;
-  List<Category>    get allCategories   => _txController.categories;
-  List<Account>     get allAccounts     => _accController.accounts;
+  List<Category> get allCategories => _txController.categories;
+  List<Account> get allAccounts => _accController.accounts;
 
   // ── Date-filtered transactions ────────────────────────────────────────────
 
@@ -34,19 +48,21 @@ class ReportsController extends ChangeNotifier {
 
   List<Transaction> transactionsForMonth(int year, int month) {
     final from = DateTime(year, month, 1);
-    final to   = DateTime(year, month + 1, 0, 23, 59, 59);
+    final to = DateTime(year, month + 1, 0, 23, 59, 59);
     return transactionsInRange(from, to);
   }
 
   // ── Aggregates ────────────────────────────────────────────────────────────
 
-  double incomeInRange(DateTime from, DateTime to) => transactionsInRange(from, to)
-      .where((t) => t.isIncome)
-      .fold(0.0, (s, t) => s + t.amount.abs());
+  double incomeInRange(DateTime from, DateTime to) => transactionsInRange(
+    from,
+    to,
+  ).where((t) => t.isIncome).fold(0.0, (s, t) => s + t.amount.abs());
 
-  double expensesInRange(DateTime from, DateTime to) => transactionsInRange(from, to)
-      .where((t) => t.isExpense)
-      .fold(0.0, (s, t) => s + t.amount.abs());
+  double expensesInRange(DateTime from, DateTime to) => transactionsInRange(
+    from,
+    to,
+  ).where((t) => t.isExpense).fold(0.0, (s, t) => s + t.amount.abs());
 
   double savingsInRange(DateTime from, DateTime to) =>
       incomeInRange(from, to) - expensesInRange(from, to);
@@ -80,8 +96,10 @@ class ReportsController extends ChangeNotifier {
         .map((c) => c.id)
         .toSet();
 
-    final txns = transactionsInRange(from, to)
-        .where((t) => t.isExpense && subCatIds.contains(t.categoryId));
+    final txns = transactionsInRange(
+      from,
+      to,
+    ).where((t) => t.isExpense && subCatIds.contains(t.categoryId));
 
     final result = <String, double>{};
     for (final t in txns) {
@@ -101,22 +119,28 @@ class ReportsController extends ChangeNotifier {
     final now = DateTime.now();
     return List.generate(months, (i) {
       final d = DateTime(now.year, now.month - (months - 1 - i), 1);
-      final income   = incomeInRange(d, DateTime(d.year, d.month + 1, 0, 23, 59, 59));
-      final expenses = expensesInRange(d, DateTime(d.year, d.month + 1, 0, 23, 59, 59));
+      final income = incomeInRange(
+        d,
+        DateTime(d.year, d.month + 1, 0, 23, 59, 59),
+      );
+      final expenses = expensesInRange(
+        d,
+        DateTime(d.year, d.month + 1, 0, 23, 59, 59),
+      );
       return {
-        'year':     d.year,
-        'month':    d.month,
-        'income':   income,
+        'year': d.year,
+        'month': d.month,
+        'income': income,
         'expenses': expenses,
-        'savings':  income - expenses,
+        'savings': income - expenses,
       };
     });
   }
 
   // ── Net worth summary ─────────────────────────────────────────────────────
 
-  double get netWorth       => _accController.netWorth;
-  double get totalAssets    => _accController.totalAssets;
+  double get netWorth => _accController.netWorth;
+  double get totalAssets => _accController.totalAssets;
   double get totalLiabilities => _accController.totalLiabilities;
 
   /// Call this when underlying controllers change so reports re-render.

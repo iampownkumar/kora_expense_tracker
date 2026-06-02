@@ -2,15 +2,15 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
-import '../models/transaction.dart';
-import '../models/account.dart';
-import '../models/category.dart';
+import '../models/transactions/transaction.dart';
+import '../models/accounts/account.dart';
+import '../models/categories/category.dart';
 import '../models/settings.dart';
-import '../models/credit_card.dart';
-import '../models/credit_card_statement.dart';
-import '../models/payment_record.dart';
-import '../models/payment.dart';
-import '../models/bank_account.dart';
+import '../models/credit_cards/credit_card.dart';
+import '../models/credit_cards/credit_card_statement.dart';
+import '../models/credit_cards/payment_record.dart';
+import '../models/credit_cards/payment.dart';
+import '../models/accounts/bank_account.dart';
 import 'database_helper.dart';
 
 /// Service for handling local data storage seamlessly switching to SQLite

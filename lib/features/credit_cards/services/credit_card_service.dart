@@ -1,6 +1,6 @@
-import '../../../core/models/credit_card.dart';
-import '../../../core/models/credit_card_statement.dart';
-import '../../../core/models/payment_record.dart';
+import '../../../core/models/credit_cards/credit_card.dart';
+import '../../../core/models/credit_cards/credit_card_statement.dart';
+import '../../../core/models/credit_cards/payment_record.dart';
 import '../../../core/utils/storage_service.dart';
 
 /// Service: pure data layer for credit card operations.

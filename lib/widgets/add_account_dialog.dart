@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:kora_expense_tracker/core/models/account.dart';
-import 'package:kora_expense_tracker/core/models/account_type.dart';
+import 'package:kora_expense_tracker/core/models/accounts/account.dart';
+import 'package:kora_expense_tracker/core/models/accounts/account_type.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';
-import 'package:kora_expense_tracker/screens/add_credit_card_screen.dart';
+import 'package:kora_expense_tracker/screens/credit_cards/add_credit_card_screen.dart';
 
 /// Clean single-page bottom sheet for adding/editing accounts.
 /// No multi-step wizard — everything visible at once.
@@ -340,7 +340,7 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
           return ChoiceChip(
             avatar: Icon(t.icon,
                 size: 16,
-                color: selected ? t.color : null),
+                color: selected ? t.color : Theme.of(context).colorScheme.onSurfaceVariant),
             label: Text(t.displayName),
             selected: selected,
             selectedColor: t.color.withValues(alpha: 0.18),
@@ -356,7 +356,7 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
               fontSize: 13,
               fontWeight:
                   selected ? FontWeight.w700 : FontWeight.w400,
-              color: selected ? t.color : null,
+              color: selected ? t.color : Theme.of(context).colorScheme.onSurface,
             ),
             onSelected: (_) {
               setState(() {
@@ -377,9 +377,12 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
     return ActionChip(
       avatar: Icon(Icons.credit_card,
           size: 16,
-          color: Theme.of(context).colorScheme.onSurfaceVariant),
+          color: Theme.of(context).colorScheme.onSurface),
       label: const Text('Credit Card'),
-      labelStyle: const TextStyle(fontSize: 13),
+      labelStyle: TextStyle(
+        fontSize: 13,
+        color: Theme.of(context).colorScheme.onSurface,
+      ),
       onPressed: () {
         Navigator.of(context).pop();
         Navigator.of(context).push(

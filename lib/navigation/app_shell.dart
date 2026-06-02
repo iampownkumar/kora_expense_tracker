@@ -7,11 +7,11 @@ import '../features/reports/reports_controller.dart';
 import '../features/settings/settings_controller.dart';
 
 // Screens
-import '../screens/dashboard_screen.dart';
-import '../screens/transactions_screen.dart';
-import '../screens/reports_screen.dart';
-import '../screens/accounts_screen.dart';
-import '../screens/credit_cards_screen.dart';
+import '../screens/dashboard/dashboard_screen.dart';
+import '../screens/transactions/transactions_screen.dart';
+import '../screens/reports/reports_screen.dart';
+import '../screens/accounts/accounts_screen.dart';
+import '../screens/credit_cards/credit_cards_screen.dart';
 import '../screens/more_screen.dart';
 import '../widgets/add_transaction_dialog.dart';
 import '../core/utils/storage_service.dart';
