@@ -157,7 +157,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
           const SizedBox(width: 10),
           Text(
-            'Kora',
+            'Kora Expense Tracker',
             style: Theme.of(context).textTheme.titleLarge,
           ),
         ],
