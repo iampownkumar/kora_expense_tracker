@@ -5,7 +5,7 @@ import '../models/accounts/account_type.dart';
 class AppConstants {
   // App Information
   static const String appName = 'Kora Expense Tracker';
-  static const String appVersion = '1.0.2';
+  static const String appVersion = '1.0.3';
 
 
   // Default Currency (INR - Indian Rupee)
