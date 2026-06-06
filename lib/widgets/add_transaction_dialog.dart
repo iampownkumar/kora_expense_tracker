@@ -360,9 +360,10 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
 
     setState(() {
       _selectedType = types[newIndex];
-      // Always reset category and toAccount when type changes (even during edit)
-      _selectedCategoryId = null; // Reset category when type changes
-      _selectedToAccountId = null; // Reset to account for transfers
+      // Reset only category fields when type changes
+      _selectedCategoryId = null;
+      _selectedParentCategoryId = null;
+      _selectedSubCategoryId = null;
     });
   }
 
@@ -373,9 +374,10 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
         onTap: () {
           setState(() {
             _selectedType = label.toLowerCase();
-            // Always reset category and toAccount when type changes (even during edit)
-            _selectedCategoryId = null; // Reset category when type changes
-            _selectedToAccountId = null; // Reset to account for transfers
+            // Reset only category fields when type changes
+            _selectedCategoryId = null;
+            _selectedParentCategoryId = null;
+            _selectedSubCategoryId = null;
           });
         },
         child: Container(
