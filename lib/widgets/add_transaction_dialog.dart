@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'permission_disclosure_dialog.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 import 'package:kora_expense_tracker/core/models/transactions/transaction.dart';
 import 'package:kora_expense_tracker/core/models/accounts/account_type.dart';
@@ -1154,6 +1155,15 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
 
   /// Requests camera permission then opens the camera.
   Future<void> _openCamera() async {
+    final shouldContinue = await PermissionDisclosureDialog.show(
+      context: context,
+      title: 'Camera Access Needed',
+      reason: 'Kora uses the camera strictly to capture receipt photos to attach to your transactions. This data is stored locally on your device.',
+      icon: Icons.camera_alt,
+    );
+
+    if (!shouldContinue || !mounted) return;
+
     final status = await Permission.camera.request();
     if (status.isGranted) {
       final picker = ImagePicker();
@@ -1192,8 +1202,17 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     }
   }
 
-  /// Opens the gallery — no permission needed on Android 13+.
+  /// Opens the gallery.
   Future<void> _openGallery() async {
+    final shouldContinue = await PermissionDisclosureDialog.show(
+      context: context,
+      title: 'Gallery Access Needed',
+      reason: 'Kora uses gallery access strictly to allow you to select existing receipt photos to attach to your transactions. This data is stored locally on your device.',
+      icon: Icons.photo_library,
+    );
+
+    if (!shouldContinue || !mounted) return;
+
     final picker = ImagePicker();
     final XFile? image = await picker.pickImage(
       source: ImageSource.gallery,

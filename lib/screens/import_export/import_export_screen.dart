@@ -225,7 +225,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     try {
       // Check permission
       if (!await ImportExportService.hasStoragePermission()) {
-        final granted = await ImportExportService.requestStoragePermission();
+        final granted = await ImportExportService.requestStoragePermission(context);
         if (!granted) {
           _showErrorSnackBar('Storage permission is required for export');
           return;
@@ -275,7 +275,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     try {
       // Check permission
       if (!await ImportExportService.hasStoragePermission()) {
-        final granted = await ImportExportService.requestStoragePermission();
+        final granted = await ImportExportService.requestStoragePermission(context);
         if (!granted) {
           _showErrorSnackBar('Storage permission is required for export');
           return;
@@ -335,7 +335,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     
     setState(() => _isExporting = true);
-    final hasPermission = await ImportExportService.requestStoragePermission();
+    final hasPermission = await ImportExportService.requestStoragePermission(context);
     if (!hasPermission) {
       if (mounted) {
         scaffoldMessenger.showSnackBar(
@@ -455,7 +455,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     setState(() => _isExporting = true);
 
     try {
-      final Map<String, dynamic>? backupData = await ImportExportService.importData();
+      final Map<String, dynamic>? backupData = await ImportExportService.importData(context);
 
       if (backupData == null) {
         // User cancelled picker

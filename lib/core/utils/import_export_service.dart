@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import '../../widgets/permission_disclosure_dialog.dart';
 import '../models/accounts/account.dart';
 import '../models/transactions/transaction.dart';
 import '../models/credit_cards/credit_card.dart';
@@ -130,12 +131,24 @@ class ImportExportService {
   }
 
   /// Import data from a JSON file
-  static Future<Map<String, dynamic>?> importData() async {
+  static Future<Map<String, dynamic>?> importData(BuildContext context) async {
     try {
       // Request storage permission
-      final permission = await Permission.storage.request();
-      if (!permission.isGranted) {
-        throw Exception('Storage permission denied');
+      if (Platform.isAndroid) {
+        if (!await Permission.storage.isGranted && !await Permission.manageExternalStorage.isGranted) {
+          final shouldContinue = await PermissionDisclosureDialog.show(
+            context: context,
+            title: 'Storage Access Needed',
+            reason: 'Kora needs storage access to read your exported backup files from your device so that your data can be restored.',
+            icon: Icons.folder,
+          );
+          if (!shouldContinue) return null;
+          
+          final permission = await Permission.storage.request();
+          if (!permission.isGranted) {
+            throw Exception('Storage permission denied');
+          }
+        }
       }
 
       // Pick file
@@ -464,8 +477,19 @@ class ImportExportService {
   }
 
   /// Request storage permission
-  static Future<bool> requestStoragePermission() async {
+  static Future<bool> requestStoragePermission(BuildContext context) async {
     if (Platform.isAndroid) {
+      if (await hasStoragePermission()) return true;
+
+      final shouldContinue = await PermissionDisclosureDialog.show(
+        context: context,
+        title: 'Storage Access Needed',
+        reason: 'Kora uses storage access to export and save your financial backups (JSON/CSV) to a dedicated KoraExpenseTracker folder on your device. This allows you to own and access your data.',
+        icon: Icons.save_alt,
+      );
+
+      if (!shouldContinue) return false;
+
       final manageStatus = await Permission.manageExternalStorage.request();
       if (manageStatus.isGranted) return true;
 
