@@ -1793,23 +1793,47 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
     // Use sub-category if selected, otherwise parent category
     final finalCategoryId = _selectedCategoryId ?? 'transfer';
 
-    final transaction = Transaction.create(
-      type: _selectedType,
-      amount: amount,
-      description: _description.isEmpty ? 'No description' : _description,
-      categoryId: finalCategoryId,
-      accountId: _selectedAccountId!,
-      toAccountId: _selectedToAccountId,
-      notes: _notes.isEmpty ? null : _notes,
-      imagePath: _imagePath,
-      date: DateTime(
-        _selectedDate.year,
-        _selectedDate.month,
-        _selectedDate.day,
-        _selectedTime.hour,
-        _selectedTime.minute,
-      ),
-    );
+    Transaction transaction;
+    if (widget.transaction != null) {
+      transaction = Transaction(
+        id: widget.transaction!.id,
+        type: _selectedType,
+        amount: amount,
+        description: _description.isEmpty ? 'No description' : _description,
+        categoryId: finalCategoryId,
+        accountId: _selectedAccountId!,
+        toAccountId: _selectedToAccountId,
+        notes: _notes.isEmpty ? null : _notes,
+        imagePath: _imagePath,
+        date: DateTime(
+          _selectedDate.year,
+          _selectedDate.month,
+          _selectedDate.day,
+          _selectedTime.hour,
+          _selectedTime.minute,
+        ),
+        createdAt: widget.transaction!.createdAt,
+        updatedAt: DateTime.now(),
+      );
+    } else {
+      transaction = Transaction.create(
+        type: _selectedType,
+        amount: amount,
+        description: _description.isEmpty ? 'No description' : _description,
+        categoryId: finalCategoryId,
+        accountId: _selectedAccountId!,
+        toAccountId: _selectedToAccountId,
+        notes: _notes.isEmpty ? null : _notes,
+        imagePath: _imagePath,
+        date: DateTime(
+          _selectedDate.year,
+          _selectedDate.month,
+          _selectedDate.day,
+          _selectedTime.hour,
+          _selectedTime.minute,
+        ),
+      );
+    }
 
     bool success = false;
     if (widget.transaction != null) {
