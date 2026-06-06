@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../features/accounts/account_controller.dart';
 import '../features/transactions/transaction_controller.dart';
@@ -35,6 +36,7 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _selectedTabIndex = 0;
   bool _initialized = false;
+  DateTime? _lastBackPress;
 
   final List<Widget> _screens = const [
     DashboardScreen(),
@@ -149,16 +151,40 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    final isHome = _selectedTabIndex == 0;
-
     return PopScope(
-      canPop: isHome,
+      canPop: false, // Always intercept back press
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
 
-        if (!isHome) {
+        // 1. If not on Home tab, single press routes to Home.
+        if (_selectedTabIndex != 0) {
           setState(() => _selectedTabIndex = 0);
+          return;
         }
+
+        // 2. If on Home tab, require double press to exit.
+        final now = DateTime.now();
+        if (_lastBackPress == null ||
+            now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
+          _lastBackPress = now;
+          
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Press back again to exit'),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16), // above nav bar
+            ),
+          );
+          return;
+        }
+
+        // Double press confirmed within 2 seconds. Exit app.
+        SystemNavigator.pop();
       },
       child: Scaffold(
         body: IndexedStack(
