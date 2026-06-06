@@ -25,7 +25,7 @@ class _AccountsScreenState extends State<AccountsScreen>
   late Animation<double> _fadeAnimation;
   final ScrollController _scrollController = ScrollController();
   bool _showScrollToTop = false;
-  DateTime? _lastBackPress;
+
 
   @override
   void initState() {
@@ -58,34 +58,7 @@ class _AccountsScreenState extends State<AccountsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        // Check if we're on dashboard (index 0)
-        // Navigation handled by AppShell
-
-        // If already on dashboard, check for double back press
-        final now = DateTime.now();
-        if (_lastBackPress == null ||
-            now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
-          _lastBackPress = now;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Press back again to exit'),
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              margin: const EdgeInsets.all(16),
-            ),
-          );
-          return false; // Don't exit app
-        }
-
-        // Double back press - exit app
-        return true;
-      },
-      child: Scaffold(
+    return Scaffold(
         body: Consumer<AccountController>(
           builder: (context, accCtrl, child) {
             final accCtrl = context.read<AccountController>();
@@ -183,8 +156,7 @@ class _AccountsScreenState extends State<AccountsScreen>
                 ),
               )
             : null,
-      ),
-    );
+      );
   }
 
   Widget _buildSliverAppBar(BuildContext context, AccountController provider) {
