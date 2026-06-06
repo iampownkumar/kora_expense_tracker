@@ -149,12 +149,24 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _selectedTabIndex,
-        children: _screens,
+    final isHome = _selectedTabIndex == 0;
+
+    return PopScope(
+      canPop: isHome,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+
+        if (!isHome) {
+          setState(() => _selectedTabIndex = 0);
+        }
+      },
+      child: Scaffold(
+        body: IndexedStack(
+          index: _selectedTabIndex,
+          children: _screens,
+        ),
+        bottomNavigationBar: _buildNavBar(context),
       ),
-      bottomNavigationBar: _buildNavBar(context),
     );
   }
 
