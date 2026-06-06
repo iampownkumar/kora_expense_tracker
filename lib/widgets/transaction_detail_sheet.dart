@@ -116,10 +116,11 @@ class TransactionDetailSheet extends StatelessWidget {
                 // Edit button
                 IconButton(
                   onPressed: () {
-                    Navigator.pop(context);
+                    final sheetCtx = context;
+                    Navigator.pop(sheetCtx);
                     showDialog(
-                      context: context,
-                      builder: (context) => AddTransactionDialog(
+                      context: sheetCtx,
+                      builder: (ctx) => AddTransactionDialog(
                         transaction: transaction,
                       ),
                     );
@@ -272,10 +273,11 @@ class TransactionDetailSheet extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () {
-                      Navigator.pop(context);
+                      final sheetCtx = context;
+                      Navigator.pop(sheetCtx);
                       showDialog(
-                        context: context,
-                        builder: (context) => AddTransactionDialog(
+                        context: sheetCtx,
+                        builder: (ctx) => AddTransactionDialog(
                           transaction: transaction,
                         ),
                       );
@@ -387,32 +389,37 @@ class TransactionDetailSheet extends StatelessWidget {
   }
 
   void _deleteTransaction(BuildContext context, TransactionController txnCtrl) {
+    // Capture the sheet-level context before opening the dialog.
+    // The dialog builder's own `context` becomes stale after Navigator.pop(),
+    // so we must use the outer context for subsequent navigation and SnackBars.
+    final sheetContext = context;
+
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: sheetContext,
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Delete Transaction'),
         content: Text('Are you sure you want to delete "${transaction.description}"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogCtx),
             child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () {
               HapticFeedback.mediumImpact();
               txnCtrl.deleteTransaction(transaction.id);
-              Navigator.pop(context); // Close confirmation dialog
-              Navigator.pop(context); // Close detail sheet
-              ScaffoldMessenger.of(context).showSnackBar(
+              Navigator.pop(dialogCtx);    // Close confirmation dialog
+              Navigator.pop(sheetContext); // Close detail sheet
+              ScaffoldMessenger.of(sheetContext).showSnackBar(
                 SnackBar(
                   content: Text('Transaction "${transaction.description}" deleted'),
-                  backgroundColor: Theme.of(context).colorScheme.error,
+                  backgroundColor: Theme.of(sheetContext).colorScheme.error,
                 ),
               );
             },
             style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
+              backgroundColor: Theme.of(sheetContext).colorScheme.error,
+              foregroundColor: Theme.of(sheetContext).colorScheme.onError,
             ),
             child: const Text('Delete'),
           ),

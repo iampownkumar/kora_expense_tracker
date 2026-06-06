@@ -410,9 +410,14 @@ class _AccountsScreenState extends State<AccountsScreen>
         .where((t) => t.accountId == account.id || t.toAccountId == account.id)
         .length;
 
+    // Capture the screen-level context BEFORE showing the dialog.
+    // The dialog builder gets its own local context which becomes stale
+    // after Navigator.pop(), causing subsequent showDialog calls to silently fail.
+    final screenContext = context;
+
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: screenContext,
+      builder: (dialogCtx) => AlertDialog(
         title: Text('Delete ${account.name}'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -449,20 +454,20 @@ class _AccountsScreenState extends State<AccountsScreen>
             Text(
               'Choose deletion option:',
               style: Theme.of(
-                context,
+                dialogCtx,
               ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogCtx).pop(),
             child: const Text('Cancel'),
           ),
           if (transactionCount > 0) ...[
             TextButton(
               onPressed: () => _deleteAccountWithTransactions(
-                context,
+                screenContext,
                 account,
                 provider,
                 isCreditCard,
@@ -474,7 +479,7 @@ class _AccountsScreenState extends State<AccountsScreen>
             ),
             TextButton(
               onPressed: () => _deleteAccountAndTransactions(
-                context,
+                screenContext,
                 account,
                 provider,
                 isCreditCard,
@@ -488,7 +493,7 @@ class _AccountsScreenState extends State<AccountsScreen>
           ] else ...[
             TextButton(
               onPressed: () => _deleteAccountWithTransactions(
-                context,
+                screenContext,
                 account,
                 provider,
                 isCreditCard,
@@ -511,12 +516,15 @@ class _AccountsScreenState extends State<AccountsScreen>
     AccountController provider,
     bool isCreditCard,
   ) async {
-    Navigator.of(context).pop(); // Close the dialog
+    // Close the first (choice) dialog using its navigator before showing the next one.
+    Navigator.of(context).pop();
+
+    if (!context.mounted) return;
 
     // Show confirmation for account-only deletion
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Delete Account Only'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -550,11 +558,11 @@ class _AccountsScreenState extends State<AccountsScreen>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
             child: const Text(
               'Delete Account',
               style: TextStyle(color: Colors.blue),
@@ -564,7 +572,7 @@ class _AccountsScreenState extends State<AccountsScreen>
       ),
     );
 
-    if (confirmed == true) {
+    if (confirmed == true && context.mounted) {
       await _performAccountDeletion(
         context,
         account,
@@ -583,12 +591,15 @@ class _AccountsScreenState extends State<AccountsScreen>
     bool isCreditCard,
     int transactionCount,
   ) async {
-    Navigator.of(context).pop(); // Close the dialog
+    // Close the first (choice) dialog using its navigator before showing the next one.
+    Navigator.of(context).pop();
+
+    if (!context.mounted) return;
 
     // Show confirmation for account + transactions deletion
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Delete Account + Transactions'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -622,11 +633,11 @@ class _AccountsScreenState extends State<AccountsScreen>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
             child: const Text(
               'Delete Everything',
               style: TextStyle(color: Colors.red),
@@ -636,7 +647,7 @@ class _AccountsScreenState extends State<AccountsScreen>
       ),
     );
 
-    if (confirmed == true) {
+    if (confirmed == true && context.mounted) {
       await _performAccountDeletion(
         context,
         account,
@@ -667,6 +678,8 @@ class _AccountsScreenState extends State<AccountsScreen>
         success = await provider.deleteAccount(account.id, txns);
       }
 
+      if (!context.mounted) return;
+
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -689,6 +702,7 @@ class _AccountsScreenState extends State<AccountsScreen>
         );
       }
     } catch (e) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error deleting account: $e'),

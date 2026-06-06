@@ -10,10 +10,7 @@ import '../../core/utils/formatters.dart';
 class PaymentHistoryScreen extends StatelessWidget {
   final CreditCard creditCard;
 
-  const PaymentHistoryScreen({
-    super.key,
-    required this.creditCard,
-  });
+  const PaymentHistoryScreen({super.key, required this.creditCard});
 
   @override
   Widget build(BuildContext context) {
@@ -26,12 +23,17 @@ class PaymentHistoryScreen extends StatelessWidget {
       body: Consumer<TransactionController>(
         builder: (context, txnCtrl, child) {
           // Get all payment transactions for this credit card
-          final paymentTransactions = txnCtrl.transactions
-              .where((transaction) => 
-                  transaction.type == 'expense' && 
-                  transaction.toAccountId == creditCard.id)
-              .toList()
-            ..sort((a, b) => b.date.compareTo(a.date)); // Sort by date descending
+          final paymentTransactions =
+              txnCtrl.transactions
+                  .where(
+                    (transaction) =>
+                        transaction.type == 'expense' &&
+                        transaction.toAccountId == creditCard.id,
+                  )
+                  .toList()
+                ..sort(
+                  (a, b) => b.date.compareTo(a.date),
+                ); // Sort by date descending
 
           if (paymentTransactions.isEmpty) {
             return _buildEmptyState(context);
@@ -41,7 +43,7 @@ class PaymentHistoryScreen extends StatelessWidget {
             children: [
               // Summary Card
               _buildSummaryCard(context, paymentTransactions),
-              
+
               // Payment List
               Expanded(
                 child: ListView.builder(
@@ -65,11 +67,7 @@ class PaymentHistoryScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.payment,
-            size: 80,
-            color: Colors.grey.shade400,
-          ),
+          Icon(Icons.payment, size: 80, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
             'No Payment History',
@@ -81,9 +79,9 @@ class PaymentHistoryScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'This will be your first payment to this credit card.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Colors.grey.shade500,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: Colors.grey.shade500),
             textAlign: TextAlign.center,
           ),
         ],
@@ -92,7 +90,10 @@ class PaymentHistoryScreen extends StatelessWidget {
   }
 
   Widget _buildSummaryCard(BuildContext context, List<Transaction> payments) {
-    final totalPaid = payments.fold<double>(0.0, (sum, payment) => sum + payment.amount);
+    final totalPaid = payments.fold<double>(
+      0.0,
+      (sum, payment) => sum + payment.amount,
+    );
     final paymentCount = payments.length;
     final lastPayment = payments.isNotEmpty ? payments.first : null;
 
@@ -134,7 +135,7 @@ class PaymentHistoryScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           Row(
             children: [
               Expanded(
@@ -158,7 +159,7 @@ class PaymentHistoryScreen extends StatelessWidget {
               ),
             ],
           ),
-          
+
           if (lastPayment != null) ...[
             const SizedBox(height: 16),
             _buildSummaryItem(
@@ -174,7 +175,13 @@ class PaymentHistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryItem(BuildContext context, String label, String value, IconData icon, Color color) {
+  Widget _buildSummaryItem(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -182,9 +189,7 @@ class PaymentHistoryScreen extends StatelessWidget {
             ? Colors.black.withValues(alpha: 0.25)
             : Colors.black.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,11 +247,7 @@ class PaymentHistoryScreen extends StatelessWidget {
                   color: Colors.green.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  Icons.payment,
-                  color: Colors.green,
-                  size: 20,
-                ),
+                child: Icon(Icons.payment, color: Colors.green, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -269,7 +270,8 @@ class PaymentHistoryScreen extends StatelessWidget {
                 ),
               ),
               // Image thumbnail
-              if (transaction.imagePath != null && transaction.imagePath!.isNotEmpty) ...[
+              if (transaction.imagePath != null &&
+                  transaction.imagePath!.isNotEmpty) ...[
                 GestureDetector(
                   onTap: () {
                     showDialog(
@@ -337,7 +339,7 @@ class PaymentHistoryScreen extends StatelessWidget {
               ),
             ],
           ),
-          
+
           if (transaction.notes != null && transaction.notes!.isNotEmpty) ...[
             const SizedBox(height: 12),
             Container(
@@ -349,9 +351,9 @@ class PaymentHistoryScreen extends StatelessWidget {
               ),
               child: Text(
                 transaction.notes!,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey.shade700,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
               ),
             ),
           ],

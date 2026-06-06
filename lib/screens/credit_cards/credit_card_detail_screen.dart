@@ -1198,36 +1198,40 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   }
 
   void _deleteCard() {
+    // Capture the screen-level context before opening the dialog.
+    // Using the dialog's own builder context for Provider reads or Navigator
+    // calls after pop() causes a stale-context error where the deletion silently fails.
+    final screenContext = context;
+    final creditCardProvider = screenContext.read<CreditCardController>();
+
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: screenContext,
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Delete Credit Card'),
         content: Text('Are you sure you want to delete ${_currentCard.name}? This action cannot be undone.\n\nThis will remove the credit card from both the Credit Cards screen and Accounts screen.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogCtx).pop(),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.of(context).pop();
-              
-              // Delete from CreditCardProvider (which deletes corresponding Account internally)
-              final creditCardProvider = context.read<CreditCardController>();
+              Navigator.of(dialogCtx).pop();
+
               final creditCardSuccess = await creditCardProvider.deleteCreditCard(_currentCard.id);
-              
+
               if (!mounted) return;
-              
+
               if (creditCardSuccess) {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
+                Navigator.of(screenContext).pop();
+                ScaffoldMessenger.of(screenContext).showSnackBar(
                   const SnackBar(
                     content: Text('Credit card deleted successfully from both screens!'),
                     backgroundColor: Colors.green,
                   ),
                 );
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
+                ScaffoldMessenger.of(screenContext).showSnackBar(
                   SnackBar(
                     content: Text('Credit card deletion failed: ${creditCardProvider.error}'),
                     backgroundColor: Colors.red,
@@ -1739,7 +1743,9 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
   Future<void> _deleteStatement(statement) async {
     final creditCardProvider = context.read<CreditCardController>();
     final success = await creditCardProvider.deleteStatement(statement.id);
-    
+
+    if (!mounted) return;
+
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -2793,13 +2799,14 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
 
   void _confirmAutoPaySetup(bool payFullBalance) async {
     Navigator.of(context).pop(); // Close dialog
-    
+
     final creditCardProvider = context.read<CreditCardController>();
     final accCtrl = context.read<AccountController>();
 
     // Get the first available account for payment
     final accounts = accCtrl.accounts;
     if (accounts.isEmpty) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('No accounts available for auto-pay. Please add an account first.'),
@@ -2808,17 +2815,19 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
       );
       return;
     }
-    
+
     final paymentAccount = accounts.first;
     final amount = payFullBalance ? _currentCard.outstandingBalance : _currentCard.minimumPaymentAmount;
-    
+
     final success = await creditCardProvider.setupAutoPay(
       _currentCard.id,
       amount: amount,
       paymentAccountId: paymentAccount.id,
       payFullBalance: payFullBalance,
     );
-    
+
+    if (!mounted) return;
+
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -3175,7 +3184,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen>
       ),
     ).then((result) {
       // Only show success message if transaction was actually added
-      if (result == true) {
+      if (result == true && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Transaction added to ${_currentCard.name} successfully!'),
