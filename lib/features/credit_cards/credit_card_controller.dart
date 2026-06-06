@@ -118,6 +118,8 @@ class CreditCardController extends ChangeNotifier {
     _creditCards = await _service.loadCreditCards();
     _statements  = await _service.loadStatements();
     _payments    = await _service.loadPaymentRecords();
+    // Recalculate statement paid amounts from actual payment transactions
+    await _syncStatementPaidAmounts();
     notifyListeners();
   }
 
@@ -297,12 +299,15 @@ class CreditCardController extends ChangeNotifier {
       final now = DateTime.now();
       final billingDay = card.billingCycleDay;
 
+      // Determine the billing period that just closed
       final DateTime periodStart;
       final DateTime periodEnd;
       if (now.day < billingDay) {
+        // We're before this month's billing day → last period was prev month
         periodStart = DateTime(now.year, now.month - 1, billingDay);
         periodEnd   = DateTime(now.year, now.month, billingDay - 1);
       } else {
+        // We're on or after this month's billing day → current period
         periodStart = DateTime(now.year, now.month, billingDay);
         periodEnd   = DateTime(now.year, now.month + 1, billingDay - 1);
       }
@@ -319,33 +324,91 @@ class CreditCardController extends ChangeNotifier {
         return null;
       }
 
-      final previousBalance = getStatementsForCard(cardId)
-          .map((s) => s.newBalance)
-          .fold<double?>(null, (prev, b) => prev == null || b > prev ? b : prev) ?? 0.0;
+      // ── Calculate from actual transactions ───────────────────────────────
+      final allTxns = _transactionController.transactions;
+
+      // Expenses charged to the card within the period
+      final purchases = allTxns
+          .where((t) =>
+              t.accountId == cardId &&
+              t.isExpense &&
+              !t.date.isBefore(periodStart) &&
+              !t.date.isAfter(periodEnd))
+          .fold(0.0, (sum, t) => sum + t.amount.abs());
+
+      // Payments received (transfers TO the card) within the period
+      final paymentsAndCredits = allTxns
+          .where((t) =>
+              t.isTransfer &&
+              t.toAccountId == cardId &&
+              !t.date.isBefore(periodStart) &&
+              !t.date.isAfter(periodEnd))
+          .fold(0.0, (sum, t) => sum + t.amount.abs());
+
+      // Previous balance = most recent prior statement's newBalance (sorted by date)
+      final priorStatements = getStatementsForCard(cardId)
+          .where((s) => s.periodEnd.isBefore(periodStart))
+          .toList()
+        ..sort((a, b) => b.periodEnd.compareTo(a.periodEnd));
+      final previousBalance = priorStatements.isNotEmpty
+          ? priorStatements.first.newBalance
+          : 0.0;
+
+      // Interest: only if there was a carried-over balance and we're past due
+      double interestCharges = 0.0;
+      if (previousBalance > 0 && card.isOverdue) {
+        final dailyRate = card.interestRate / 100 / 365;
+        final daysOverdue = card.nextDueDate != null
+            ? now.difference(card.nextDueDate!).inDays.clamp(0, 365)
+            : 0;
+        interestCharges = previousBalance * dailyRate * daysOverdue;
+      }
+
+      final newBalance = (previousBalance + purchases + interestCharges - paymentsAndCredits)
+          .clamp(0.0, double.infinity);
+
+      final paymentDueDate = card.nextDueDate ?? now.add(const Duration(days: 21));
 
       final statement = CreditCardStatement(
         id: 'stmt_${now.millisecondsSinceEpoch}_${now.microsecond}',
         creditCardId: cardId,
-        statementNumber: '${now.year}-${now.month.toString().padLeft(2, '0')}',
+        statementNumber: '${periodStart.year}-${periodStart.month.toString().padLeft(2, '0')}',
         periodStart: periodStart,
         periodEnd: periodEnd,
         previousBalance: previousBalance,
-        paymentsAndCredits: 0.0,
-        purchases: 0.0,
+        paymentsAndCredits: paymentsAndCredits,
+        purchases: purchases,
         cashAdvances: 0.0,
-        interestCharges: 0.0,
+        interestCharges: interestCharges,
         feesAndCharges: 0.0,
-        newBalance: card.outstandingBalance,
-        minimumPaymentDue: card.minimumPaymentAmount,
-        paymentDueDate: card.nextDueDate ?? now.add(const Duration(days: 21)),
+        newBalance: newBalance,
+        minimumPaymentDue: newBalance * (card.minimumPaymentPercentage / 100),
+        paymentDueDate: paymentDueDate,
         generatedDate: now,
-        status: StatementStatus.generated,
+        status: newBalance <= 0 ? StatementStatus.paid : StatementStatus.generated,
         createdAt: now,
         updatedAt: now,
       );
 
       await _service.addStatement(statement);
       _statements.add(statement);
+
+      // ── Advance billing cycle dates on the card ───────────────────────────
+      final nextBillingMonth = periodEnd.month + 1;
+      final nextBillingYear = nextBillingMonth > 12
+          ? periodEnd.year + 1
+          : periodEnd.year;
+      final normalizedMonth = nextBillingMonth > 12 ? 1 : nextBillingMonth;
+      final nextBillingDate = DateTime(nextBillingYear, normalizedMonth, billingDay);
+      final nextDueDate = nextBillingDate.add(Duration(days: card.gracePeriodDays));
+
+      final updatedCard = card.copyWith(
+        nextBillingDate: nextBillingDate,
+        nextDueDate: nextDueDate,
+        updatedAt: now,
+      );
+      await updateCreditCard(updatedCard);
+
       _error = null;
       notifyListeners();
       return statement;
@@ -472,6 +535,51 @@ class CreditCardController extends ChangeNotifier {
       }
     }
     if (updated) await _service.saveStatements(_statements);
+  }
+
+  /// Recalculates each open statement's paidAmount from actual payment transfer
+  /// transactions and updates status to paid when fully settled.
+  /// Called from refresh() so it runs automatically after any transaction change.
+  Future<void> _syncStatementPaidAmounts() async {
+    bool anyUpdated = false;
+    final allTxns = _transactionController.transactions;
+
+    for (int i = 0; i < _statements.length; i++) {
+      final s = _statements[i];
+      // Only recalculate open statements (generated or overdue)
+      if (s.status == StatementStatus.paid) continue;
+
+      // Sum all payment transfers to this card within the statement period
+      // Allow a 30-day window after period end for late payments
+      final windowEnd = s.periodEnd.add(const Duration(days: 30));
+      final paid = allTxns
+          .where((t) =>
+              t.isTransfer &&
+              t.toAccountId == s.creditCardId &&
+              !t.date.isBefore(s.periodStart) &&
+              !t.date.isAfter(windowEnd))
+          .fold(0.0, (sum, t) => sum + t.amount.abs());
+
+      final isFullyPaid = paid >= s.newBalance && s.newBalance > 0;
+      final newStatus = isFullyPaid ? StatementStatus.paid : s.status;
+      final paidDate = isFullyPaid && s.paidDate == null ? DateTime.now() : s.paidDate;
+
+      // Only write if something actually changed
+      if ((paid - s.paidAmount).abs() > 0.001 || newStatus != s.status) {
+        _statements[i] = s.copyWith(
+          paidAmount: paid,
+          status: newStatus,
+          paidDate: paidDate,
+          updatedAt: DateTime.now(),
+        );
+        await _service.updateStatement(_statements[i]);
+        anyUpdated = true;
+      }
+    }
+
+    if (anyUpdated) {
+      debugPrint('CreditCardController: synced statement paid amounts');
+    }
   }
 
   /// Configure auto-pay for a card (stub — full auto-pay scheduling is a future feature).
