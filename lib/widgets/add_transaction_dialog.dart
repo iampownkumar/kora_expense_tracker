@@ -256,23 +256,23 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                       children: [
                         // Transaction Details Cards
                         _buildTransactionTitleCard(),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
 
                         _buildAmountCard(),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
 
                         // Transfer-specific UI
                         if (_selectedType ==
                             AppConstants.transactionTypeTransfer) ...[
                           _buildFromAccountCard(),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 8),
                           _buildToAccountCard(),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 8),
                         ] else ...[
                           _buildAccountCard(),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 8),
                           _buildCategoryCard(),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 8),
                           // Sub-category card — shown automatically when
                           // the selected parent has sub-categories
                           if (_selectedParentCategoryId != null &&
@@ -281,15 +281,15 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                                   .isNotEmpty) ...
                           [
                             _buildSubCategoryCard(),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 8),
                           ],
                         ],
 
                         _buildDateTimeCard(),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
 
                         _buildImageAttachmentCard(),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
 
                         _buildNotesCard(),
                         const SizedBox(height: 24),
@@ -411,7 +411,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
             : BorderSide.none,
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
             Icon(
@@ -471,7 +471,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
             : BorderSide.none,
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
             Icon(
@@ -536,7 +536,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               : BorderSide.none,
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Row(
             children: [
               Icon(
@@ -609,7 +609,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               : BorderSide.none,
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Row(
             children: [
               Icon(Icons.account_balance, color: Colors.blue, size: 20),
@@ -678,7 +678,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               : BorderSide.none,
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Row(
             children: [
               Icon(
@@ -756,7 +756,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               : BorderSide.none,
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Row(
             children: [
               Icon(
@@ -835,7 +835,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Row(
             children: [
               Icon(
@@ -899,7 +899,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Column(
           children: [
             // Date Row with Swipe
@@ -955,7 +955,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             // Time Row with Swipe
             GestureDetector(
               onHorizontalDragEnd: (details) {
@@ -1024,7 +1024,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
             Icon(
@@ -1209,7 +1209,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1366,7 +1366,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.7,
         ),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1374,7 +1374,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               'Select Source Account',
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             Flexible(
               child: ListView(
                 shrinkWrap: true,
@@ -1437,7 +1437,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.7,
         ),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1445,7 +1445,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               'Select Destination Account',
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             Flexible(
               child: ListView(
                 shrinkWrap: true,
@@ -1496,7 +1496,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.7,
         ),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1504,7 +1504,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               'Select Account',
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             Flexible(
               child: ListView(
                 shrinkWrap: true,
@@ -1567,7 +1567,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.7,
         ),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1670,7 +1670,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.6,
         ),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
