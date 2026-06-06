@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'permission_disclosure_dialog.dart';
+import 'add_category_dialog.dart';
+import 'add_account_dialog.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 import 'package:kora_expense_tracker/core/models/transactions/transaction.dart';
 import 'package:kora_expense_tracker/core/models/accounts/account_type.dart';
@@ -727,8 +729,21 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                 ),
               ),
               IconButton(
-                onPressed: () => _showAccountPicker(),
-                icon: const Icon(Icons.keyboard_arrow_down),
+                onPressed: () async {
+                  final added = await showModalBottomSheet<bool>(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (sheetCtx) => AddAccountDialog(
+                      onSave: (account) async {
+                        return await context.read<AccountController>().addAccount(account);
+                      },
+                    ),
+                  );
+                  if (added == true && mounted) {
+                    setState(() {});
+                  }
+                },
+                icon: const Icon(Icons.add),
               ),
             ],
           ),
@@ -792,8 +807,17 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
                 ),
               ),
               IconButton(
-                onPressed: () => _showCategoryPicker(),
-                icon: const Icon(Icons.keyboard_arrow_down),
+                onPressed: () async {
+                  final added = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => const AddCategoryDialog(),
+                  );
+                  // Refresh if category was added
+                  if (added == true && mounted) {
+                    setState(() {});
+                  }
+                },
+                icon: const Icon(Icons.add),
               ),
             ],
           ),
@@ -804,14 +828,32 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
 
   /// Step 2 — optional sub-category card (shown only when parent has subs)
   Widget _buildSubCategoryCard() {
+    final subs = _txn
+        .getSubCategories(_selectedParentCategoryId!)
+        .where((s) {
+          if (_selectedType == AppConstants.transactionTypeIncome) {
+            return s.type == AppConstants.categoryTypeIncome ||
+                s.type == AppConstants.categoryTypeBoth;
+          } else if (_selectedType == AppConstants.transactionTypeExpense) {
+            return s.type == AppConstants.categoryTypeExpense ||
+                s.type == AppConstants.categoryTypeBoth;
+          }
+          return true;
+        })
+        .toList();
+
     final selectedSub = _selectedSubCategoryId != null
         ? _txn.categories
             .where((c) => c.id == _selectedSubCategoryId)
             .firstOrNull
         : null;
 
+    final parentCat = _txn.categories
+        .where((c) => c.id == _selectedParentCategoryId)
+        .firstOrNull;
+
     return GestureDetector(
-      onTap: () => _showCategoryPicker(),
+      onTap: () => _showSubCategoryPicker(parentCat, subs),
       child: Card(
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -1549,6 +1591,7 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
   }
 
   void _showCategoryPicker() {
+    // Step 1: show only top-level categories filtered by transaction type
     final topLevel = _txn.topLevelCategories.where((c) {
       if (_selectedType == AppConstants.transactionTypeIncome) {
         return c.type == AppConstants.categoryTypeIncome ||
@@ -1575,109 +1618,154 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
               'Select Category',
               style: Theme.of(context).textTheme.titleLarge,
             ),
+            const SizedBox(height: 8),
+            Text(
+              'Categories with sub-categories will show a refinement step.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 12),
             Flexible(
               child: ListView(
                 shrinkWrap: true,
                 children: topLevel.map((category) {
-                  final subs = _txn.getSubCategories(category.id).where((s) {
-                    if (_selectedType == AppConstants.transactionTypeIncome) {
-                      return s.type == AppConstants.categoryTypeIncome ||
-                          s.type == AppConstants.categoryTypeBoth;
-                    } else if (_selectedType == AppConstants.transactionTypeExpense) {
-                      return s.type == AppConstants.categoryTypeExpense ||
-                          s.type == AppConstants.categoryTypeBoth;
-                    }
-                    return true;
-                  }).toList();
+                  final subs = _txn
+                      .getSubCategories(category.id)
+                      .where((s) {
+                        if (_selectedType ==
+                            AppConstants.transactionTypeIncome) {
+                          return s.type == AppConstants.categoryTypeIncome ||
+                              s.type == AppConstants.categoryTypeBoth;
+                        } else if (_selectedType ==
+                            AppConstants.transactionTypeExpense) {
+                          return s.type == AppConstants.categoryTypeExpense ||
+                              s.type == AppConstants.categoryTypeBoth;
+                        }
+                        return true;
+                      })
+                      .toList();
 
-                  if (subs.isEmpty) {
-                    return ListTile(
-                      leading: Icon(category.icon, color: category.color),
-                      title: Text(
-                        category.name,
-                        style: const TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        setState(() {
-                          _selectedParentCategoryId = category.id;
-                          _selectedSubCategoryId = null;
-                          _selectedCategoryId = category.id;
-                        });
-                      },
-                    );
-                  }
-
-                  // If it has sub-categories, use ExpansionTile
-                  return Theme(
-                    data: Theme.of(context).copyWith(
-                      dividerColor: Colors.transparent, // Remove line when expanded
+                  return ListTile(
+                    leading: Icon(category.icon, color: category.color),
+                    title: Text(
+                      category.name,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
                     ),
-                    child: ExpansionTile(
-                      leading: Icon(category.icon, color: category.color),
-                      title: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              category.name,
-                              style: const TextStyle(fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '${subs.length} sub',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                fontWeight: FontWeight.bold,
+                    trailing: subs.isNotEmpty
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: category.color.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '${subs.length} sub',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: category.color,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      childrenPadding: const EdgeInsets.only(left: 32),
-                      children: [
-                        // Option to just select the parent
-                        ListTile(
-                          leading: const Icon(Icons.check_circle_outline, size: 20),
-                          title: Text('Select "${category.name}"'),
-                          dense: true,
-                          onTap: () {
-                            Navigator.of(context).pop();
-                            setState(() {
-                              _selectedParentCategoryId = category.id;
-                              _selectedSubCategoryId = null;
-                              _selectedCategoryId = category.id;
-                            });
-                          },
-                        ),
-                        // List the actual sub-categories
-                        ...subs.map((sub) => ListTile(
-                              leading: Icon(sub.icon, color: sub.color, size: 20),
-                              title: Text(sub.name),
-                              dense: true,
-                              onTap: () {
-                                Navigator.of(context).pop();
-                                setState(() {
-                                  _selectedParentCategoryId = category.id;
-                                  _selectedSubCategoryId = sub.id;
-                                  _selectedCategoryId = sub.id;
-                                });
-                              },
-                            )),
-                      ],
-                    ),
+                              const Icon(Icons.chevron_right, size: 16),
+                            ],
+                          )
+                        : null,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      // Always set the parent category
+                      setState(() {
+                        _selectedParentCategoryId = category.id;
+                        _selectedSubCategoryId = null; // reset sub on parent change
+                        _selectedCategoryId = category.id; // parent is default
+                      });
+                      // If subs exist: auto-open sub picker (non-mandatory)
+                      if (subs.isNotEmpty) {
+                        Future.delayed(const Duration(milliseconds: 200), () {
+                          if (mounted) _showSubCategoryPicker(category, subs);
+                        });
+                      }
+                    },
                   );
                 }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSubCategoryPicker(dynamic parent, List<dynamic> subs) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.6,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Icon(parent.icon, color: parent.color, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  parent.name,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                // "Skip" dismisses without selecting a sub — parent stays
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Skip'),
+                ),
+              ],
+            ),
+            const Divider(),
+            Text(
+              'Choose a sub-category (optional):',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: subs
+                    .map<Widget>(
+                      (sub) => ListTile(
+                        leading: Icon(sub.icon, color: sub.color),
+                        title: Text(sub.name),
+                        trailing: _selectedSubCategoryId == sub.id
+                            ? Icon(Icons.check_circle,
+                                color: Theme.of(context).colorScheme.primary)
+                            : null,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          setState(() {
+                            _selectedSubCategoryId = sub.id;
+                            _selectedCategoryId = sub.id; // saved as sub
+                            // _selectedParentCategoryId already set
+                          });
+                        },
+                      ),
+                    )
+                    .toList(),
               ),
             ),
           ],
