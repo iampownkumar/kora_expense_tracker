@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:kora_expense_tracker/features/transactions/transaction_controller.dart';
 import 'package:kora_expense_tracker/features/accounts/account_controller.dart';
 import 'package:kora_expense_tracker/features/credit_cards/credit_card_controller.dart';
-
+import '../../core/utils/storage_service.dart';
 import '../../core/utils/import_export_service.dart';
 
 /// Import/Export Screen for data backup and restore
@@ -26,7 +26,11 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Export Section
+            // Full Database Backup/Restore
+            _buildDatabaseBackupSection(),
+            const SizedBox(height: 24),
+
+            // CSV Export Section
             _buildExportSection(),
             const SizedBox(height: 24),
 
@@ -55,7 +59,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Export Data',
+                  'Export to CSV',
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -211,8 +215,11 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     );
   }
 
-  // ignore: unused_element
   Future<void> _exportAllData() async {
+    final accountCtrl = context.read<AccountController>();
+    final transactionCtrl = context.read<TransactionController>();
+    final creditCardCtrl = context.read<CreditCardController>();
+    
     setState(() => _isExporting = true);
 
     try {
@@ -233,15 +240,13 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
         );
       }
 
-      final creditCardCtrl = context.read<CreditCardController>();
-
       final filePath = await ImportExportService.exportData(
-        accounts: context.read<AccountController>().accounts,
-        transactions: context.read<TransactionController>().transactions,
+        accounts: accountCtrl.accounts,
+        transactions: transactionCtrl.transactions,
         creditCards: creditCardCtrl.creditCards,
         statements: creditCardCtrl.statements,
         payments: creditCardCtrl.payments,
-        categories: context.read<TransactionController>().categories,
+        categories: transactionCtrl.categories,
         settings: null,
       );
 
@@ -263,6 +268,8 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
 
   // ignore: unused_element
   Future<void> _exportTransactionsCSV() async {
+    final transactionCtrl = context.read<TransactionController>();
+    
     setState(() => _isExporting = true);
 
     try {
@@ -282,7 +289,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       }
 
       final filePath = await ImportExportService.exportToCSV(
-        transactions: context.read<TransactionController>().transactions,
+        transactions: transactionCtrl.transactions,
       );
 
       if (filePath != null) {
@@ -324,14 +331,17 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   }
 
   Future<void> _handleExportCSV(BuildContext context) async {
-    setState(() => _isExporting = true);
     final provider = context.read<TransactionController>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
+    setState(() => _isExporting = true);
     final hasPermission = await ImportExportService.requestStoragePermission();
     if (!hasPermission) {
-      if (mounted)
-        ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) {
+        scaffoldMessenger.showSnackBar(
           const SnackBar(content: Text('Storage permission denied.')),
         );
+      }
       setState(() => _isExporting = false);
       return;
     }
@@ -340,13 +350,140 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     );
     setState(() => _isExporting = false);
     if (path != null && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Exported CSV to: $path')));
+      scaffoldMessenger.showSnackBar(SnackBar(content: Text('Exported CSV to: $path')));
     } else if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('CSV export failed.')));
+      scaffoldMessenger.showSnackBar(const SnackBar(content: Text('CSV export failed.')));
+    }
+  }
+
+  Widget _buildDatabaseBackupSection() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.backup_outlined,
+                  color: Theme.of(context).primaryColor,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Full Database Backup',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Backup or restore your complete Kora database (Accounts, Transactions, Cards, Categories) as a JSON file.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isExporting ? null : () => _exportAllData(),
+                    icon: const Icon(Icons.cloud_download_outlined),
+                    label: Text(_isExporting ? 'Creating...' : 'Backup (.json)'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isExporting ? null : () => _handleImportJSON(context),
+                    icon: const Icon(Icons.settings_backup_restore_outlined),
+                    label: const Text('Restore (.json)'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleImportJSON(BuildContext context) async {
+    final transactionCtrl = context.read<TransactionController>();
+    final accountCtrl = context.read<AccountController>();
+    final creditCardCtrl = context.read<CreditCardController>();
+    
+    // 1. Show confirmation dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Restore Database?'),
+        content: const Text(
+            'This will completely overwrite all your current data (accounts, transactions, cards) with the backup file. This action cannot be undone.\n\nAre you sure you want to proceed?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Yes, Restore'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isExporting = true);
+
+    try {
+      final Map<String, dynamic>? backupData = await ImportExportService.importData();
+
+      if (backupData == null) {
+        // User cancelled picker
+        setState(() => _isExporting = false);
+        return;
+      }
+
+      // Restore to database
+      final success = await StorageService.importData(backupData);
+
+      if (success) {
+        // Refresh controllers so UI updates
+        await transactionCtrl.refresh();
+        await accountCtrl.refresh();
+        await creditCardCtrl.refresh();
+
+        if (mounted) {
+          _showSuccessSnackBar('✅ Database restored successfully!');
+        }
+      } else {
+        if (mounted) _showErrorSnackBar('Failed to restore database from backup file.');
+      }
+    } catch (e) {
+      if (mounted) _showErrorSnackBar('Restore failed: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
     }
   }
 
