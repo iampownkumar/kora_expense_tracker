@@ -151,15 +151,12 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false, // Always intercept back press
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-
+    return WillPopScope(
+      onWillPop: () async {
         // 1. If not on Home tab, single press routes to Home.
         if (_selectedTabIndex != 0) {
           setState(() => _selectedTabIndex = 0);
-          return;
+          return false; // Prevent pop
         }
 
         // 2. If on Home tab, require double press to exit.
@@ -180,11 +177,11 @@ class _AppShellState extends State<AppShell> {
               margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16), // above nav bar
             ),
           );
-          return;
+          return false; // Prevent pop
         }
 
         // Double press confirmed within 2 seconds. Exit app.
-        SystemNavigator.pop();
+        return true; // Allow pop
       },
       child: Scaffold(
         body: IndexedStack(
