@@ -900,117 +900,117 @@ class _AddTransactionDialogState extends State<AddTransactionDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Column(
+        child: Row(
           children: [
-            // Date Row with Swipe
-            GestureDetector(
-              onHorizontalDragEnd: (details) {
-                if (details.primaryVelocity! > 0) {
-                  // Swipe right - go to previous day
-                  setState(() {
-                    _selectedDate = _selectedDate.subtract(
-                      const Duration(days: 1),
-                    );
-                  });
-                } else if (details.primaryVelocity! < 0) {
-                  // Swipe left - go to next day
-                  setState(() {
-                    _selectedDate = _selectedDate.add(const Duration(days: 1));
-                  });
-                }
-              },
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Date',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                        const SizedBox(height: 4),
-                        GestureDetector(
-                          onTap: () => _showDatePicker(),
-                          child: Text(
-                            Formatters.formatDate(_selectedDate),
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(fontWeight: FontWeight.w500),
-                          ),
-                        ),
-                      ],
+            // Date Section with Swipe
+            Expanded(
+              child: GestureDetector(
+                onHorizontalDragEnd: (details) {
+                  if (details.primaryVelocity! > 0) {
+                    setState(() {
+                      _selectedDate = _selectedDate.subtract(const Duration(days: 1));
+                    });
+                  } else if (details.primaryVelocity! < 0) {
+                    setState(() {
+                      _selectedDate = _selectedDate.add(const Duration(days: 1));
+                    });
+                  }
+                },
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      size: 20,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Date',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          GestureDetector(
+                            onTap: () => _showDatePicker(),
+                            child: Text(
+                              Formatters.formatDate(_selectedDate),
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 8),
-            // Time Row with Swipe
-            GestureDetector(
-              onHorizontalDragEnd: (details) {
-                if (details.primaryVelocity! > 0) {
-                  // Swipe right - go back 1 hour
-                  setState(() {
-                    _selectedTime = TimeOfDay(
-                      hour: (_selectedTime.hour - 1) % 24,
-                      minute: _selectedTime.minute,
-                    );
-                  });
-                } else if (details.primaryVelocity! < 0) {
-                  // Swipe left - go forward 1 hour
-                  setState(() {
-                    _selectedTime = TimeOfDay(
-                      hour: (_selectedTime.hour + 1) % 24,
-                      minute: _selectedTime.minute,
-                    );
-                  });
-                }
-              },
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.access_time,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Time',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                        const SizedBox(height: 4),
-                        GestureDetector(
-                          onTap: () => _showTimePicker(),
-                          child: Text(
-                            _selectedTime.format(context),
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(fontWeight: FontWeight.w500),
-                          ),
-                        ),
-                      ],
+            // Divider
+            Container(
+              height: 32,
+              width: 1,
+              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+            ),
+            // Time Section with Swipe
+            Expanded(
+              child: GestureDetector(
+                onHorizontalDragEnd: (details) {
+                  if (details.primaryVelocity! > 0) {
+                    setState(() {
+                      _selectedTime = TimeOfDay(
+                        hour: (_selectedTime.hour - 1) % 24,
+                        minute: _selectedTime.minute,
+                      );
+                    });
+                  } else if (details.primaryVelocity! < 0) {
+                    setState(() {
+                      _selectedTime = TimeOfDay(
+                        hour: (_selectedTime.hour + 1) % 24,
+                        minute: _selectedTime.minute,
+                      );
+                    });
+                  }
+                },
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.access_time,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      size: 20,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Time',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          GestureDetector(
+                            onTap: () => _showTimePicker(),
+                            child: Text(
+                              _selectedTime.format(context),
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
