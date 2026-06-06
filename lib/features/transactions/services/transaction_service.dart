@@ -89,26 +89,32 @@ class TransactionService {
   Future<String?> _persistImage(String? currentPath) async {
     if (currentPath == null || currentPath.isEmpty) return null;
 
-    final file = File(currentPath);
-    if (!await file.exists()) return currentPath;
+    try {
+      final file = File(currentPath);
+      if (!await file.exists()) return currentPath;
 
-    final appDir = await getApplicationDocumentsDirectory();
-    final receiptsPath = '${appDir.path}/receipts';
-    final receiptsDir = Directory(receiptsPath);
+      final appDir = await getApplicationDocumentsDirectory();
+      final receiptsPath = '${appDir.path}/receipts';
+      final receiptsDir = Directory(receiptsPath);
 
-    if (currentPath.startsWith(receiptsPath))
-      return currentPath; // already saved
+      if (currentPath.startsWith(receiptsPath)) {
+        return currentPath; // already saved
+      }
 
-    if (!await receiptsDir.exists()) {
-      await receiptsDir.create(recursive: true);
+      if (!await receiptsDir.exists()) {
+        await receiptsDir.create(recursive: true);
+      }
+
+      // B5 fix: stable unique filename using milliseconds + microseconds
+      final ext = _fileExtension(currentPath);
+      final ts = DateTime.now();
+      final name = '${ts.millisecondsSinceEpoch}_${ts.microsecond}$ext';
+      final saved = await file.copy('$receiptsPath/$name');
+      return saved.path;
+    } catch (e) {
+      debugPrint('Error persisting image: $e');
+      return currentPath; // Fallback to the original temp path if copy fails
     }
-
-    // B5 fix: stable unique filename using milliseconds + microseconds
-    final ext = _fileExtension(currentPath);
-    final ts = DateTime.now();
-    final name = '${ts.millisecondsSinceEpoch}_${ts.microsecond}$ext';
-    final saved = await file.copy('$receiptsPath/$name');
-    return saved.path;
   }
 
   Future<void> _deleteImage(String? path) async {
