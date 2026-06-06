@@ -18,6 +18,23 @@ import '../models/settings.dart';
 class ImportExportService {
   static const String _exportFileName = 'kora_expense_tracker_backup';
 
+  /// Get the base public export directory (Root on Android, Documents on iOS)
+  static Future<Directory?> _getPublicExportDirectory() async {
+    if (Platform.isAndroid) {
+      final baseDir = Directory('/storage/emulated/0');
+      if (!await baseDir.exists()) {
+        try {
+          await baseDir.create(recursive: true);
+        } catch (e) {
+          debugPrint('Failed to create root dir: $e');
+        }
+      }
+      return baseDir;
+    } else {
+      return await getApplicationDocumentsDirectory();
+    }
+  }
+
   /// Export all app data to a JSON file
   static Future<String?> exportData({
     required List<Account> accounts,
@@ -56,15 +73,8 @@ class ImportExportService {
       // Convert to JSON string
       final jsonString = const JsonEncoder.withIndent('  ').convert(exportData);
 
-      // Get external storage directory (App-scoped, avoids permission issues on Android 11+)
-      Directory? directory;
-      if (Platform.isAndroid) {
-        directory = await getExternalStorageDirectory();
-      } else if (Platform.isIOS) {
-        directory = await getApplicationDocumentsDirectory();
-      } else {
-        directory = await getApplicationDocumentsDirectory();
-      }
+      // Get external storage directory (Downloads on Android)
+      final directory = await _getPublicExportDirectory();
 
       if (directory == null) {
         throw Exception('Could not access storage directory');
@@ -223,19 +233,7 @@ class ImportExportService {
       }
 
       // Get external storage directory (Downloads folder for easy access)
-      Directory? directory;
-      if (Platform.isAndroid) {
-        // Use Downloads directory for easy access
-        directory = Directory('/storage/emulated/0/Download');
-        // Fallback to external storage directory if Downloads doesn't work
-        if (!await directory.exists()) {
-          directory = await getExternalStorageDirectory();
-        }
-      } else if (Platform.isIOS) {
-        directory = await getApplicationDocumentsDirectory();
-      } else {
-        directory = await getApplicationDocumentsDirectory();
-      }
+      final directory = await _getPublicExportDirectory();
 
       if (directory == null) {
         throw Exception('Could not access storage directory');
@@ -343,12 +341,7 @@ class ImportExportService {
         ),
       );
 
-      Directory? directory;
-      if (Platform.isAndroid) {
-        directory = await getExternalStorageDirectory();
-      } else {
-        directory = await getApplicationDocumentsDirectory();
-      }
+      final directory = await _getPublicExportDirectory();
 
       final mainDir = Directory(
         '${directory?.path}/KoraExpenseTracker/Exports/PDF',
@@ -370,12 +363,7 @@ class ImportExportService {
   /// Get list of available backup files
   static Future<List<FileSystemEntity>> getBackupFiles() async {
     try {
-      Directory? directory;
-      if (Platform.isAndroid) {
-        directory = await getExternalStorageDirectory();
-      } else {
-        directory = await getApplicationDocumentsDirectory();
-      }
+      final directory = await _getPublicExportDirectory();
 
       if (directory == null) return [];
 
@@ -422,12 +410,7 @@ class ImportExportService {
   /// Get the export directory path for display
   static Future<String?> getExportDirectoryPath() async {
     try {
-      Directory? directory;
-      if (Platform.isAndroid) {
-        directory = await getExternalStorageDirectory();
-      } else {
-        directory = await getApplicationDocumentsDirectory();
-      }
+      final directory = await _getPublicExportDirectory();
 
       if (directory == null) return null;
 
@@ -472,15 +455,24 @@ class ImportExportService {
 
   /// Check if storage permission is granted
   static Future<bool> hasStoragePermission() async {
-    // App-scoped directories don't require external storage permissions on Android 11+
-    return true;
+    if (Platform.isAndroid) {
+      if (await Permission.manageExternalStorage.isGranted) return true;
+      if (await Permission.storage.isGranted) return true;
+      return false;
+    }
+    return true; // iOS handles via standard pickers usually
   }
 
   /// Request storage permission
   static Future<bool> requestStoragePermission() async {
-    // We use app-scoped directories (getExternalStorageDirectory on Android)
-    // which do not require any permissions on Android 11+.
-    return true; // iOS doesn't need explicit storage permission for documents dir
+    if (Platform.isAndroid) {
+      final manageStatus = await Permission.manageExternalStorage.request();
+      if (manageStatus.isGranted) return true;
+
+      final storageStatus = await Permission.storage.request();
+      return storageStatus.isGranted;
+    }
+    return true;
   }
 
   /// Import transactions from a CSV file picked by the user.
@@ -614,13 +606,27 @@ class ImportExportService {
   static Future<List<Map<String, dynamic>>> getAvailableCSVFiles() async {
     final List<FileSystemEntity> allFiles = [];
 
-    // Location 1: Downloads-based path (primary for Android)
+    // Location 1: Root-based path (primary for Android)
+    final rootDir = Directory(
+      '/storage/emulated/0/KoraExpenseTracker/Exports/CSV',
+    );
+    if (await rootDir.exists()) {
+      final files = await rootDir.list().toList();
+      allFiles.addAll(files.where((f) => f.path.toLowerCase().endsWith('.csv')));
+    }
+
+    // Location 1.5: Downloads-based path (legacy/fallback)
     final downloadDir = Directory(
       '/storage/emulated/0/Download/KoraExpenseTracker/Exports/CSV',
     );
     if (await downloadDir.exists()) {
       final files = await downloadDir.list().toList();
-      allFiles.addAll(files.where((f) => f.path.toLowerCase().endsWith('.csv')));
+      for (final f in files) {
+        if (f.path.toLowerCase().endsWith('.csv') &&
+            !allFiles.any((existing) => existing.path == f.path)) {
+          allFiles.add(f);
+        }
+      }
     }
 
     // Location 2: App-scoped external storage (fallback)
