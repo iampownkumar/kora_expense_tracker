@@ -5,7 +5,6 @@ import 'package:kora_expense_tracker/screens/accounts/accounts_screen.dart';
 import 'package:kora_expense_tracker/screens/credit_cards/credit_cards_screen.dart';
 import 'package:kora_expense_tracker/screens/more_screen.dart';
 import 'package:kora_expense_tracker/screens/reports/reports_screen.dart';
-import 'package:kora_expense_tracker/widgets/add_transaction_dialog.dart';
 import 'package:kora_expense_tracker/core/utils/storage_service.dart';
 import 'package:kora_expense_tracker/core/constants/app_constants.dart';
 
@@ -17,6 +16,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  int _currentIndex = 0;
+
   final List<Widget> _screens = [
     const DashboardScreen(),
     const TransactionsScreen(),
@@ -105,31 +106,31 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
           body: IndexedStack(
-            index: 0,
+            index: _currentIndex,
             children: _screens,
           ),
           bottomNavigationBar: GestureDetector(
-            // ── Original swipe-up to add transaction ──────────────────────
-            // Opens AddTransactionDialog as a bottom sheet (swipe DOWN to close)
-            onVerticalDragEnd: (details) {
-              if (details.primaryVelocity != null &&
-                  details.primaryVelocity! < -300) {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  useSafeArea: true,
-                  // enableDrag = true → swipe down dismisses the sheet
-                  enableDrag: true,
-                  isDismissible: true,
-                  builder: (context) => AddTransactionDialog(
-                  ),
-                );
-              }
-            },
+            // ── Swipe-up to add transaction (disabled — use the FAB/button instead) ──
+            // Uncomment onVerticalDragEnd below to re-enable swipe gesture
+            // onVerticalDragEnd: (details) {
+            //   if (details.primaryVelocity != null &&
+            //       details.primaryVelocity! < -300) {
+            //     showModalBottomSheet(
+            //       context: context,
+            //       isScrollControlled: true,
+            //       useSafeArea: true,
+            //       enableDrag: true,
+            //       isDismissible: true,
+            //       builder: (context) => AddTransactionDialog(),
+            //     );
+            //   }
+            // },
             child: NavigationBar(
-              selectedIndex: 0,
+              selectedIndex: _currentIndex,
               onDestinationSelected: (index) {
-                ;
+                setState(() {
+                  _currentIndex = index;
+                });
               },
               // Compact height
               height: 58,

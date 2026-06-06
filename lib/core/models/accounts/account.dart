@@ -156,14 +156,14 @@ class Account {
   String getFormattedBalance({String currencySymbol = '₹'}) {
     final absBalance = balance.abs();
     // Format with commas for thousands separator using NumberFormat
-    final formatter = NumberFormat('#,##0');
+    final formatter = NumberFormat('#,##0.00');
     final formattedNumber = formatter.format(absBalance);
     return '$currencySymbol$formattedNumber';
   }
 
   /// Get user-friendly formatted balance (removes minus for credit card credits)
   String getFormattedUserBalance({String currencySymbol = '₹'}) {
-    final formatter = NumberFormat('#,##0');
+    final formatter = NumberFormat('#,##0.00');
     // For credit cards, if balance is negative (credit), show as positive
     final displayAmount = (type == AccountType.creditCard && balance < 0) ? balance.abs() : balance.abs();
     return '$currencySymbol${formatter.format(displayAmount)}';
